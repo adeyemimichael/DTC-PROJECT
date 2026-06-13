@@ -33,28 +33,28 @@ export function MeetDoctor() {
         
         
         <div className="flex-1 w-full max-w-xl mx-auto lg:max-w-none">
-          {/* Photo */}
+        
           <div className="relative aspect-square w-full rounded-3xl overflow-hidden shadow-sm">
             <Image
               src="/images/stephen.jpg"
               alt="Dr. Stephen Adeyemi"
               fill
-              sizes="(max-width: 1024px) 100vw, 50vw"
+              sizes="(max-width: 1024px)  100vw, 50vw"
               className="object-cover object-top"
               priority
             />
           </div>
 
-          {/* Specialization Block */}
+         
           <div className="bg-black rounded-3xl p-6 md:p-8 mt-6 shadow-sm">
             <span className="text-[12px] font-bold text-white uppercase tracking-wider">
               Areas of Specialization
             </span>
-            <div className="flex flex-wrap gap-3 mt-4">
+            <div className="flex flex-wrap gap-4 mt-6">
               {specializations.map((spec, idx) => (
                 <span
                   key={idx}
-                  className="bg-primary-red text-white text-xs md:text-[13px] font-bold py-2.5 px-5 rounded-full select-none"
+                  className="bg-primary-red text-white text-xs md:text-[13px] font-bold py-2.5 px-6 rounded-full select-none"
                 >
                   {spec}
                 </span>
@@ -63,17 +63,17 @@ export function MeetDoctor() {
           </div>
         </div>
 
-        {/* Right Column - Stats, Bio & Quote */}
+       
         <div className="flex-1 flex flex-col justify-start">
-          {/* Header Block */}
+         
           <div>
             <span className="text-[14px] font-bold text-primary-red uppercase tracking-wider">
               Meet Your Doctor
             </span>
-            <h2 className="mt-3 text-[32px] sm:text-[40px] md:text-[48px] md:leading-[58px] font-extrabold tracking-[-0.02em] text-primary-deepblue">
+            <h2 className="mt-3 text-[32px] sm:text-[40px] md:text-[48px] md:leading-14.5 font-medium tracking-[-0.02em] text-primary-black">
               Dr. Stephen Adeyemi
             </h2>
-            <p className="mt-2 text-base md:text-lg text-primary-gray font-semibold">
+            <p className="mt-2 text-base md:text-lg text-primary-gray font-medium">
               MD, Internal Medicine · Lead Physician & Founder
             </p>
           </div>
@@ -88,7 +88,7 @@ export function MeetDoctor() {
                 <span className="text-[11px] font-bold text-slate-400 tracking-wider uppercase">
                   {cred.label}
                 </span>
-                <span className="text-[15px] font-bold text-primary-deepblue mt-1">
+                <span className="text-[15px] font-medium text-primary-deepblue mt-1">
                   {cred.value}
                 </span>
               </div>
@@ -105,8 +105,8 @@ export function MeetDoctor() {
             <p className="text-white font-medium italic text-[14px] md:text-[15px] leading-relaxed flex-1">
               "My patients deserve to know exactly what they are paying for and why. Transparency is not a feature — it is the foundation of trust."
             </p>
-            <div className="w-10 h-10 rounded-full bg-primary-red flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-              <Quote className="w-5 h-5 fill-white text-white rotate-180" />
+            <div className="w-10 h-10 rounded-full bg-primary-red flex items-center justify-center text-white shrink-0  shadow-sm">
+              <Quote className="w-5 h-5 fill-black text-black rotate-180" />
             </div>
           </div>
         </div>

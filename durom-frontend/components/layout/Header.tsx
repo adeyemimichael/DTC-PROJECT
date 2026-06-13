@@ -109,38 +109,59 @@ export function Header({ className }: HeaderProps) {
       </div>
 
       {/* Mobile Menu Panel */}
-      {isMobileMenuOpen && (
-        <div className="absolute top-20 left-0 w-full  bg-white/80 px-6 py-6 shadow-md transition-all duration-300 md:hidden 5 backdrop-blur-md ">
-          <nav className="flex flex-col gap-5">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-medium text-primary-deepblue transition-colors duration-200 hover:text-primary-blue dark:text-zinc-300 dark:hover:text-primary-blue"
-              >
-                {link.name}
-              </Link>
-            ))}
-            
-         
-            
-            {/* Mobile Actions */}
-            <div className="flex flex-col gap-4">
-              <Link href="#login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                <Button variant="outline" className="w-full">
-                  Log In
-                </Button>
-              </Link>
-              <Link href="#register" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
-                <Button variant="primary" className="w-full">
-                  Register Now
-                </Button>
-              </Link>
-            </div>
-          </nav>
-        </div>
-      )}
+      <div
+        className={cn(
+          "absolute top-20 left-0 w-full bg-white/95 px-6 py-6 shadow-md md:hidden backdrop-blur-md transition-all duration-300 ease-in-out border-t border-slate-100",
+          isMobileMenuOpen
+            ? "translate-y-0 opacity-100 pointer-events-auto visible"
+            : "-translate-y-4 opacity-0 pointer-events-none invisible"
+        )}
+      >
+        <nav className="flex flex-col gap-5">
+          {navLinks.map((link, idx) => (
+            <Link
+              key={link.name}
+              href={link.href}
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                transitionDelay: isMobileMenuOpen ? `${idx * 60}ms` : '0ms',
+              }}
+              className={cn(
+                "text-lg font-semibold text-primary-deepblue transition-all duration-300 hover:text-primary-blue",
+                isMobileMenuOpen
+                  ? "translate-x-0 opacity-100"
+                  : "-translate-x-4 opacity-0"
+              )}
+            >
+              {link.name}
+            </Link>
+          ))}
+          
+          {/* Mobile Actions */}
+          <div
+            style={{
+              transitionDelay: isMobileMenuOpen ? `${navLinks.length * 60}ms` : '0ms',
+            }}
+            className={cn(
+              "flex flex-col gap-4 mt-2 transition-all duration-300",
+              isMobileMenuOpen
+                ? "translate-x-0 opacity-100"
+                : "-translate-x-4 opacity-0"
+            )}
+          >
+            <Link href="#login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+              <Button variant="outline" className="w-full">
+                Log In
+              </Button>
+            </Link>
+            <Link href="#register" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+              <Button variant="primary" className="w-full">
+                Register Now
+              </Button>
+            </Link>
+          </div>
+        </nav>
+      </div>
     </header>
   );
 }

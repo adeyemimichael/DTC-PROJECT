@@ -1,9 +1,9 @@
-import { Header } from '@/components/layout';
-import { Hero, TrustBar, Services, HowItWorks, MeetDoctor } from '@/components/common';
+import { Header, Footer } from '@/components/layout';
+import { Hero, TrustBar, Services, HowItWorks, MeetDoctor, Pricing, FAQ, CTA } from '@/components/common';
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black">
+    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black animate-page-fade">
       {/* Header component */}
       <Header />
 
@@ -14,7 +14,13 @@ export default function Home() {
         <Services />
         <HowItWorks />
         <MeetDoctor />
+        <Pricing />
+        <FAQ />
+        <CTA />
       </main>
+
+      {/* Footer component */}
+      <Footer />
     </div>
   );
 }
