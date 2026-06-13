@@ -1,20 +1,16 @@
 /* Design Tokens & CSS Variables */
 :root {
   /* Color Tokens */
-  --color-primary-50: #f0f9ff;
-  --color-primary-100: #e0f2fe;
-  --color-primary-200: #bae6fd;
-  --color-primary-300: #7dd3fc;
-  --color-primary-400: #38bdf8;
-  --color-primary-500: #0ea5e9;
-  --color-primary-600: #0284c7;
-  --color-primary-700: #0369a1;
-  --color-primary-800: #075985;
-  --color-primary-900: #0c3d66;
+  --color-primary-white: #ffffff;
+  --color-primary-blue: #0149ff;
+  --color-primary-deepblue:#041544;
+  --color-primary-red: #f80400;
+  --color-primary-black: #000000;
+  --color-primary-gray: #404245;
 
-  --color-secondary-50: #f8fafc;
-  --color-secondary-100: #f1f5f9;
-  --color-secondary-200: #e2e8f0;
+  --color-secondary-white: #f8fafc;
+  --color-secondary-blue: #E7EEFF;
+  --color-secondary-lightred: #FFDFDF;
   --color-secondary-300: #cbd5e1;
   --color-secondary-400: #94a3b8;
   --color-secondary-500: #64748b;
@@ -25,6 +21,7 @@
 
   --color-success-500: #22c55e;
   --color-warning-500: #f59e0b;
+  
   --color-error-500: #ef4444;
 
   /* Spacing Tokens */
@@ -36,7 +33,7 @@
   --spacing-2xl: 2.5rem;
 
   /* Typography Tokens */
-  --font-family-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica',
+  --font-family-sans: 'Mont', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica',
     'Arial', sans-serif;
   --font-family-mono: 'Menlo', 'Monaco', 'Courier New', monospace;
 

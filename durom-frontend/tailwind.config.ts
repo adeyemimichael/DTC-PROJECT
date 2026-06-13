@@ -9,22 +9,42 @@ export default {
     extend: {
       // Color Palette
       colors: {
-        // Primary Colors
+        // Brand Colors
+        brand: {
+          blue: '#0149ff',      // Vibrant Brand Blue
+          navy: '#041544',      // Deep Navy Blue
+          red: '#f80400',       // Vibrant Accent Red
+          black: '#000000',     // Pure Black
+          white: '#ffffff',     // Pure White
+          gray: '#404245',      // Body Copy Gray
+        },
+        // Primary colors mapped for compatibility
         primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
+          white: '#ffffff',
+          blue: '#0149ff',
+          deepblue: '#041544',
+          red: '#f80400',
+          black: '#000000',
+          gray: '#404245',
+          
+          50: '#E7EEFF',        // mapped to ice blue
+          100: '#E7EEFF',
           200: '#bae6fd',
           300: '#7dd3fc',
           400: '#38bdf8',
-          500: '#0ea5e9',
+          500: '#0149ff',       // brand blue
           600: '#0284c7',
           700: '#0369a1',
           800: '#075985',
-          900: '#0c3d66',
-          950: '#082f49',
+          900: '#041544',       // brand deep navy
+          950: '#020617',
         },
         // Secondary Colors
         secondary: {
+          white: '#f8fafc',
+          blue: '#E7EEFF',      // Light Ice Blue
+          lightred: '#FFDFDF',  // Light warning/accent red
+          
           50: '#f8fafc',
           100: '#f1f5f9',
           200: '#e2e8f0',
@@ -37,21 +57,13 @@ export default {
           900: '#0f172a',
           950: '#020617',
         },
-        // Accent Colors
+        // Accent/Alert Colors
         accent: {
-          50: '#fdf2f8',
-          100: '#fce7f3',
-          200: '#fbcfe8',
-          300: '#f8b4d6',
-          400: '#f472b6',
-          500: '#ec4899',
-          600: '#db2777',
-          700: '#be185d',
-          800: '#9d174d',
-          900: '#831843',
-          950: '#500724',
+          red: '#f80400',
+          blue: '#0149ff',
+          navy: '#041544',
+          500: '#f80400',
         },
-        // Success
         success: {
           50: '#f0fdf4',
           100: '#dcfce7',
@@ -65,7 +77,6 @@ export default {
           900: '#145231',
           950: '#052e16',
         },
-        // Warning
         warning: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -79,14 +90,13 @@ export default {
           900: '#78350f',
           950: '#451a03',
         },
-        // Error
         error: {
           50: '#fef2f2',
           100: '#fee2e2',
           200: '#fecaca',
           300: '#fca5a5',
           400: '#f87171',
-          500: '#ef4444',
+          500: '#f80400',       // mapped to brand red
           600: '#dc2626',
           700: '#b91c1c',
           800: '#991b1b',
@@ -108,6 +118,9 @@ export default {
       },
 
       // Typography
+      fontFamily: {
+        sans: ['Mont', 'var(--font-geist-sans)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+      },
       fontSize: {
         'display-lg': ['3.5rem', { lineHeight: '1.1', fontWeight: '700' }],
         'display-md': ['2.5rem', { lineHeight: '1.2', fontWeight: '700' }],
@@ -160,23 +173,24 @@ export default {
 
   plugins: [
     // Custom component utilities
-    function ({ addComponents }: { addComponents: (components: Record<string, any>) => void }) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function ({ addComponents }: any) {
       addComponents({
         // Button Styles
         '.btn': {
           '@apply flex items-center justify-center px-4 py-2.5 rounded-lg font-medium transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed': {},
         },
         '.btn-primary': {
-          '@apply btn bg-primary-500 text-white hover:bg-primary-600 active:bg-primary-700': {},
+          '@apply btn bg-primary-red text-white hover:opacity-90 active:opacity-80': {},
         },
         '.btn-secondary': {
-          '@apply btn bg-secondary-100 text-secondary-900 hover:bg-secondary-200 active:bg-secondary-300': {},
+          '@apply btn bg-secondary-blue text-primary-blue hover:bg-secondary-blue/90 active:bg-secondary-blue/80': {},
         },
         '.btn-outline': {
-          '@apply btn border-2 border-primary-500 text-primary-500 hover:bg-primary-50 active:bg-primary-100': {},
+          '@apply btn border border-primary-blue text-primary-blue hover:bg-primary-blue/5 active:bg-primary-blue/10': {},
         },
         '.btn-ghost': {
-          '@apply btn bg-transparent text-primary-500 hover:bg-primary-50 active:bg-primary-100': {},
+          '@apply btn bg-transparent text-primary-blue hover:bg-primary-blue/5 active:bg-primary-blue/10': {},
         },
         '.btn-danger': {
           '@apply btn bg-error-500 text-white hover:bg-error-600 active:bg-error-700': {},
@@ -221,6 +235,9 @@ export default {
         },
         '.container-lg': {
           '@apply max-w-5xl mx-auto px-4': {},
+        },
+        '.container-brand': {
+          '@apply max-w-[1320px] mx-auto px-6 md:px-12 lg:px-16': {},
         },
 
         // Text Utilities
