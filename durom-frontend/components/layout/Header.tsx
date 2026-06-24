@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
-import * as React from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui';
-import { cn } from '@/lib/utils';
+import * as React from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui";
+import { cn } from "@/lib/utils";
 
 export interface HeaderProps {
   className?: string;
@@ -18,17 +18,21 @@ export function Header({ className }: HeaderProps) {
   };
 
   const navLinks = [
-    { name: 'About', href: '#about' },
-    { name: 'Service', href: '#service' },
-    { name: 'Our Doctor', href: '#doctor' },
-    { name: 'Pricing', href: '#pricing' },
-    { name: 'FAQ', href: '#faq' },
+    { name: "About", href: "#about" },
+    { name: "Service", href: "#service" },
+    { name: "Our Doctor", href: "#doctor" },
+    { name: "Pricing", href: "#pricing" },
+    { name: "FAQ", href: "#faq" },
   ];
 
   return (
-    <header className={cn("sticky top-0 z-50 w-full  bg-white backdrop-blur-md", className)}>
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full  bg-white backdrop-blur-md",
+        className,
+      )}
+    >
       <div className="container-brand flex h-20 items-center justify-between">
-    
         <Link href="/" className="flex items-center">
           <Image
             src="/images/logo.png"
@@ -53,21 +57,19 @@ export function Header({ className }: HeaderProps) {
           ))}
         </nav>
 
-      
         <div className="hidden items-center gap-4 md:flex">
           <Link href="#login">
             <Button variant="outline" size="md">
               Log In
             </Button>
           </Link>
-          <Link href="#register">
+          <Link href="register">
             <Button variant="primary" size="md">
               Register Now
             </Button>
           </Link>
         </div>
 
-        
         <button
           onClick={toggleMobileMenu}
           className="flex h-10 w-10 items-center justify-center rounded-lg  text-primary-deepblue hover:bg-secondary-50 md:hidden  "
@@ -114,7 +116,7 @@ export function Header({ className }: HeaderProps) {
           "absolute top-20 left-0 w-full bg-white/95 px-6 py-6 shadow-md md:hidden backdrop-blur-md transition-all duration-300 ease-in-out border-t border-slate-100",
           isMobileMenuOpen
             ? "translate-y-0 opacity-100 pointer-events-auto visible"
-            : "-translate-y-4 opacity-0 pointer-events-none invisible"
+            : "-translate-y-4 opacity-0 pointer-events-none invisible",
         )}
       >
         <nav className="flex flex-col gap-5">
@@ -124,37 +126,47 @@ export function Header({ className }: HeaderProps) {
               href={link.href}
               onClick={() => setIsMobileMenuOpen(false)}
               style={{
-                transitionDelay: isMobileMenuOpen ? `${idx * 60}ms` : '0ms',
+                transitionDelay: isMobileMenuOpen ? `${idx * 60}ms` : "0ms",
               }}
               className={cn(
                 "text-lg font-semibold text-primary-deepblue transition-all duration-300 hover:text-primary-blue",
                 isMobileMenuOpen
                   ? "translate-x-0 opacity-100"
-                  : "-translate-x-4 opacity-0"
+                  : "-translate-x-4 opacity-0",
               )}
             >
               {link.name}
             </Link>
           ))}
-          
+
           {/* Mobile Actions */}
           <div
             style={{
-              transitionDelay: isMobileMenuOpen ? `${navLinks.length * 60}ms` : '0ms',
+              transitionDelay: isMobileMenuOpen
+                ? `${navLinks.length * 60}ms`
+                : "0ms",
             }}
             className={cn(
               "flex flex-col gap-4 mt-2 transition-all duration-300",
               isMobileMenuOpen
                 ? "translate-x-0 opacity-100"
-                : "-translate-x-4 opacity-0"
+                : "-translate-x-4 opacity-0",
             )}
           >
-            <Link href="#login" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+            <Link
+              href="#login"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full"
+            >
               <Button variant="outline" className="w-full">
                 Log In
               </Button>
             </Link>
-            <Link href="#register" onClick={() => setIsMobileMenuOpen(false)} className="w-full">
+            <Link
+              href="#register"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full"
+            >
               <Button variant="primary" className="w-full">
                 Register Now
               </Button>
