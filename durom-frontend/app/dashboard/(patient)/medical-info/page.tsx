@@ -156,7 +156,7 @@ export default function MedicalInfoPage() {
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-primary-deepblue tracking-tight">
+          <h2 className="text-2xl font-medium text-black tracking-tight">
             Medical Info
           </h2>
           <p className="text-sm text-primary-gray mt-1 font-semibold">
@@ -177,10 +177,10 @@ export default function MedicalInfoPage() {
 
       {/* Vital Signs Segment */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 text-primary-deepblue font-bold text-base">
-          <Heart className="h-5 w-5 text-primary-red fill-primary-red" />
+        <div className="flex items-center gap-2 font-medium text-black  text-base">
+          <Heart className="h-5 w-5 text-primary-red " />
           <h3>Latest Vital Signs</h3>
-          <span className="text-xs font-semibold text-slate-400 ml-1">Recorded May 18, 2026</span>
+          <span className="text-xs font-normal text-slate-400 ml-1">Recorded May 18, 2026</span>
         </div>
 
         {/* 6 Grid items */}
@@ -190,17 +190,17 @@ export default function MedicalInfoPage() {
             return (
               <Card key={idx} className="p-4 flex flex-col justify-between min-h-[140px]">
                 <div>
-                  <div className="flex items-center justify-between text-[11px] font-bold text-emerald-600">
+                  <div className="flex items-center justify-between text-[11px] font-medium text-emerald-600">
                     <span className="flex items-center gap-1">
                       <Icon className="h-3.5 w-3.5" />
                       {vital.status}
                     </span>
                   </div>
-                  <p className="text-lg font-extrabold text-primary-deepblue mt-3 leading-tight">{vital.value}</p>
-                  <p className="text-xs font-bold text-slate-400 mt-1">{vital.name}</p>
+                  <p className="text-lg font-medium text-black  mt-3 leading-tight">{vital.value}</p>
+                  <p className="text-xs font-normal text-slate-400 mt-1">{vital.name}</p>
                 </div>
                 {vital.range && (
-                  <p className="text-[10px] font-semibold text-slate-400/80 mt-2">{vital.range}</p>
+                  <p className="text-[10px] font-normal text-slate-400/80 mt-2">{vital.range}</p>
                 )}
               </Card>
             );
@@ -211,7 +211,7 @@ export default function MedicalInfoPage() {
       {/* Medical Records Section */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2 text-primary-deepblue font-bold text-base">
+          <div className="flex items-center gap-2 font-medium text-black  text-base">
             <FolderOpen className="h-5 w-5 text-primary-blue fill-secondary-blue" />
             <h3>Medical Records</h3>
           </div>
@@ -223,7 +223,7 @@ export default function MedicalInfoPage() {
               placeholder="Search records..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-[10px] pl-10 pr-4 py-2 text-sm font-medium text-primary-deepblue placeholder:text-slate-400/70 transition-all duration-200 outline-none hover:border-slate-300 focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
+              className="w-full bg-white border border-slate-200 rounded-[10px] pl-10 pr-4 py-2 text-sm font-medium text-black  placeholder:text-slate-400/70 transition-all duration-200 outline-none hover:border-slate-300 focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
             />
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function MedicalInfoPage() {
               <button
                 key={cat.value}
                 onClick={() => setActiveCategory(cat.value)}
-                className={`px-4 py-2 text-xs font-bold rounded-full transition-all duration-200 cursor-pointer ${
+                className={`px-4 py-2 text-xs font-medium   rounded-full transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'bg-primary-blue text-white shadow-sm'
                     : 'bg-slate-100 text-primary-gray hover:bg-slate-200 hover:text-primary-deepblue'
@@ -261,15 +261,15 @@ export default function MedicalInfoPage() {
                       <FileText className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="text-base font-bold text-primary-deepblue truncate">{rec.title}</h4>
-                      <p className="text-xs font-bold text-slate-400 mt-0.5">{rec.doctor} · {rec.date}</p>
+                      <h4 className="text-base font-medium text-black  truncate">{rec.title}</h4>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">{rec.doctor} · {rec.date}</p>
                       <p className="text-sm font-medium text-primary-gray mt-2 leading-relaxed">{rec.description}</p>
                     </div>
                   </div>
 
                   {/* Right side category & actions */}
                   <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 w-full sm:w-auto border-t sm:border-t-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
-                    <span className={`flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider ${theme.text}`}>
+                    <span className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}>
                       <span className={`h-2.5 w-2.5 rounded-full ${theme.dot}`} />
                       {rec.category}
                     </span>
@@ -285,7 +285,7 @@ export default function MedicalInfoPage() {
               <div className="h-16 w-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-6">
                 <FileText className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-primary-deepblue">
+              <h3 className="text-lg font-medium text-black ">
                 No records found
               </h3>
               <p className="text-sm text-primary-gray mt-2 max-w-sm font-medium">
