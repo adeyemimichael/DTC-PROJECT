@@ -29,7 +29,7 @@ export function NextAppointmentCard() {
         </div>
       </div>
 
-      <div className="flex flex-col  sm:items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-6">
         <div className="flex flex-wrap items-center gap-4 text-sm font-normal text-primary-gray">
           <span className="flex items-center gap-1.5">
             <Calendar className="h-4 w-4 text-primary-gray" />
@@ -41,14 +41,14 @@ export function NextAppointmentCard() {
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="secondary" size="sm">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <Button variant="secondary" size="sm" className="w-full sm:w-auto">
             View details
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             Reschedule
           </Button>
-          <Button variant="danger" size="sm" className='bg-secondary-lightred  text-primary-red'>
+          <Button variant="danger" size="sm" className="bg-secondary-lightred text-primary-red w-full sm:w-auto border-0 hover:bg-red-100">
             Cancel
           </Button>
         </div>

@@ -81,32 +81,32 @@ const formatDateBlock = (dateString: string) => {
 };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 animate-page-fade">
+    <div className="max-w-6xl mx-auto space-y-6 lg:space-y-8 animate-page-fade">
       {/* Header Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-primary-deepblue tracking-tight">
+          <h2 className="text-xl lg:text-2xl font-bold text-primary-deepblue tracking-tight">
             Appointments
           </h2>
           <p className="text-sm text-primary-gray mt-1 font-semibold">
             Manage your scheduled consultations
           </p>
         </div>
-        <Button className="btn-primary flex items-center gap-2 shadow-sm">
+        <Button className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
           <Calendar className="h-5 w-5" />
           Book Appointment
         </Button>
       </div>
 
       {/* Segmented Filter Control */}
-      <div className="bg-slate-100 p-1 rounded-full flex gap-1 w-fit select-none">
+      <div className="bg-slate-100 p-1 rounded-full flex gap-1 w-full sm:w-fit select-none overflow-x-auto">
         {(['all', 'upcoming', 'past'] as const).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 text-sm font-bold rounded-full transition-all duration-300 capitalize cursor-pointer ${
+              className={`px-5 lg:px-6 py-2 text-sm font-bold rounded-full transition-all duration-300 capitalize cursor-pointer whitespace-nowrap ${
                 isActive
                   ? 'bg-white text-primary-deepblue shadow-sm'
                   : 'text-primary-gray hover:text-primary-deepblue'
@@ -119,27 +119,27 @@ const formatDateBlock = (dateString: string) => {
       </div>
 
       {/* Cards List Stack */}
-      <div className="space-y-6">
+      <div className="space-y-4 lg:space-y-6">
         {filteredAppointments.length > 0 ? (
           filteredAppointments.map((app) => {
             const { month, day, time } = formatDateBlock(app.dateTime);
             const isPast = app.status === 'completed' || app.status === 'cancelled';
 
             return (
-              <Card key={app.id} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <Card key={app.id} className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 lg:gap-6">
                 
                 {/* Left Section: Date & Time Info */}
-                <div className="flex items-center gap-4 shrink-0 flex-col">
+                <div className="flex items-center gap-4 shrink-0 flex-row md:flex-col">
                   {/* Date Capsule Box */}
-                  <div className="h-16 w-16 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-center shrink-0">
+                  <div className="h-14 w-14 lg:h-16 lg:w-16 rounded-xl bg-slate-100 flex flex-col items-center justify-center text-center shrink-0">
                     <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">{month}</span>
-                    <span className="text-2xl font-medium text-primary-deepblue -mt-1">{day}</span>
+                    <span className="text-xl lg:text-2xl font-medium text-primary-deepblue -mt-1">{day}</span>
                   </div>
                   
               
                   <div>
                     <p className="text-sm font-medium text-black">{time}</p>
-                    <p className="text-xs font-normal text-slate-400  flex items-center gap-1">
+                    <p className="text-xs font-normal text-slate-400 flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {app.duration}
                     </p>
@@ -148,7 +148,7 @@ const formatDateBlock = (dateString: string) => {
 
                 {/* Middle Section: Appointment description */}
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-lg font-medium text-black truncate">{app.type}</h3>
+                  <h3 className="text-base lg:text-lg font-medium text-black truncate">{app.type}</h3>
                   <p className="text-sm font-medium text-slate-400 mt-0.5">{app.doctor}</p>
                   <p className="text-sm font-normal text-primary-gray mt-2 leading-relaxed">{app.description}</p>
                 </div>
@@ -160,16 +160,16 @@ const formatDateBlock = (dateString: string) => {
                     <Badge variant={app.status === 'confirmed' ? 'success' : app.status === 'pending' ? 'warning' : 'subtle'}>
                       {app.status}
                     </Badge>
-                    <span className="text-xl font-medium  text-primary-deepblue md:mt-1">{app.price}</span>
+                    <span className="text-lg lg:text-xl font-medium text-primary-deepblue md:mt-1">{app.price}</span>
                   </div>
 
                   {/* Actions Group (Only if not past) */}
                   {!isPast && (
                     <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                      <Button variant='ghost '  size="sm">
+                      <Button variant="secondary" size="sm" className="w-full sm:w-auto">
                         Reschedule
                       </Button>
-                      <Button variant="danger" size="sm" className="bg-secondary-lightred text-primary-red hover:bg-red-100/50">
+                      <Button variant="danger" size="sm" className="bg-secondary-lightred text-primary-red w-full sm:w-auto border-0 hover:bg-red-100">
                         Cancel
                       </Button>
                     </div>

@@ -215,17 +215,16 @@ export default function MedicalInfoPage() {
             <FolderOpen className="h-5 w-5 text-primary-blue fill-secondary-blue" />
             <h3>Medical Records</h3>
           </div>
-          {/* Search bar */}
-          <div className="w-full sm:max-w-xs relative flex items-center">
-            <Search className="absolute left-3 h-4 w-4 text-slate-400 z-10" />
-            <input
-              type="text"
-              placeholder="Search records..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-[10px] pl-10 pr-4 py-2 text-sm font-medium text-black  placeholder:text-slate-400/70 transition-all duration-200 outline-none hover:border-slate-300 focus:border-primary-blue focus:ring-1 focus:ring-primary-blue"
-            />
-          </div>
+          {/* Search bar UI Primitive */}
+          <Input
+            type="text"
+            placeholder="Search records..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            leftIcon={<Search className="h-4 w-4" />}
+            containerClassName="w-full sm:max-w-xs"
+            className="py-2.5 text-sm bg-white"
+          />
         </div>
 
         {/* Category Pills Switcher */}
@@ -285,7 +284,7 @@ export default function MedicalInfoPage() {
               <div className="h-16 w-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-6">
                 <FileText className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-medium text-black ">
+              <h3 className="text-lg font-bold text-primary-deepblue">
                 No records found
               </h3>
               <p className="text-sm text-primary-gray mt-2 max-w-sm font-medium">
