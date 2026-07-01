@@ -8,7 +8,8 @@ import {
   CalendarDays, 
   HeartPulse, 
   HelpCircle, 
-  Settings 
+  Settings,
+  X
 } from 'lucide-react';
 
 const mainNavigation = [
@@ -22,13 +23,27 @@ const footerNavigation = [
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-64 bg-white border-r border-slate-100 flex flex-col h-screen sticky top-0 shrink-0">
+    <aside className="w-full flex flex-col h-full relative">
+     
+      {onClose && (
+        <button 
+          onClick={onClose}
+          className="p-2 text-slate-400 hover:text-primary-deepblue md:hidden rounded-lg hover:bg-slate-50 absolute top-4 right-4 cursor-pointer z-20"
+        >
+          <X className="h-5 w-5" />
+        </button>
+      )}
+
       {/* Brand Logo Header */}
-      <div className="h-20 flex items-center px-8 border-b border-slate-50">
+      <div className="h-20 flex items-center px-6 lg:px-8 border-b border-slate-50">
         <Link href="/" className="flex flex-col">
           <Image
             src="/images/logo.webp"
@@ -40,8 +55,8 @@ export function Sidebar() {
         </Link>
       </div>
 
-      {/* Main Navigation Links */}
-      <nav className="flex-1 px-4 py-6 space-y-1.5">
+    
+      <nav className="flex-1 px-3 lg:px-4 py-6 space-y-1.5">
         {mainNavigation.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
