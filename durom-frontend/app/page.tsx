@@ -3,7 +3,7 @@ import { Hero, TrustBar, Services, HowItWorks, MeetDoctor, Pricing, FAQ, CTA } f
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans dark:bg-black animate-page-fade">
+    <div className="min-h-screen bg-zinc-50 font-sans  animate-page-fade">
       {/* Header component */}
       <Header />
 
