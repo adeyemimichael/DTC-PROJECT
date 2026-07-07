@@ -1,5 +1,8 @@
+'use client';
+
 import { Card } from '@/components/ui/Card';
 import { Calendar, FolderKey, MessageSquare } from 'lucide-react';
+import { useBooking } from '@/app/dashboard/(patient)/layout';
 
 const actions = [
   {
@@ -23,6 +26,8 @@ const actions = [
 ];
 
 export function QuickActionsList() {
+  const openBooking = useBooking();
+
   return (
     <Card>
       <h3 className="text-base font-medium text-black mb-6">
@@ -35,6 +40,11 @@ export function QuickActionsList() {
           return (
             <button
               key={idx}
+              onClick={() => {
+                if (act.title === 'Book Appointment') {
+                  openBooking();
+                }
+              }}
               className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-slate-50 transition-colors duration-200 text-left group cursor-pointer"
             >
               <div className={`h-12 w-12 rounded-xl flex items-center justify-center shrink-0 ${act.iconBg}`}>
