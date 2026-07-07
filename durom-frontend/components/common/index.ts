@@ -15,5 +15,8 @@ export { NextAppointmentCard } from './NextAppointmentCard';
 export { RecentActivityTimeline } from './RecentActivityTimeline';
 export { QuickActionsList } from './QuickActionsList';
 export { NotificationsWidget } from './NotificationsWidget';
+export { BookAppointmentModal } from './BookAppointmentModal';
+export { BookAppointmentButton } from './BookAppointmentButton';
+
 
 // export { Feature } from './Feature';

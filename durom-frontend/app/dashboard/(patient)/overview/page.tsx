@@ -1,8 +1,4 @@
-import { Button } from '@/components/ui/Button';
-import { NextAppointmentCard } from '@/components/common/NextAppointmentCard';
-import { RecentActivityTimeline } from '@/components/common/RecentActivityTimeline';
-import { QuickActionsList } from '@/components/common/QuickActionsList';
-import { NotificationsWidget } from '@/components/common/NotificationsWidget';
+import { BookAppointmentButton, NextAppointmentCard, RecentActivityTimeline, QuickActionsList, NotificationsWidget } from '@/components/common';
 import { Calendar } from 'lucide-react';
 
 export default async function OverviewPage() {
@@ -18,10 +14,10 @@ export default async function OverviewPage() {
             Member since January 2024
           </p>
         </div>
-        <Button className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
+        <BookAppointmentButton className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
           <Calendar className="h-5 w-5" />
           Book Appointment
-        </Button>
+        </BookAppointmentButton>
       </div>
 
       {/* Main Layout Grid */}

@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Card, Badge, Button } from '@/components/ui';
+import { BookAppointmentButton } from '@/components/common/BookAppointmentButton';
 import { CalendarDays, Clock, Calendar } from 'lucide-react';
 
 type FilterTab = 'all' | 'upcoming' | 'past';
@@ -92,10 +93,10 @@ const formatDateBlock = (dateString: string) => {
             Manage your scheduled consultations
           </p>
         </div>
-        <Button className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
+        <BookAppointmentButton className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
           <Calendar className="h-5 w-5" />
           Book Appointment
-        </Button>
+        </BookAppointmentButton>
       </div>
 
       {/* Segmented Filter Control */}

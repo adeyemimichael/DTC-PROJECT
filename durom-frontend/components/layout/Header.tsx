@@ -58,7 +58,7 @@ export function Header({ className }: HeaderProps) {
         </nav>
 
         <div className="hidden items-center gap-4 md:flex">
-          <Link href="#login">
+          <Link href="/dashboard/overview">
             <Button variant="outline" size="md">
               Log In
             </Button>
