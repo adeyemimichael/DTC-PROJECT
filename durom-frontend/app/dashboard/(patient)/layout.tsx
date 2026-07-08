@@ -18,7 +18,7 @@ export default function PatientDashboardLayout({
 
   return (
     <BookingContext.Provider value={() => setIsBookingOpen(true)}>
-      <div className="flex min-h-screen bg-white font-sans overflow-x-hidden">
+      <div className="flex min-h-screen bg-slate-100 font-sans overflow-x-hidden">
        
         <div className="hidden md:flex shrink-0">
           <Sidebar />

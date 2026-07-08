@@ -20,7 +20,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
   };
 
   return (
-    <header className="h-16 lg:h-20 bg-white border-b border-slate-100 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
+    <header className="h-16 lg:h-20 bg-white border-b border-slate-300 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
       <div className="flex items-center">
       
         <button 

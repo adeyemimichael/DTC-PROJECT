@@ -31,7 +31,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-full flex flex-col h-full relative bg-secondary-white">
+    <aside className="w-full flex flex-col h-full relative bg-secondary-white border-r border-slate-200">
      
       {onClose && (
         <button 
@@ -64,10 +64,10 @@ export function Sidebar({ onClose }: SidebarProps) {
             <Link
               key={item.name}
               href={item.href}
-              className={`flex items-center gap-3 px-4 py-3 text-sm  text-red-500 font-semibold rounded-xl transition-all duration-200 group ${
+              className={`flex items-center gap-3 px-4 py-3 text-sm text-primary-red font-semibold rounded-xl transition-all duration-200 group ${
                 isActive
-                  ? 'bg-secondary-lightred text-primary-red'
-                  : 'text-black hover:bg-slate-50 hover:text-primary-red'
+                  ? 'bg-secondary-lightred text-primary-red!'
+                  : 'text-primary-red hover:bg-slate-50 hover:text-primary-red'
               }`}
             >
               <Icon className={`h-5 w-5 ${isActive ? 'text-primary-red' : 'text-black group-hover:text-primary-deepblue'}`} />
