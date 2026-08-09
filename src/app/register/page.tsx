@@ -289,7 +289,7 @@ const Register = () => {
 
       <main className="flex-1 flex flex-col justify-start items-center py-10 md:py-16 px-4 animate-page-fade">
         {/* Step Indicator Panel */}
-        <div className="w-full max-w-[700px] text-center mb-8">
+        <div className="w-full max-w-175 text-center mb-8">
           <h1 className="text-[28px] md:text-[36px] font-bold text-primary-deepblue tracking-tight leading-tight mb-2">
             Create Your Account
           </h1>
@@ -330,7 +330,7 @@ const Register = () => {
         </div>
 
         {/* Form Area */}
-        <div className="w-full max-w-[660px]">
+        <div className="w-full max-w-165">
           {currentStep === 1 && (
             <form onSubmit={handleStep1Submit} className="space-y-6">
               {/* Row 1: Name Grid */}
@@ -546,14 +546,14 @@ const Register = () => {
             <form onSubmit={handleStep3Submit} className="space-y-6">
               {/* Top Vital Track Info Card */}
               <div className="bg-[#f1f5f9]/40 border border-slate-100 rounded-xl p-5 flex items-start gap-4">
-                <div className="flex-shrink-0 mt-1">
+                <div className="shrink-0 mt-1">
                   <Activity className="w-5 h-5 text-primary-blue" />
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-bold text-primary-deepblue mb-1">
                     Track Your Health from Day One
                   </h3>
-                  <p className="text-xs text-[#404245] leading-relaxed">
+                  <p className="text-xs text-primary-gray leading-relaxed">
                     Recording your baseline vitals helps Dr. Adeyemi provide
                     better, more personalized care. We encourage all patients to
                     invest in a bathroom scale, tape measure, digital
@@ -654,10 +654,10 @@ const Register = () => {
 
               {/* Bottom skippable message banner */}
               <div className="bg-[#f1f5f9]/40 border border-slate-100 rounded-xl p-5 flex items-start gap-4">
-                <div className="flex-shrink-0 mt-0.5">
+                <div className="shrink-0 mt-0.5">
                   <Info className="w-5 h-5 text-slate-400" />
                 </div>
-                <p className="text-xs text-[#404245] leading-relaxed">
+                <p className="text-sm text-primary-gray leading-relaxed">
                   Don't have these devices yet? No worries — you can skip this
                   step and update your vitals later from your dashboard.
                   However, having accurate baseline measurements helps us
@@ -692,7 +692,7 @@ const Register = () => {
           {currentStep === 4 && (
             <form onSubmit={handleStep4Submit} className="space-y-6">
               {/* Payment Summary Dark Card */}
-              <div className="bg-gradient-to-br from-[#0f0f0f] to-[#1a1a2e] rounded-2xl p-6 md:p-8 text-white">
+              <div className="bg-linear-to-br from-[#0f0f0f] to-[#1a1a2e] rounded-2xl p-6 md:p-8 text-white">
                 <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-slate-400 mb-3">
                   Payment Summary
                 </p>
@@ -823,10 +823,10 @@ const Register = () => {
 
               {/* Security Notice Banner */}
               <div className="bg-[#f1f5f9]/40 border border-slate-100 rounded-xl p-5 flex items-start gap-4">
-                <div className="flex-shrink-0 mt-0.5">
+                <div className="shrink-0 mt-0.5">
                   <ShieldCheck className="w-5 h-5 text-slate-400" />
                 </div>
-                <p className="text-xs text-[#404245] leading-relaxed">
+                <p className="text-xs text-primary-gray leading-relaxed">
                   Your payment is secured with bank-grade encryption. The $49
                   registration fee is a one-time charge. You will never be
                   billed again unless you book a consultation.
@@ -865,7 +865,7 @@ const Register = () => {
               <h2 className="text-[28px] md:text-[32px] font-bold text-primary-deepblue mb-3 tracking-tight">
                 Registration Complete
               </h2>
-              <p className="text-[15px] text-[#404245] mb-8 leading-relaxed max-w-140 mx-auto">
+              <p className="text-[15px] text-primary-gray mb-8 leading-relaxed max-w-140 mx-auto">
                 Welcome to Durom&apos;s Touch Clinic! Your account has been
                 created successfully. A confirmation email has been sent to{" "}
                 <span className="font-semibold text-primary-deepblue">
@@ -874,8 +874,8 @@ const Register = () => {
                 .
               </p>
 
-              <div className="border border-slate-200 rounded-[16px] py-8 px-4 mb-8">
-                <p className="text-[11px] font-semibold tracking-[0.1em] uppercase text-slate-400 mb-4">
+              <div className="border border-slate-200 rounded-2xl py-8 px-4 mb-8">
+                <p className="text-[11px] font-semibold tracking-widest uppercase text-slate-400 mb-4">
                   PAYMENT PROCESSED
                 </p>
                 <p className="text-[32px] font-bold text-primary-deepblue leading-tight mb-1">
@@ -899,7 +899,7 @@ const Register = () => {
                 </Link>
                 <Link
                   href="/"
-                  className="text-[14px] font-medium text-[#404245] hover:text-primary-deepblue hover:underline py-2"
+                  className="text-[14px] font-medium text-primary-gray hover:text-primary-deepblue hover:underline py-2"
                 >
                   Return to Home
                 </Link>

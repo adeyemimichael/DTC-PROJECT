@@ -11,28 +11,36 @@ import {
   MessageSquare,
   HelpCircle, 
   Settings,
-  X
+  X,
+  LucideIcon
 } from 'lucide-react';
 
-const patientMainNavigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: number;
+}
+
+const patientMainNavigation: NavItem[] = [
   { name: 'Overview', href: '/patient/overview', icon: LayoutGrid },
   { name: 'Appointments', href: '/patient/appointments', icon: CalendarDays },
   { name: 'Medical Info', href: '/patient/medical-info', icon: HeartPulse },
 ];
 
-const patientFooterNavigation = [
+const patientFooterNavigation: NavItem[] = [
   { name: 'Help', href: '/patient/help', icon: HelpCircle },
   { name: 'Settings', href: '/patient/settings', icon: Settings },
 ];
 
-const doctorMainNavigation = [
+const doctorMainNavigation: NavItem[] = [
   { name: 'Overview', href: '/doctor/doctors-overview', icon: LayoutGrid },
   { name: 'Appointments', href: '/doctor/appointments', icon: CalendarDays },
   { name: 'Patients', href: '/doctor/patients', icon: Users },
   { name: 'Messages', href: '/doctor/messages', icon: MessageSquare, badge: 2 },
 ];
 
-const doctorFooterNavigation = [
+const doctorFooterNavigation: NavItem[] = [
   { name: 'Help', href: '/doctor/help', icon: HelpCircle },
   { name: 'Settings', href: '/doctor/settings', icon: Settings },
 ];
