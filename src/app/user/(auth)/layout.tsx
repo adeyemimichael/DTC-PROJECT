@@ -25,8 +25,8 @@ export default function AuthLayout({
         </Link>
         <div className="text-sm font-medium text-secondary-600">
           Already have an account?{" "}
-          <Link href="/register" className="text-primary-blue hover:underline">
-            Sign up
+          <Link href="/user/login" className="text-primary-blue hover:underline">
+            Sign in
           </Link>
         </div>
         </div>
@@ -34,7 +34,7 @@ export default function AuthLayout({
 
       {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-[480px]">
+        <div className="w-full  container-brand">
           {children}
         </div>
       </main>

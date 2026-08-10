@@ -3,7 +3,7 @@ import { Button } from "@/components/ui";
 
 export default function ResetPasswordPage() {
   return (
-    <div className="w-full">
+    <div className="max-w-md mx-auto">
       <div className="text-center mb-10">
         <h1 className="text-[2.5rem] font-bold text-gray-900 tracking-tight mb-3">
           Forgot Password

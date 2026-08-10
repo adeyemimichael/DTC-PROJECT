@@ -4,7 +4,7 @@ import { Button } from "@/components/ui";
 
 export default function LoginPage() {
   return (
-    <div className="w-full">
+    <div className=" max-w-md mx-auto ">
       <div className="text-center mb-10">
         <h1 className="text-[2.5rem] font-bold text-gray-900 tracking-tight mb-2">
           Log Into Your Account
@@ -45,7 +45,7 @@ export default function LoginPage() {
           />
           <div className="flex justify-end pt-1">
             <Link
-              href="/forgot-password"
+              href="user/forgot-password"
               className="text-sm font-medium text-brand-blue hover:underline"
             >
               Forgot password?
