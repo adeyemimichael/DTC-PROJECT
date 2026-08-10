@@ -285,9 +285,9 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-white font-sans flex flex-col">
-      <Header />
+  
 
-      <main className="flex-1 flex flex-col justify-start items-center py-10 md:py-16 px-4 animate-page-fade">
+      <main className="flex-1 flex flex-col justify-start items-center py-10 md:py-16 px-4 animate-page-fade ">
         {/* Step Indicator Panel */}
         <div className="w-full max-w-175 text-center mb-8">
           <h1 className="text-[28px] md:text-[36px] font-bold text-primary-deepblue tracking-tight leading-tight mb-2">
