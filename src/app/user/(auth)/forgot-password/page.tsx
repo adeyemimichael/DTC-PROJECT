@@ -1,9 +1,12 @@
+"use client"
 import React from "react";
 import Link from "next/link";
+import { useRouter } from 'next/navigation'
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui";
 
 export default function ForgotPasswordPage() {
+   const router = useRouter()
   return (
     <div className="max-w-md mx-auto">
       <div className="text-center mb-10">
@@ -43,13 +46,14 @@ export default function ForgotPasswordPage() {
         </div>
 
         <div className="flex justify-center pt-2">
-          <Link
-            href="/login"
-            className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to sign in
-          </Link>
+        
+                <button onClick={() => router.push('/user/login')}    className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors">
+                    <ArrowLeft className="w-4 h-4" />
+                      Back to sign in
+                </button>
+          
+          
+     
         </div>
       </form>
     </div>
