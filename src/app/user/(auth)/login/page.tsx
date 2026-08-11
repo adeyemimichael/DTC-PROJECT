@@ -1,8 +1,10 @@
+"use client"
 import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
-
+import { useRouter } from "next/navigation";
 export default function LoginPage() {
+  const router = useRouter()
   return (
     <div className=" max-w-md mx-auto ">
       <div className="text-center mb-10">
@@ -44,12 +46,15 @@ export default function LoginPage() {
             required
           />
           <div className="flex justify-end pt-1">
-            <Link
-              href="user/forgot-password"
-              className="text-sm font-medium text-brand-blue hover:underline"
-            >
-              Forgot password?
-            </Link>
+           
+
+                 <button onClick={() => router.push('/user/forgot-password')}    className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors">
+                  
+                       Forgot password?
+                </button>
+          
+           
+           
           </div>
         </div>
 
