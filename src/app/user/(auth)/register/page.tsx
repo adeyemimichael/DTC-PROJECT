@@ -285,8 +285,6 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-white font-sans flex flex-col">
-  
-
       <main className="flex-1 flex flex-col justify-start items-center py-10 md:py-16 px-4 animate-page-fade ">
         {/* Step Indicator Panel */}
         <div className="w-full max-w-175 text-center mb-8">
@@ -535,7 +533,7 @@ const Register = () => {
                   variant="primary"
                   className="flex-1 flex items-center justify-center gap-2 py-4 rounded-[10px] bg-primary-red hover:bg-[#c40300] text-white font-bold text-base transition-colors duration-200 cursor-pointer"
                 >
-                  Continue to Payment
+                  Continue
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </div>
