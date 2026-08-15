@@ -1,10 +1,10 @@
-"use client"
-import React from "react";
+"use client";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
+
 export default function LoginPage() {
-  const router = useRouter()
+  const router = useRouter();
   return (
     <div className=" max-w-md mx-auto ">
       <div className="text-center mb-10">
@@ -46,15 +46,12 @@ export default function LoginPage() {
             required
           />
           <div className="flex justify-end pt-1">
-           
-
-                 <button onClick={() => router.push('/user/forgot-password')}    className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900 transition-colors">
-                  
-                       Forgot password?
-                </button>
-          
-           
-           
+            <Link
+              href="/user/forgot-password"
+              className="text-sm font-medium text-brand-blue hover:underline"
+            >
+              Forgot password?
+            </Link>
           </div>
         </div>
 
@@ -62,6 +59,10 @@ export default function LoginPage() {
           type="submit"
           variant="primary"
           className="w-full py-4 rounded-xl text-base font-semibold"
+          onClick={(e) => {
+            e.preventDefault();
+            router.push("/user/overview");
+          }}
         >
           Log in
         </Button>
