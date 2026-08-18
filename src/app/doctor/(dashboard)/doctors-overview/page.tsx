@@ -9,7 +9,7 @@ interface ScheduleItem {
   id: string;
   time: string;
   duration: string;
-  dotColor: string; // 'red' | 'amber' | 'blue' | 'emerald'
+  dotColor: string;
   avatar: string;
   name: string;
   details: string;
@@ -148,62 +148,62 @@ export default function DoctorsOverviewPage() {
   const activeRequests = requests.filter((r) => r.status === 'pending');
 
   return (
-    <div className="space-y-6 max-w-350 mx-auto pb-10">
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
       {/* Header Greeting Row */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 tracking-tight">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
             Good morning, Dr. Adeyemi
           </h1>
-          <p className="text-sm font-medium text-primary-gray  mt-1">
+          <p className="text-base font-medium text-primary-gray mt-1.5">
             Friday, July 17, 2026
           </p>
         </div>
 
         <button
           onClick={openBooking}
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-primary-red text-white font-semibold text-sm hover:opacity-90 transition-all duration-200 shadow-sm shrink-0 cursor-pointer"
+          className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary-red text-white font-semibold text-base hover:opacity-90 transition-all duration-200 shadow-sm shrink-0 cursor-pointer"
         >
-          <Calendar className="h-4 w-4" />
+          <Calendar className="h-5 w-5" />
           <span>Manage Appointment</span>
         </button>
       </div>
 
       {/* 4 Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
         {/* Today's Appointments */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs flex flex-col justify-between">
-          <span className="text-sm font-medium text-gray-600">Today&apos;s Appointments</span>
-          <div className="mt-3">
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">2/8</span>
-            <p className="text-xs font-semibold text-amber-500 mt-1">6 remaining</p>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs flex flex-col justify-between">
+          <span className="text-base font-medium text-gray-600">Today&apos;s Appointments</span>
+          <div className="mt-3.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">2/8</span>
+            <p className="text-sm font-semibold text-amber-500 mt-1.5">6 remaining</p>
           </div>
         </div>
 
         {/* Total Patients */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs flex flex-col justify-between">
-          <span className="text-sm font-medium text-gray-600">Total Patients</span>
-          <div className="mt-3">
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">5,247</span>
-            <p className="text-xs font-semibold text-primary-red mt-1">Lifetime clinic patients</p>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs flex flex-col justify-between">
+          <span className="text-base font-medium text-gray-600">Total Patients</span>
+          <div className="mt-3.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">5,247</span>
+            <p className="text-sm font-semibold text-primary-red mt-1.5">Lifetime clinic patients</p>
           </div>
         </div>
 
         {/* Pending Requests */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs flex flex-col justify-between">
-          <span className="text-sm font-medium text-gray-600">Pending Requests</span>
-          <div className="mt-3">
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">3</span>
-            <p className="text-xs font-semibold text-amber-500 mt-1">Awaiting confirmation</p>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs flex flex-col justify-between">
+          <span className="text-base font-medium text-gray-600">Pending Requests</span>
+          <div className="mt-3.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">3</span>
+            <p className="text-sm font-semibold text-amber-500 mt-1.5">Awaiting confirmation</p>
           </div>
         </div>
 
         {/* Revenue This Month */}
-        <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs flex flex-col justify-between">
-          <span className="text-sm font-medium text-gray-600">Revenue This Month</span>
-          <div className="mt-3">
-            <span className="text-2xl font-bold text-gray-900 tracking-tight">$12,450</span>
-            <p className="text-xs font-semibold text-emerald-500 mt-1">+12.5% (24h)</p>
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs flex flex-col justify-between">
+          <span className="text-base font-medium text-gray-600">Revenue This Month</span>
+          <div className="mt-3.5">
+            <span className="text-3xl font-bold text-gray-900 tracking-tight">$12,450</span>
+            <p className="text-sm font-semibold text-emerald-500 mt-1.5">+12.5% (24h)</p>
           </div>
         </div>
       </div>
@@ -211,42 +211,42 @@ export default function DoctorsOverviewPage() {
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
         {/* Left Column: Today's Schedule (2 cols wide) */}
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+        <div className="lg:col-span-2 bg-white rounded-2xl p-6 lg:p-7 border border-gray-100 shadow-xs">
           {/* Card Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-2 border-b border-gray-50">
-            <div className="flex items-center gap-2.5">
-              <div className="text-brand-red">
-                <Calendar className="h-5 w-5" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-3 border-b border-gray-100">
+            <div className="flex items-center gap-3">
+              <div className="text-primary-red">
+                <Calendar className="h-6 w-6" />
               </div>
-              <h2 className="text-lg font-bold text-gray-900">Today&apos;s Schedule</h2>
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Today&apos;s Schedule</h2>
             </div>
-            <span className="text-sm font-medium text-primary-gray ">
+            <span className="text-[15px] font-medium text-primary-gray">
               2 completed · 4 remaining · 2 in progress
             </span>
           </div>
 
           {/* Schedule List */}
-          <div className="space-y-3 ">
+          <div className="space-y-4">
             {schedule.map((item) => (
               <div
                 key={item.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-[#FCFCFC] hover:bg-[#f5f5f7] transition-colors duration-150"
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 lg:p-6 rounded-2xl bg-[#FCFCFC] hover:bg-[#f5f5f7] transition-colors duration-150 border border-slate-100/60"
               >
                 {/* Left info */}
                 <div className="flex items-center gap-4 min-w-0">
                   {/* Time */}
-                  <div className="w-20 shrink-0 text-left">
-                    <div className="text-sm font-bold text-gray-900">{item.time}</div>
-                    <div className="text-sm text-primary-gray font-normal">{item.duration}</div>
+                  <div className="w-24 shrink-0 text-left">
+                    <div className="text-base font-bold text-gray-900">{item.time}</div>
+                    <div className="text-sm text-primary-gray font-normal mt-0.5">{item.duration}</div>
                   </div>
 
                   {/* Dot indicator */}
                   <div className="shrink-0 flex items-center justify-center">
-                    <span className={`h-2.5 w-2.5 rounded-full ${item.dotColor}`} />
+                    <span className={`h-3 w-3 rounded-full ${item.dotColor}`} />
                   </div>
 
                   {/* Avatar */}
-                  <div className="relative h-10 w-10 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
+                  <div className="relative h-11 w-11 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
                     <Image
                       src={item.avatar}
                       alt={item.name}
@@ -257,21 +257,21 @@ export default function DoctorsOverviewPage() {
 
                   {/* Patient & Consultation Info */}
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-sm font-bold text-gray-900 truncate">
+                    <h3 className="text-base font-bold text-gray-900 truncate">
                       {item.name}
                     </h3>
-                    <p className="text-sm text-primary-gray  truncate mt-0.5 font-normal">
+                    <p className="text-[15px] text-primary-gray truncate mt-1 font-normal">
                       {item.details}
                     </p>
                   </div>
                 </div>
 
                 {/* Right actions/status */}
-                <div className="flex items-center gap-2 shrink-0 sm:self-center">
+                <div className="flex items-center gap-2.5 shrink-0 sm:self-center">
                   {item.status === 'start' && (
                     <button
                       onClick={() => handleActionClick(item.id, 'start')}
-                      className="px-3.5 py-3 rounded-md bg-[#fff8ee] text-amber-500 text-sm font-sans hover:bg-amber-100 transition-colors"
+                      className="px-4 py-2.5 rounded-lg bg-[#fff8ee] text-amber-600 text-[15px] font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
                     >
                       Start
                     </button>
@@ -280,21 +280,21 @@ export default function DoctorsOverviewPage() {
                   {item.status === 'complete' && (
                     <button
                       onClick={() => handleActionClick(item.id, 'complete')}
-                      className="px-3.5 py-3 rounded-md bg-[#e6f4ea] text-[#1e8e3e] text-sm font-sans hover:bg-emerald-100 transition-colors"
+                      className="px-4 py-2.5 rounded-lg bg-[#e6f4ea] text-[#1e8e3e] text-[15px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
                     >
                       Complete
                     </button>
                   )}
 
                   {item.status === 'completed' && (
-                    <span className="text-md font-sans text-primary-gray px-2 py-1">
+                    <span className="text-[15px] font-semibold text-primary-gray px-3 py-1">
                       Completed
                     </span>
                   )}
 
                   <button
                     onClick={() => setSelectedPatientModal(item)}
-                    className="px-3.5 py-3 rounded-md bg-[#f3f4f6] text-gray-700 text-md font-sans hover:bg-gray-200 transition-colors"
+                    className="px-4 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
                   >
                     Details
                   </button>
@@ -305,14 +305,14 @@ export default function DoctorsOverviewPage() {
         </div>
 
         {/* Pending Requests (1 col wide) */}
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs">
+        <div className="bg-white rounded-2xl p-6 lg:p-7 border border-gray-100 shadow-xs">
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 pb-2 border-b border-gray-50">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-amber-500" />
-              <h2 className="text-lg font-bold text-gray-900">Pending Requests</h2>
+          <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-100">
+            <div className="flex items-center gap-2.5">
+              <Clock className="h-6 w-6 text-amber-500" />
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">Pending Requests</h2>
             </div>
-            <span className="text-xs font-bold text-amber-500 bg-amber-50 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full">
               {activeRequests.length}
             </span>
           </div>
@@ -322,37 +322,37 @@ export default function DoctorsOverviewPage() {
             {requests.map((req) => (
               <div
                 key={req.id}
-                className="p-4 rounded-xl border border-amber-500 bg-white space-y-3 shadow-2xs hover:border-gray-200 transition-all"
+                className="p-5 rounded-2xl border border-amber-500/40 bg-white space-y-3.5 shadow-2xs hover:border-amber-500 transition-all"
               >
                 {/* Header row: Patient name + date/time */}
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">{req.name}</h3>
-                    <p className="text-sm font-medium text-primary-gray  mt-0.5">{req.type}</p>
+                    <h3 className="text-base font-bold text-gray-900">{req.name}</h3>
+                    <p className="text-[15px] font-medium text-primary-gray mt-0.5">{req.type}</p>
                   </div>
                   <div className="text-right">
-                    <span className="text-sm font-semibold text-primary-blue block">{req.time}</span>
+                    <span className="text-[15px] font-bold text-primary-blue block">{req.time}</span>
                     <span className="text-sm font-semibold text-gray-400">{req.date}</span>
                   </div>
                 </div>
 
                 {/* Reason */}
-                <p className="text-sm font-sans text-primary-gray leading-relaxed font-medium">
+                <p className="text-[15px] text-primary-gray leading-relaxed font-normal">
                   {req.reason}
                 </p>
 
                 {/* Status or Buttons */}
                 {req.status === 'pending' ? (
-                  <div className="flex items-center gap-2.5 pt-1">
+                  <div className="flex items-center gap-3 pt-1">
                     <button
                       onClick={() => handleRequestDecision(req.id, 'approved')}
-                      className="flex-1 py-3 rounded-md bg-primary-red text-white text-xs font-semibold hover:opacity-90 transition-opacity cursor-pointer text-center"
+                      className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center"
                     >
                       Approve
                     </button>
                     <button
                       onClick={() => handleRequestDecision(req.id, 'declined')}
-                      className="flex-1 py-3 rounded-md bg-gray-100 text-gray-700 text-xs font-semibold hover:bg-gray-200 transition-colors cursor-pointer text-center"
+                      className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center"
                     >
                       Decline
                     </button>
@@ -360,13 +360,13 @@ export default function DoctorsOverviewPage() {
                 ) : (
                   <div className="pt-1 flex items-center gap-2">
                     <span
-                      className={`text-xs font-bold px-3 py-3 rounded-md w-full text-center ${
+                      className={`text-sm font-bold px-3 py-2.5 rounded-xl w-full text-center ${
                         req.status === 'approved'
                           ? 'bg-emerald-50 text-emerald-600'
                           : 'bg-red-50 text-primary-red'
                       }`}
                     >
-                      {req.status === 'approved' ? ' Approved' : ' Declined'}
+                      {req.status === 'approved' ? '✓ Approved' : '✕ Declined'}
                     </span>
                   </div>
                 )}
@@ -379,10 +379,10 @@ export default function DoctorsOverviewPage() {
       {/* Patient Detail Modal */}
       {selectedPatientModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fade-in">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-6 relative border border-gray-100">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 lg:p-8 shadow-2xl space-y-6 relative border border-gray-100">
             <button
               onClick={() => setSelectedPatientModal(null)}
-              className="absolute top-4 right-4 p-2 text-primary-gray  hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 p-2 text-primary-gray hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -397,21 +397,21 @@ export default function DoctorsOverviewPage() {
                 />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900">
+                <h3 className="text-2xl font-bold text-gray-900">
                   {selectedPatientModal.name}
                 </h3>
-                <p className="text-sm text-primary-gray  font-medium">
+                <p className="text-base text-primary-gray font-medium mt-0.5">
                   Appointment: {selectedPatientModal.time} ({selectedPatientModal.duration})
                 </p>
               </div>
             </div>
 
-            <div className="space-y-3 bg-gray-50 p-4 rounded-xl text-sm border border-gray-100">
+            <div className="space-y-3 bg-gray-50 p-5 rounded-xl text-base border border-gray-100">
               <div>
-                <span className="text-xs font-semibold text-primary-gray  uppercase tracking-wider block">
+                <span className="text-xs font-semibold text-primary-gray uppercase tracking-wider block">
                   Consultation Details
                 </span>
-                <p className="text-gray-800 font-medium mt-1 p-3 rounded-sm">
+                <p className="text-gray-800 font-medium mt-1 text-[15px] leading-relaxed">
                   {selectedPatientModal.details}
                 </p>
               </div>
@@ -420,7 +420,7 @@ export default function DoctorsOverviewPage() {
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setSelectedPatientModal(null)}
-                className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors"
+                className="px-6 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer"
               >
                 Close
               </button>
