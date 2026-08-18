@@ -5,8 +5,9 @@ import { Sidebar } from '@/components/layout/Sidebar';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { BookAppointmentModal } from '@/components/common/BookAppointmentModal';
 import { BookingContext } from '@/context/BookingContext';
+import { patientNavigationConfig, defaultPatientUser } from '@/config/navigationConfig';
 
-export default function PatientDashboardLayout({
+export default function UserDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -16,30 +17,17 @@ export default function PatientDashboardLayout({
 
   return (
     <BookingContext.Provider value={() => setIsBookingOpen(true)}>
-      <div className="flex min-h-screen bg-slate-100 font-sans overflow-x-hidden">
-       
-        <div className="hidden md:flex shrink-0">
-          <Sidebar />
-        </div>
+      <div className="min-h-screen bg-slate-100 font-sans overflow-x-hidden">
+        {/* Fixed Config-Driven Navigation Sidebar */}
+        <Sidebar
+          config={patientNavigationConfig}
+          user={defaultPatientUser}
+          isMobileOpen={isSidebarOpen}
+          onClose={() => setIsSidebarOpen(false)}
+        />
 
-        {/* Mobile Drawer Overlay Sidebar */}
-        {isSidebarOpen && (
-          <div className="fixed inset-0 z-50 flex md:hidden">
-            {/* Semi-transparent Backdrop clickaway */}
-            <div 
-              onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs transition-opacity duration-300"
-            />
-            
-            {/* Slide-in sidebar container */}
-            <div className="relative flex flex-col w-full max-w-[280px] bg-white h-full shadow-2xl animate-in slide-in-from-left duration-300 z-50">
-              <Sidebar onClose={() => setIsSidebarOpen(false)} />
-            </div>
-          </div>
-        )}
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        {/* Main Content Area offset by sidebar width on desktop */}
+        <div className="md:pl-64 flex flex-col min-h-screen">
           {/* Top Header */}
           <DashboardHeader onMenuToggle={() => setIsSidebarOpen(true)} />
 
