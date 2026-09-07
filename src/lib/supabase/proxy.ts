@@ -42,27 +42,63 @@ export async function updateSession(request: NextRequest) {
   // with the Supabase client, your users may be randomly logged out.
 
   //na me comment here
-  const { data } = await supabase.auth.getClaims();
+  const { data } = (supabase.auth as any).getClaims ? await (supabase.auth as any).getClaims() : await supabase.auth.getUser(); // Fallback for TS if getClaims is not typed
+  const user = data?.claims || data?.user;
 
-  const user = data?.claims;
+  const role = user?.user_metadata?.role || "patient";
+  const isAdmin = role === "admin";
 
   const pathname = request.nextUrl.pathname;
 
-  const isProtectedRoute = pathname.startsWith("/user");
-  const isAuthRoute =
-    pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isDoctorRoute = pathname.startsWith("/doctor");
+  const isUserRoute = pathname.startsWith("/user");
 
-  // na me comment here
-  if (!user && isProtectedRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+  const isDoctorAuthRoute = pathname === "/doctor/login";
+  const isUserAuthRoute =
+    pathname.startsWith("/user/login") ||
+    pathname.startsWith("/user/register") ||
+    pathname.startsWith("/user/forgot-password") ||
+    pathname.startsWith("/user/reset-password");
+
+  const isDoctorProtectedRoute = isDoctorRoute && !isDoctorAuthRoute;
+  const isUserProtectedRoute = isUserRoute && !isUserAuthRoute;
+
+  // Unauthenticated users trying to access protected routes
+  if (!user) {
+    if (isDoctorProtectedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/doctor/login";
+      return NextResponse.redirect(url);
+    }
+    if (isUserProtectedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/user/login";
+      return NextResponse.redirect(url);
+    }
   }
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/user/overview";
-    return NextResponse.redirect(url);
+  // Authenticated users
+  if (user) {
+    // If they are on an auth route, redirect to their dashboard
+    if (isDoctorAuthRoute || isUserAuthRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = isAdmin ? "/doctor/doctors-overview" : "/user/overview";
+      return NextResponse.redirect(url);
+    }
+
+    // RBAC: Admin on patient route -> redirect to doctor dashboard
+    if (isAdmin && isUserProtectedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/doctor/doctors-overview";
+      return NextResponse.redirect(url);
+    }
+
+    // RBAC: Patient on doctor route -> redirect to patient dashboard
+    if (!isAdmin && isDoctorProtectedRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/user/overview";
+      return NextResponse.redirect(url);
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

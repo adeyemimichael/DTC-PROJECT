@@ -18,11 +18,23 @@ export default function DoctorLoginPage() {
     setIsLoading(true);
 
     try {
-      // TODO: Replace with real auth logic
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Invalid email or password. Please try again.");
+      }
+
       router.push("/doctor/doctors-overview");
-    } catch {
-      setError("Invalid email or password. Please try again.");
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password. Please try again.");
     } finally {
       setIsLoading(false);
     }
