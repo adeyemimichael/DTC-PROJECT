@@ -21,12 +21,14 @@ import {
 const steps = [
   { id: 1, label: "Personal Info" },
   { id: 2, label: "Account Setup" },
-  { id: 3, label: "Health Baseline" },
-  { id: 4, label: "Payment" },
+  { id: 3, label: "Payment" },
 ];
 
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
   const [formData, setFormData] = useState({
     // Step 1 data
     firstName: "",
@@ -163,48 +165,6 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const validateStep3 = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    const isPositiveNumber = (val: string) => {
-      if (!val.trim()) return true;
-      const num = Number(val);
-      return !isNaN(num) && num > 0;
-    };
-
-    if (formData.weight && !isPositiveNumber(formData.weight)) {
-      newErrors.weight = "Please enter a valid weight";
-    }
-
-    if (formData.height && !isPositiveNumber(formData.height)) {
-      newErrors.height = "Please enter a valid height";
-    }
-
-    if (formData.heartRate) {
-      const hrNum = Number(formData.heartRate);
-      if (isNaN(hrNum) || hrNum <= 0 || !Number.isInteger(hrNum)) {
-        newErrors.heartRate = "Please enter a valid heart rate (integer)";
-      }
-    }
-
-    if (formData.systolic || formData.diastolic) {
-      if (!formData.systolic) {
-        newErrors.systolic = "Required";
-      } else if (!isPositiveNumber(formData.systolic)) {
-        newErrors.systolic = "Invalid";
-      }
-
-      if (!formData.diastolic) {
-        newErrors.diastolic = "Required";
-      } else if (!isPositiveNumber(formData.diastolic)) {
-        newErrors.diastolic = "Invalid";
-      }
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateStep1()) {
@@ -219,14 +179,7 @@ const Register = () => {
     }
   };
 
-  const handleStep3Submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateStep3()) {
-      setCurrentStep(4);
-    }
-  };
-
-  const validateStep4 = () => {
+  const validateStep3 = () => {
     const newErrors: { [key: string]: string } = {};
 
     if (!formData.cardholderName.trim()) {
@@ -256,10 +209,48 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleStep4Submit = (e: React.FormEvent) => {
+  const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep4()) {
-      setCurrentStep(5);
+    if (!validateStep3()) return;
+    
+    setIsLoading(true);
+    setSubmitError("");
+
+    try {
+      // 1. Register User
+      const authResponse = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          full_name: `${formData.firstName} ${formData.lastName}`
+        })
+      });
+
+      const authData = await authResponse.json();
+      if (!authResponse.ok) throw new Error(authData.error || "Failed to register.");
+
+      // 2. Create Patient Record
+      const patientResponse = await fetch("/api/patients", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          date_of_birth: formData.dob,
+          gender: formData.gender.toLowerCase(),
+          address: formData.address,
+          city: formData.city,
+        })
+      });
+
+      const patientData = await patientResponse.json();
+      if (!patientResponse.ok) throw new Error(patientData.error || "Failed to save patient data.");
+
+      setCurrentStep(4);
+    } catch(err: any) {
+      setSubmitError(err.message || "An error occurred during registration.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -516,6 +507,13 @@ const Register = () => {
                 </span>
               )}
 
+              
+              {submitError && (
+                <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
+                  {submitError}
+                </div>
+              )}
+              
               {/* Navigation Buttons Row */}
               <div className="flex gap-4 pt-2">
                 <Button
@@ -542,153 +540,6 @@ const Register = () => {
 
           {currentStep === 3 && (
             <form onSubmit={handleStep3Submit} className="space-y-6">
-              {/* Top Vital Track Info Card */}
-              <div className="bg-[#f1f5f9]/40 border border-slate-100 rounded-xl p-5 flex items-start gap-4">
-                <div className="shrink-0 mt-1">
-                  <Activity className="w-5 h-5 text-primary-blue" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-bold text-primary-deepblue mb-1">
-                    Track Your Health from Day One
-                  </h3>
-                  <p className="text-xs text-primary-gray leading-relaxed">
-                    Recording your baseline vitals helps Dr. Adeyemi provide
-                    better, more personalized care. We encourage all patients to
-                    invest in a bathroom scale, tape measure, digital
-                    thermometer, and digital BP apparatus for at-home
-                    monitoring. These simple tools empower you to track your
-                    health between visits.
-                  </p>
-                </div>
-              </div>
-
-              {/* Baseline Measurements Section */}
-              <div className="pt-2">
-                <h2 className="text-[17px] font-bold text-primary-deepblue">
-                  Baseline Measurements
-                </h2>
-                <p className="text-[13px] text-slate-400 mt-1">
-                  These will be recorded once at registration. You'll update
-                  current vitals each time you book a consultation.
-                </p>
-              </div>
-
-              {/* Row 1: Weight & Height Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <div>
-                  <Input
-                    label="Weight (kg)"
-                    placeholder="e.g 72"
-                    value={formData.weight}
-                    onChange={(e) =>
-                      handleInputChange("weight", e.target.value)
-                    }
-                    error={errors.weight}
-                  />
-                  <p className="text-[12px] text-slate-400 mt-1.5 ml-1">
-                    Use a bathroom scale
-                  </p>
-                </div>
-                <div>
-                  <Input
-                    label="Height (meters)"
-                    placeholder="e.g 1.72"
-                    value={formData.height}
-                    onChange={(e) =>
-                      handleInputChange("height", e.target.value)
-                    }
-                    error={errors.height}
-                  />
-                  <p className="text-[12px] text-slate-400 mt-1.5 ml-1">
-                    Use a tape measure
-                  </p>
-                </div>
-              </div>
-
-              {/* Row 2: Heart Rate */}
-              <div>
-                <Input
-                  label="Resting Heart Rate (bpm)"
-                  placeholder="e.g 72"
-                  value={formData.heartRate}
-                  onChange={(e) =>
-                    handleInputChange("heartRate", e.target.value)
-                  }
-                  error={errors.heartRate}
-                />
-                <p className="text-[12px] text-slate-400 mt-1.5 ml-1">
-                  Count your pulse for 60 seconds at rest
-                </p>
-              </div>
-
-              {/* Row 3: Blood Pressure split fields */}
-              <div>
-                <label className="text-[15px] font-semibold text-primary-deepblue select-none block mb-2">
-                  Blood Pressure (mmHg)
-                </label>
-                <div className="flex items-center gap-4">
-                  <Input
-                    placeholder="Systolic"
-                    value={formData.systolic}
-                    onChange={(e) =>
-                      handleInputChange("systolic", e.target.value)
-                    }
-                    error={errors.systolic}
-                  />
-                  <span className="text-xl text-slate-300">/</span>
-                  <Input
-                    placeholder="Diastolic"
-                    value={formData.diastolic}
-                    onChange={(e) =>
-                      handleInputChange("diastolic", e.target.value)
-                    }
-                    error={errors.diastolic}
-                  />
-                </div>
-                <p className="text-[12px] text-slate-400 mt-1.5 ml-1">
-                  Use a digital BP apparatus
-                </p>
-              </div>
-
-              {/* Bottom skippable message banner */}
-              <div className="bg-[#f1f5f9]/40 border border-slate-100 rounded-xl p-5 flex items-start gap-4">
-                <div className="shrink-0 mt-0.5">
-                  <Info className="w-5 h-5 text-slate-400" />
-                </div>
-                <p className="text-sm text-primary-gray leading-relaxed">
-                  Don't have these devices yet? No worries — you can skip this
-                  step and update your vitals later from your dashboard.
-                  However, having accurate baseline measurements helps us
-                  provide the best possible care from your very first visit.
-                </p>
-              </div>
-
-              {/* Navigation Buttons Row */}
-              <div className="flex gap-4 pt-2">
-                <Button
-                  type="button"
-                  onClick={() => setCurrentStep(2)}
-                  variant="outline"
-                  className="flex-none px-6 py-4 rounded-[10px] border border-slate-200 text-primary-deepblue font-bold text-base hover:bg-slate-50 transition-colors duration-200 cursor-pointer flex items-center gap-2"
-                >
-                  <ArrowLeft className="w-5 h-5" />
-                  Back
-                </Button>
-
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="flex-1 flex items-center justify-center gap-2 py-4 rounded-[10px] bg-primary-red hover:bg-[#c40300] text-white font-bold text-base transition-colors duration-200 cursor-pointer"
-                >
-                  Continue to Payment
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </div>
-            </form>
-          )}
-
-          {currentStep === 4 && (
-            <form onSubmit={handleStep4Submit} className="space-y-6">
               {/* Payment Summary Dark Card */}
               <div className="bg-linear-to-br from-[#0f0f0f] to-[#1a1a2e] rounded-2xl p-6 md:p-8 text-white">
                 <p className="text-[11px] font-semibold tracking-[0.15em] uppercase text-slate-400 mb-3">
@@ -835,7 +686,7 @@ const Register = () => {
               <div className="flex gap-4 pt-2">
                 <Button
                   type="button"
-                  onClick={() => setCurrentStep(3)}
+                  onClick={() => setCurrentStep(2)}
                   variant="outline"
                   className="flex-none px-6 py-4 rounded-[10px] border border-slate-200 text-primary-deepblue font-bold text-base hover:bg-slate-50 transition-colors duration-200 cursor-pointer flex items-center gap-2"
                 >
@@ -846,16 +697,21 @@ const Register = () => {
                 <Button
                   type="submit"
                   variant="primary"
+                  disabled={isLoading}
                   className="flex-1 flex items-center justify-center gap-2 py-4 rounded-[10px] bg-primary-red hover:bg-[#c40300] text-white font-bold text-base transition-colors duration-200 cursor-pointer"
                 >
-                  Pay & Register
-                  <Lock className="w-4 h-4" />
+                  {isLoading ? "Processing..." : (
+                    <>
+                      Pay & Register
+                      <Lock className="w-4 h-4" />
+                    </>
+                  )}
                 </Button>
               </div>
             </form>
           )}
 
-          {currentStep === 5 && (
+          {currentStep === 4 && (
             <div className="text-center py-12 px-6 md:px-10 bg-white w-full max-w-140 mx-auto">
               <div className="w-16 h-16 bg-[#edf2fa] rounded-full flex items-center justify-center mx-auto mb-6">
                 <Check className="w-8 h-8 text-[#2e5bf0]" strokeWidth={2.5} />
