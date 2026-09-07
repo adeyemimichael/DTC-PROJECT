@@ -155,7 +155,7 @@ const Register = () => {
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
     // if (validateStep1()) {
-    setCurrentStep(4);
+    setCurrentStep(2);
     // }
   };
 
@@ -180,34 +180,29 @@ const Register = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          full_name: `${formData.firstName} ${formData.lastName}`,
-        }),
-      });
-
-      const authData = await authResponse.json();
-      if (!authResponse.ok)
-        throw new Error(authData.error || "Failed to register.");
-
-      // 2. Create Patient Record
-      const patientResponse = await fetch("/api/patients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date_of_birth: formData.dob,
-          gender: formData.gender.toLowerCase(),
+          phoneNumber: formData.phoneNumber,
+          dob: formData.dob,
+          gender: formData.gender,
           address: formData.address,
           city: formData.city,
         }),
       });
 
-      const patientData = await patientResponse.json();
-      if (!patientResponse.ok)
-        throw new Error(patientData.error || "Failed to save patient data.");
+      const authData = await authResponse.json();
+      if (!authResponse.ok) {
+        throw new Error(authData.error || "Failed to register.");
+      }
 
-      setCurrentStep(4);
+      // Redirect to Paystack checkout
+      if (authData.paymentUrl) {
+        window.location.href = authData.paymentUrl;
+      } else {
+        // Fallback just in case, although paymentUrl is expected
+        setCurrentStep(4);
+        setIsLoading(false);
+      }
     } catch (err: any) {
       setSubmitError(err.message || "An error occurred during registration.");
-    } finally {
       setIsLoading(false);
     }
   };

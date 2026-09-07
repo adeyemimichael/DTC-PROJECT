@@ -1,31 +1,34 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server"; // Your helper
+import { registerPatient } from "@/lib/services/registration.service";
 
 // POST /api/auth/register
 export async function POST(request: Request) {
-  const supabase = await createClient();
-
   try {
     const body = await request.json();
-    const { email, password, full_name, phone } = body;
 
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: full_name || "",
-          phone: phone || "",
-        },
-      },
-    });
-
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+    // We expect: email, password, firstName, lastName, phoneNumber, dob, gender, address, city
+    if (!body.email || !body.password || !body.firstName || !body.lastName) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
-    return NextResponse.json({ data }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    const result = await registerPatient(body);
+
+    return NextResponse.json(
+      {
+        success: true,
+        data: result.user,
+        paymentUrl: result.paymentUrl,
+      },
+      { status: 201 },
+    );
+  } catch (err: any) {
+    console.error("Registration Error:", err);
+    return NextResponse.json(
+      { error: err.message || "Invalid request" },
+      { status: 400 },
+    );
   }
 }
