@@ -88,7 +88,7 @@ export async function verifyPaystackTransaction(reference: string) {
         paid_at: new Date().toISOString(),
       })
       .eq("paystack_reference", reference)
-      .select("patient_id, purpose")
+      .select("patient_id, purpose, related_appointment_id")
       .single();
 
     if (updatePaymentError) {
@@ -97,17 +97,37 @@ export async function verifyPaystackTransaction(reference: string) {
       );
     }
 
-    // 2. If it's a registration payment, update the patient status to 'active'
-    if (paymentRecord && paymentRecord.purpose === "registration") {
-      const { error: updatePatientError } = await adminClient
-        .from("patients")
-        .update({ status: "active" })
-        .eq("id", paymentRecord.patient_id);
+    // 2. Handle specific payment purposes
+    if (paymentRecord) {
+      if (paymentRecord.purpose === "registration") {
+        // Activate the patient profile
+        const { error: updatePatientError } = await adminClient
+          .from("patients")
+          .update({ status: "active" })
+          .eq("id", paymentRecord.patient_id);
 
-      if (updatePatientError) {
-        throw new Error(
-          `Failed to activate patient: ${updatePatientError.message}`,
-        );
+        if (updatePatientError) {
+          throw new Error(
+            `Failed to activate patient: ${updatePatientError.message}`,
+          );
+        }
+      } else if (
+        paymentRecord.purpose === "appointment" ||
+        paymentRecord.purpose === "follow_up"
+      ) {
+        // Mark the appointment as pending approval now that it's paid
+        if (paymentRecord.related_appointment_id) {
+          const { error: updateAppointmentError } = await adminClient
+            .from("appointments")
+            .update({ status: "pending_approval" })
+            .eq("id", paymentRecord.related_appointment_id);
+
+          if (updateAppointmentError) {
+            throw new Error(
+              `Failed to update appointment status: ${updateAppointmentError.message}`,
+            );
+          }
+        }
       }
     }
   } else {
