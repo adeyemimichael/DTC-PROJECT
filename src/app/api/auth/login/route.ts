@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server"; // Your helper
+import { createClient } from "@/lib/supabase/server";
 
 // POST /api/auth/login
 export async function POST(request: Request) {

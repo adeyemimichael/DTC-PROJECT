@@ -13,6 +13,7 @@
 # testing
 /coverage
 /vs-code
+.vscode
 # next.js
 /.next/
 /out/
@@ -47,3 +48,7 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+#seed routes
+/src/app/api/seed/admin/route.ts
+

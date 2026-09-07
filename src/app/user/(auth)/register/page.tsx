@@ -9,8 +9,6 @@ import {
   Calendar,
   ArrowRight,
   ArrowLeft,
-  Activity,
-  Info,
   Lock,
   ShieldCheck,
   CreditCard,
@@ -45,18 +43,7 @@ const Register = () => {
     confirmPassword: "",
     agreeToTerms: false,
 
-    // Step 3 data
-    weight: "",
-    height: "",
-    heartRate: "",
-    systolic: "",
-    diastolic: "",
-
     // Step 4 data
-    cardholderName: "",
-    cardNumber: "",
-    expiryDate: "",
-    cvc: "",
   });
 
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -167,52 +154,21 @@ const Register = () => {
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep1()) {
-      setCurrentStep(2);
-    }
+    // if (validateStep1()) {
+    setCurrentStep(4);
+    // }
   };
 
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateStep2()) {
-      setCurrentStep(3);
-    }
-  };
-
-  const validateStep3 = () => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.cardholderName.trim()) {
-      newErrors.cardholderName = "Cardholder name is required";
-    }
-
-    const digitsOnly = formData.cardNumber.replace(/\s/g, "");
-    if (!digitsOnly) {
-      newErrors.cardNumber = "Card number is required";
-    } else if (!/^\d{13,19}$/.test(digitsOnly)) {
-      newErrors.cardNumber = "Please enter a valid card number";
-    }
-
-    if (!formData.expiryDate.trim()) {
-      newErrors.expiryDate = "Expiry date is required";
-    } else if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(formData.expiryDate.trim())) {
-      newErrors.expiryDate = "Use MM/YY format";
-    }
-
-    if (!formData.cvc.trim()) {
-      newErrors.cvc = "CVC is required";
-    } else if (!/^\d{3,4}$/.test(formData.cvc.trim())) {
-      newErrors.cvc = "Invalid CVC";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    // if (validateStep2()) {
+    setCurrentStep(3);
+    // }
   };
 
   const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateStep3()) return;
-    
+
     setIsLoading(true);
     setSubmitError("");
 
@@ -224,12 +180,13 @@ const Register = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          full_name: `${formData.firstName} ${formData.lastName}`
-        })
+          full_name: `${formData.firstName} ${formData.lastName}`,
+        }),
       });
 
       const authData = await authResponse.json();
-      if (!authResponse.ok) throw new Error(authData.error || "Failed to register.");
+      if (!authResponse.ok)
+        throw new Error(authData.error || "Failed to register.");
 
       // 2. Create Patient Record
       const patientResponse = await fetch("/api/patients", {
@@ -240,37 +197,18 @@ const Register = () => {
           gender: formData.gender.toLowerCase(),
           address: formData.address,
           city: formData.city,
-        })
+        }),
       });
 
       const patientData = await patientResponse.json();
-      if (!patientResponse.ok) throw new Error(patientData.error || "Failed to save patient data.");
+      if (!patientResponse.ok)
+        throw new Error(patientData.error || "Failed to save patient data.");
 
       setCurrentStep(4);
-    } catch(err: any) {
+    } catch (err: any) {
       setSubmitError(err.message || "An error occurred during registration.");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  // Format card number with spaces every 4 digits
-  const handleCardNumberChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, "").slice(0, 16);
-    const formatted = cleaned.replace(/(\d{4})(?=\d)/g, "$1 ");
-    handleInputChange("cardNumber", formatted);
-  };
-
-  // Format expiry date as MM/YY
-  const handleExpiryChange = (value: string) => {
-    const cleaned = value.replace(/\D/g, "").slice(0, 4);
-    if (cleaned.length >= 3) {
-      handleInputChange(
-        "expiryDate",
-        cleaned.slice(0, 2) + "/" + cleaned.slice(2),
-      );
-    } else {
-      handleInputChange("expiryDate", cleaned);
     }
   };
 
@@ -507,13 +445,12 @@ const Register = () => {
                 </span>
               )}
 
-              
               {submitError && (
                 <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
                   {submitError}
                 </div>
               )}
-              
+
               {/* Navigation Buttons Row */}
               <div className="flex gap-4 pt-2">
                 <Button
@@ -584,22 +521,6 @@ const Register = () => {
                       {formData.phoneNumber || "—"}
                     </span>
                   </div>
-                  {formData.weight && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-[13px] text-slate-400">Weight</span>
-                      <span className="text-[13px] font-semibold text-white">
-                        {formData.weight} kg
-                      </span>
-                    </div>
-                  )}
-                  {formData.systolic && formData.diastolic && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-[13px] text-slate-400">BP</span>
-                      <span className="text-[13px] font-semibold text-white">
-                        {formData.systolic}/{formData.diastolic} mmHg
-                      </span>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -624,50 +545,6 @@ const Register = () => {
                   </div>
                   <CreditCard className="w-5 h-5 text-slate-400" />
                 </div>
-              </div>
-
-              {/* Card Input Fields */}
-              <Input
-                label="Cardholder Name"
-                placeholder="Name on card"
-                value={formData.cardholderName}
-                onChange={(e) =>
-                  handleInputChange("cardholderName", e.target.value)
-                }
-                error={errors.cardholderName}
-              />
-
-              <Input
-                label="Card Number"
-                placeholder="0000 0000 0000 0000"
-                value={formData.cardNumber}
-                onChange={(e) => handleCardNumberChange(e.target.value)}
-                error={errors.cardNumber}
-                maxLength={19}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-                <Input
-                  label="Expiry Date"
-                  placeholder="MM/YY"
-                  value={formData.expiryDate}
-                  onChange={(e) => handleExpiryChange(e.target.value)}
-                  error={errors.expiryDate}
-                  maxLength={5}
-                />
-                <Input
-                  label="CVC"
-                  placeholder="123"
-                  value={formData.cvc}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "cvc",
-                      e.target.value.replace(/\D/g, "").slice(0, 4),
-                    )
-                  }
-                  error={errors.cvc}
-                  maxLength={4}
-                />
               </div>
 
               {/* Security Notice Banner */}
@@ -700,7 +577,9 @@ const Register = () => {
                   disabled={isLoading}
                   className="flex-1 flex items-center justify-center gap-2 py-4 rounded-[10px] bg-primary-red hover:bg-[#c40300] text-white font-bold text-base transition-colors duration-200 cursor-pointer"
                 >
-                  {isLoading ? "Processing..." : (
+                  {isLoading ? (
+                    "Processing..."
+                  ) : (
                     <>
                       Pay & Register
                       <Lock className="w-4 h-4" />
@@ -710,88 +589,9 @@ const Register = () => {
               </div>
             </form>
           )}
-
-          {currentStep === 4 && (
-            <div className="text-center py-12 px-6 md:px-10 bg-white w-full max-w-140 mx-auto">
-              <div className="w-16 h-16 bg-[#edf2fa] rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="w-8 h-8 text-[#2e5bf0]" strokeWidth={2.5} />
-              </div>
-              <h2 className="text-[28px] md:text-[32px] font-bold text-primary-deepblue mb-3 tracking-tight">
-                Registration Complete
-              </h2>
-              <p className="text-[15px] text-primary-gray mb-8 leading-relaxed max-w-140 mx-auto">
-                Welcome to Durom&apos;s Touch Clinic! Your account has been
-                created successfully. A confirmation email has been sent to{" "}
-                <span className="font-semibold text-primary-deepblue">
-                  {formData.email || "f@gmail.com"}
-                </span>
-                .
-              </p>
-
-              <div className="border border-slate-200 rounded-2xl py-8 px-4 mb-8">
-                <p className="text-[11px] font-semibold tracking-widest uppercase text-slate-400 mb-4">
-                  PAYMENT PROCESSED
-                </p>
-                <p className="text-[32px] font-bold text-primary-deepblue leading-tight mb-1">
-                  $49.00
-                </p>
-                <p className="text-[13px] text-slate-400">
-                  One-time registration fee
-                </p>
-              </div>
-
-              <div className="flex flex-col gap-4">
-                <Link href="/dashboard" className="w-full">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    className="w-full flex items-center justify-center gap-2 py-4 rounded-[10px] bg-primary-red hover:bg-[#c40300] text-white font-bold text-[15px] transition-colors duration-200 cursor-pointer"
-                  >
-                    Go to Dashboard
-                    <ArrowRight className="w-5 h-5" />
-                  </Button>
-                </Link>
-                <Link
-                  href="/"
-                  className="text-[14px] font-medium text-primary-gray hover:text-primary-deepblue hover:underline py-2"
-                >
-                  Return to Home
-                </Link>
-              </div>
-            </div>
-          )}
         </div>
       </main>
     </div>
-  );
-};
-
-const Header = () => {
-  return (
-    <header className="w-full bg-white border-b border-slate-100 flex h-20 items-center">
-      <div className="container-brand flex items-center justify-between">
-        <Link href="/" className="flex items-center">
-          <Image
-            src="/images/logo.png"
-            alt="Durom's Touch Clinic Logo"
-            width={160}
-            height={40}
-            className="h-10 w-auto object-contain"
-            priority
-          />
-        </Link>
-
-        <div className="flex flex-row items-center gap-2 text-sm font-medium text-primary-gray">
-          <p>Already have an account?</p>
-          <Link
-            href="/login"
-            className="text-primary-blue font-semibold hover:underline"
-          >
-            Sign in
-          </Link>
-        </div>
-      </div>
-    </header>
   );
 };
 
