@@ -14,15 +14,9 @@ export async function initializePaystackTransaction(
 ) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey) {
-    console.warn(
-      "Missing PAYSTACK_SECRET_KEY, using a mock response for development",
+    throw new Error(
+      "Missing PAYSTACK_SECRET_KEY. Please set it in your environment variables.",
     );
-    // Mock response for development if no key is provided
-    return {
-      authorization_url: "https://checkout.paystack.com/mock-url",
-      access_code: "mock-access-code",
-      reference: options.reference || `mock-ref-${Date.now()}`,
-    };
   }
 
   const response = await fetch(
@@ -44,40 +38,34 @@ export async function initializePaystackTransaction(
     );
   }
 
-  return data.data; // { authorization_url, access_code, reference }
+  return data.data;
 }
 
 export async function verifyPaystackTransaction(reference: string) {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
-
   let isSuccessful = false;
 
   if (!secretKey) {
-    console.warn(
+    throw new Error(
       "Missing PAYSTACK_SECRET_KEY, automatically marking mock payment as successful.",
     );
-    // Wait for 1 second to simulate network delay
-    await new Promise((res) => setTimeout(res, 1000));
-    isSuccessful = true;
-  } else {
-    const response = await fetch(
-      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${secretKey}`,
-        },
+  }
+  const response = await fetch(
+    `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
       },
-    );
+    },
+  );
 
-    const data = await response.json();
-    if (response.ok && data.status && data.data.status === "success") {
-      isSuccessful = true;
-    }
+  const data = await response.json();
+  if (response.ok && data.status && data.data.status === "success") {
+    isSuccessful = true;
   }
 
   if (isSuccessful) {
-    // Payment verified successfully. Let's update the payment and patient tables.
     const adminClient = createAdminClient();
 
     // 1. Update the payments table

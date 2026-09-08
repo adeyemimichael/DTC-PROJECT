@@ -154,16 +154,16 @@ const Register = () => {
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // if (validateStep1()) {
-    setCurrentStep(2);
-    // }
+    if (validateStep1()) {
+      setCurrentStep(2);
+    }
   };
 
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // if (validateStep2()) {
-    setCurrentStep(3);
-    // }
+    if (validateStep2()) {
+      setCurrentStep(3);
+    }
   };
 
   const handleStep3Submit = async (e: React.FormEvent) => {
@@ -178,6 +178,8 @@ const Register = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
           phoneNumber: formData.phoneNumber,
@@ -196,10 +198,6 @@ const Register = () => {
       // Redirect to Paystack checkout
       if (authData.paymentUrl) {
         window.location.href = authData.paymentUrl;
-      } else {
-        // Fallback just in case, although paymentUrl is expected
-        setCurrentStep(4);
-        setIsLoading(false);
       }
     } catch (err: any) {
       setSubmitError(err.message || "An error occurred during registration.");

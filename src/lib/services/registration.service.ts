@@ -15,9 +15,8 @@ export interface RegisterPatientDto {
 }
 
 export async function registerPatient(data: RegisterPatientDto) {
-  // 1. Sign up the user via the SSR client so cookies are set properly in the browser
   const supabase = await createClient();
-  const adminClient = createAdminClient();
+  const supabaseAdmin = createAdminClient();
 
   const fullName = `${data.firstName} ${data.lastName}`;
 
@@ -42,10 +41,7 @@ export async function registerPatient(data: RegisterPatientDto) {
     throw new Error("Failed to create user account. No user ID returned.");
   }
 
-  // NOTE: The `on_auth_user_created` Postgres trigger will automatically
-  // create a row in the `profiles` table for this user, but it omits the phone number.
-  // We'll update the profile with the phone number just in case.
-  await adminClient
+  await supabaseAdmin
     .from("profiles")
     .update({ phone: data.phoneNumber })
     .eq("id", userId);
@@ -57,7 +53,7 @@ export async function registerPatient(data: RegisterPatientDto) {
     ? `${data.address}, ${data.city}`
     : data.address;
 
-  const { error: patientError } = await adminClient.from("patients").insert({
+  const { error: patientError } = await supabaseAdmin.from("patients").insert({
     id: userId,
     date_of_birth: data.dob,
     gender: data.gender.toLowerCase(),
@@ -74,18 +70,16 @@ export async function registerPatient(data: RegisterPatientDto) {
   }
 
   // 3. Initialize Paystack transaction
-  // The fee is $49.00 -> 4900 cents
   const reference = `REG-${userId}-${Date.now()}`;
 
-  // Using an environment variable for the app URL, fallback to localhost
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   const paystackResult = await initializePaystackTransaction({
     email: data.email,
     amount: 4900,
     currency: "USD",
     reference,
-    callback_url: `${baseUrl}/user/confirm`, // Redirect here after payment
+    callback_url: `${baseUrl}/user/confirm`,
     metadata: {
       userId,
       purpose: "patient_registration_fee",
@@ -93,7 +87,7 @@ export async function registerPatient(data: RegisterPatientDto) {
   });
 
   // 4. Save transaction to the payments table using admin client
-  const { error: paymentRecordError } = await adminClient
+  const { error: paymentRecordError } = await supabaseAdmin
     .from("payments")
     .insert({
       patient_id: userId,
