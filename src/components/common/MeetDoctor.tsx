@@ -4,26 +4,26 @@ import { Quote } from 'lucide-react';
 
 export function MeetDoctor() {
   const specializations = [
-    'Internal Medicine',
-    'Chronic Disease Management',
+    'Family Medicine',
+    'Primary Care',
   ];
 
   const credentials = [
     {
       label: 'Medical License',
-      value: 'Lagos State Medical Board',
+      value: 'Medical and Dental Council of Nigeria (MDCN)',
     },
     {
-      label: 'Certification',
-      value: 'Royal College of Physicians',
+      label: 'Postgraduate',
+      value: 'FMCFM, MWACP',
     },
     {
       label: 'Experience',
-      value: '18+ Years in Practice',
+      value: '15+ Years in Practice',
     },
     {
-      label: 'Patients Served',
-      value: '5,000+',
+      label: 'Additional Training',
+      value: 'Leadership & Management in Health',
     },
   ];
 
@@ -37,7 +37,7 @@ export function MeetDoctor() {
           <div className="relative aspect-square w-full rounded-3xl overflow-hidden shadow-sm">
             <Image
               src="/images/stephen.jpg"
-              alt="Dr. Stephen Adeyemi"
+              alt="Dr. Stephen Oguntoye"
               fill
               sizes="(max-width: 1024px)  100vw, 50vw"
               className="object-cover object-top"
@@ -71,10 +71,10 @@ export function MeetDoctor() {
               Meet Your Doctor
             </span>
             <h2 className="mt-3 text-[32px] sm:text-[40px] md:text-[48px] md:leading-14.5 font-medium tracking-[-0.02em] text-primary-black">
-              Dr. Stephen Adeyemi
+              Dr. Stephen Oguntoye
             </h2>
             <p className="mt-2 text-base md:text-lg text-primary-gray font-medium">
-              MD, Internal Medicine · Lead Physician & Founder
+              MBBS, FMCFM, MWACP · Consultant Family Physician
             </p>
           </div>
 
@@ -97,13 +97,13 @@ export function MeetDoctor() {
 
           {/* Bio Text */}
           <p className="mt-8 text-[15px] md:text-base leading-relaxed text-primary-gray">
-            Dr. Stephen founded Durom's Touch Clinic with a clear vision: healthcare should be accessible, transparent, and built around the patient — not the system. With over 18 years of clinical experience across Lagos and London, he brings a rare combination of deep medical expertise and genuine human care. After completing his medical degree at the University of Lagos and specialist training at the Royal College of Physicians, Dr. Stephen returned home to build a clinic that strips away the complexity of traditional healthcare. No long wait times. No surprise bills. Just direct, personal care when you need it.
+            Dr. Stephen Oguntoye is a dedicated Consultant Family Physician with 15 years of medical practice. Having served diverse communities in both rural and urban areas, he understands the unique health challenges individuals face across different walks of life. Dr. Stephen is known for his excellent, compassionate care and clear communication, making patients feel heard, valued, and comfortable during every digital consultation. With additional training in Leadership and Management in Health from the University of Washington, he brings both clinical expertise and a patient-centered approach to healthcare delivery.
           </p>
 
           {/* Quote Block */}
           <div className="bg-primary-deepblue rounded-3xl p-6 md:p-8 mt-8 flex items-center justify-between gap-6 shadow-sm">
             <p className="text-white font-medium italic text-[14px] md:text-[15px] leading-relaxed flex-1">
-              "My patients deserve to know exactly what they are paying for and why. Transparency is not a feature — it is the foundation of trust."
+              "Quality healthcare should be accessible to everyone, regardless of where they are. My goal is to ensure every patient feels heard, understood, and cared for."
             </p>
             <div className="w-10 h-10 rounded-full bg-primary-red flex items-center justify-center text-white shrink-0  shadow-sm">
               <Quote className="w-5 h-5 fill-black text-black rotate-180" />
