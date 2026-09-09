@@ -14,6 +14,7 @@ import {
   CreditCard,
   Check,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 // Registration steps definition
 const steps = [
@@ -25,7 +26,6 @@ const steps = [
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState("");
 
   const [formData, setFormData] = useState({
     // Step 1 data
@@ -154,23 +154,22 @@ const Register = () => {
 
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // if (validateStep1()) {
-    setCurrentStep(4);
-    // }
+    if (validateStep1()) {
+      setCurrentStep(2);
+    }
   };
 
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    // if (validateStep2()) {
-    setCurrentStep(3);
-    // }
+    if (validateStep2()) {
+      setCurrentStep(3);
+    }
   };
 
   const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setIsLoading(true);
-    setSubmitError("");
 
     try {
       // 1. Register User
@@ -178,36 +177,31 @@ const Register = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
           email: formData.email,
           password: formData.password,
-          full_name: `${formData.firstName} ${formData.lastName}`,
-        }),
-      });
-
-      const authData = await authResponse.json();
-      if (!authResponse.ok)
-        throw new Error(authData.error || "Failed to register.");
-
-      // 2. Create Patient Record
-      const patientResponse = await fetch("/api/patients", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          date_of_birth: formData.dob,
-          gender: formData.gender.toLowerCase(),
+          phoneNumber: formData.phoneNumber,
+          dob: formData.dob,
+          gender: formData.gender,
           address: formData.address,
           city: formData.city,
         }),
       });
 
-      const patientData = await patientResponse.json();
-      if (!patientResponse.ok)
-        throw new Error(patientData.error || "Failed to save patient data.");
+      const authData = await authResponse.json();
+      if (!authResponse.ok) {
+        throw new Error(authData.error || "Failed to register.");
+      }
 
-      setCurrentStep(4);
+      toast.success("Registration successful! Redirecting to payment...");
+
+      // Redirect to Paystack checkout
+      if (authData.paymentUrl) {
+        window.location.href = authData.paymentUrl;
+      }
     } catch (err: any) {
-      setSubmitError(err.message || "An error occurred during registration.");
-    } finally {
+      toast.error(err.message || "An error occurred during registration.");
       setIsLoading(false);
     }
   };
@@ -443,12 +437,6 @@ const Register = () => {
                 <span className="text-xs font-semibold text-primary-red block -mt-4">
                   {errors.agreeToTerms}
                 </span>
-              )}
-
-              {submitError && (
-                <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
-                  {submitError}
-                </div>
               )}
 
               {/* Navigation Buttons Row */}
