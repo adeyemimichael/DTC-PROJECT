@@ -110,7 +110,7 @@ const ConfirmationContent = () => {
         </p>
         <p className="text-[13px] text-slate-400">One-time registration fee</p>
         <p className="text-[12px] font-mono text-primary-gray mt-2 bg-slate-50 py-1 rounded inline-block px-2 border border-slate-100">
-          Ref: {reference}
+          Ref: {reference?.slice(0, 5)}...{reference?.slice(-4)}
         </p>
       </div>
 

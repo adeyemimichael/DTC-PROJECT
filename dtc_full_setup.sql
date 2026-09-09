@@ -36,9 +36,10 @@ returns trigger
 language plpgsql security definer set search_path = public
 as $$
 begin
-  insert into public.profiles (id, full_name, role)
+  insert into public.profiles (id, full_name, role, phone)
   values (new.id, new.raw_user_meta_data->>'full_name',
-          coalesce(new.raw_user_meta_data->>'role', 'patient'));
+          coalesce(new.raw_user_meta_data->>'role', 'patient'),
+          new.raw_user_meta_data->>'phone');
   return new;
 end;
 $$;

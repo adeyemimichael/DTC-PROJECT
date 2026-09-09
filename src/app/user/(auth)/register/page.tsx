@@ -14,6 +14,7 @@ import {
   CreditCard,
   Check,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 // Registration steps definition
 const steps = [
@@ -25,7 +26,6 @@ const steps = [
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [submitError, setSubmitError] = useState("");
 
   const [formData, setFormData] = useState({
     // Step 1 data
@@ -170,7 +170,6 @@ const Register = () => {
     e.preventDefault();
 
     setIsLoading(true);
-    setSubmitError("");
 
     try {
       // 1. Register User
@@ -195,12 +194,14 @@ const Register = () => {
         throw new Error(authData.error || "Failed to register.");
       }
 
+      toast.success("Registration successful! Redirecting to payment...");
+
       // Redirect to Paystack checkout
       if (authData.paymentUrl) {
         window.location.href = authData.paymentUrl;
       }
     } catch (err: any) {
-      setSubmitError(err.message || "An error occurred during registration.");
+      toast.error(err.message || "An error occurred during registration.");
       setIsLoading(false);
     }
   };
@@ -436,12 +437,6 @@ const Register = () => {
                 <span className="text-xs font-semibold text-primary-red block -mt-4">
                   {errors.agreeToTerms}
                 </span>
-              )}
-
-              {submitError && (
-                <div className="mb-6 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-600 text-sm text-center">
-                  {submitError}
-                </div>
               )}
 
               {/* Navigation Buttons Row */}

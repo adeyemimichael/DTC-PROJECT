@@ -20,14 +20,15 @@ export async function registerPatient(data: RegisterPatientDto) {
 
   const fullName = `${data.firstName} ${data.lastName}`;
 
+  // 1. Create user in Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email: data.email,
     password: data.password,
     options: {
       data: {
         full_name: fullName,
-        phone: data.phoneNumber,
         role: "patient",
+        phone: data.phoneNumber,
       },
     },
   });
@@ -41,14 +42,7 @@ export async function registerPatient(data: RegisterPatientDto) {
     throw new Error("Failed to create user account. No user ID returned.");
   }
 
-  await supabaseAdmin
-    .from("profiles")
-    .update({ phone: data.phoneNumber })
-    .eq("id", userId);
-
   // 2. Insert into patients table.
-  // We use the admin client because the user might not have a confirmed email yet (if email_confirm is on),
-  // which means they won't pass RLS `patients_insert_own` via standard client.
   const fullAddress = data.city
     ? `${data.address}, ${data.city}`
     : data.address;
@@ -58,12 +52,10 @@ export async function registerPatient(data: RegisterPatientDto) {
     date_of_birth: data.dob,
     gender: data.gender.toLowerCase(),
     address: fullAddress,
-    status: "pending_payment", // Default from DB schema
+    status: "pending_payment",
   });
 
   if (patientError) {
-    // Ideally we would roll back auth user creation here, but we can also just log it
-    // or let the user retry. For now, we throw.
     throw new Error(
       `Failed to create patient profile: ${patientError.message}`,
     );
@@ -76,8 +68,8 @@ export async function registerPatient(data: RegisterPatientDto) {
 
   const paystackResult = await initializePaystackTransaction({
     email: data.email,
-    amount: 4900,
-    currency: "USD",
+    amount: 7000000,
+    currency: "NGN",
     reference,
     callback_url: `${baseUrl}/user/confirm`,
     metadata: {
@@ -92,8 +84,8 @@ export async function registerPatient(data: RegisterPatientDto) {
     .insert({
       patient_id: userId,
       purpose: "registration",
-      amount: 49.0,
-      currency: "USD",
+      amount: 7000000.0,
+      currency: "NGN",
       paystack_reference: paystackResult.reference,
       paystack_access_code: paystackResult.access_code,
       status: "pending",
