@@ -68,7 +68,7 @@ export async function registerPatient(data: RegisterPatientDto) {
 
   const paystackResult = await initializePaystackTransaction({
     email: data.email,
-    amount: 7000000,
+    amount: 6900000,
     currency: "NGN",
     reference,
     callback_url: `${baseUrl}/user/confirm`,
@@ -84,7 +84,7 @@ export async function registerPatient(data: RegisterPatientDto) {
     .insert({
       patient_id: userId,
       purpose: "registration",
-      amount: 7000000.0,
+      amount: 69000.0,
       currency: "NGN",
       paystack_reference: paystackResult.reference,
       paystack_access_code: paystackResult.access_code,
