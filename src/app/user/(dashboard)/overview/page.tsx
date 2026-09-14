@@ -1,5 +1,12 @@
-import { BookAppointmentButton, NextAppointmentCard, RecentActivityTimeline, QuickActionsList, NotificationsWidget } from '@/src/components/common';
-import { Calendar } from 'lucide-react';
+import { createClient } from "@/lib/supabase/server";
+import {
+  BookAppointmentButton,
+  NextAppointmentCard,
+  RecentActivityTimeline,
+  QuickActionsList,
+  NotificationsWidget,
+} from "@/src/components/common";
+import { Calendar } from "lucide-react";
 
 export default async function OverviewPage() {
   return (
@@ -22,22 +29,15 @@ export default async function OverviewPage() {
 
       {/* Main Layout Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        
         <div className="lg:col-span-2 space-y-6 lg:space-y-8">
           <NextAppointmentCard />
-           <RecentActivityTimeline />
+          <RecentActivityTimeline />
         </div>
-        
 
-  
         <div className="space-y-6 lg:space-y-8">
-          
           <QuickActionsList />
           <NotificationsWidget />
         </div>
-     
-          
-        
       </div>
     </div>
   );
