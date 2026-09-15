@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/utils/auth";
 import {
   BookAppointmentButton,
   NextAppointmentCard,
@@ -9,16 +9,22 @@ import {
 import { Calendar } from "lucide-react";
 
 export default async function OverviewPage() {
+  const user = await getCurrentUser();
+
   return (
     <div className="space-y-6 lg:space-y-8 max-w-6xl mx-auto">
       {/* Welcome Banner Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-lg lg:text-xl font-semibold text-black tracking-tight">
-            Welcome back, Sarah
+            Welcome back, {user?.user_metadata?.full_name || "User"}!
           </h2>
           <p className="text-sm text-primary-gray mt-1 font-sans">
-            Member since January 2024
+            Member since{" "}
+            {new Date(user?.created_at || "").toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+            })}
           </p>
         </div>
         <BookAppointmentButton className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">

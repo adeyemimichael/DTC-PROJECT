@@ -10,7 +10,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  console.log("Current pathname:", pathname); // Debugging line to check the pathname
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       {/* Header */}

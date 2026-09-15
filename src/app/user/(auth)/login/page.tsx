@@ -3,17 +3,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+
     setIsLoading(true);
 
     try {
@@ -28,12 +28,18 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Invalid email or password. Please try again.");
+        throw new Error(
+          data.error || "Invalid email or password. Please try again.",
+        );
       }
+
+      toast.success("Logged in successfully!");
 
       router.push("/user/overview");
     } catch (err: any) {
-      setError(err.message || "Invalid email or password. Please try again.");
+      toast.error(
+        err.message || "Invalid email or password. Please try again.",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -47,12 +53,6 @@ export default function LoginPage() {
         </h1>
         <p className="text-secondary-600 text-lg">Welcome back!</p>
       </div>
-
-      {error && (
-        <div className="mb-6 p-3.5 rounded-xl bg-error-50 border border-error-200 text-error-600 text-sm text-center">
-          {error}
-        </div>
-      )}
 
       <form className="space-y-6" onSubmit={handleSubmit}>
         <div className="space-y-2">

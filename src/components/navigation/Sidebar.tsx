@@ -7,7 +7,6 @@ import { X } from "lucide-react";
 import { SidebarProps } from "./types";
 import SidebarNav from "./SidebarNav";
 
-
 export function Sidebar({
   config,
   logo,
@@ -15,7 +14,7 @@ export function Sidebar({
   isMobileOpen = false,
   onClose,
 }: SidebarProps) {
-  // Separate main navigation sections from footer system sections 
+  // Separate main navigation sections from footer system sections
   const mainSections = config.sections.filter((s) => s.id !== "system");
   const footerSections = config.sections.filter((s) => s.id === "system");
 
