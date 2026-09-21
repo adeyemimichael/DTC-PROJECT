@@ -98,6 +98,34 @@ export async function updateSession(request: NextRequest) {
       url.pathname = "/user/overview";
       return NextResponse.redirect(url);
     }
+
+    // Patient payment status check
+    if (!isAdmin && isUserProtectedRoute) {
+      const isPaymentRecoveryRoute = pathname === "/user/payment-recovery";
+      
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("status")
+        .eq("id", user.sub)
+        .single();
+        
+      if (patient) {
+        if (patient.status === "pending_payment") {
+          if (!isPaymentRecoveryRoute) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/user/payment-recovery";
+            return NextResponse.redirect(url);
+          }
+        } else {
+          // If they are active/inactive and try to access payment recovery, send to overview
+          if (isPaymentRecoveryRoute) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/user/overview";
+            return NextResponse.redirect(url);
+          }
+        }
+      }
+    }
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're

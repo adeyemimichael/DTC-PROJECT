@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useRef } from 'react';
-import Image from 'next/image';
+import React, { useState, useRef } from "react";
+import Image from "next/image";
 import {
   Calendar,
   Lock,
@@ -11,13 +11,19 @@ import {
   CheckCircle2,
   Trash2,
   ShieldAlert,
-} from 'lucide-react';
+} from "lucide-react";
 
 export default function PatientSettingsPage() {
   // Toast state
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const showToast = (
+    message: string,
+    type: "success" | "error" = "success",
+  ) => {
     setToast({ message, type });
     setTimeout(() => {
       setToast(null);
@@ -26,15 +32,15 @@ export default function PatientSettingsPage() {
 
   // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
-    firstName: 'Adesare',
-    lastName: 'Adegbagi',
-    email: 'ade@gmail.com',
-    phone: '+234 703 666 1092',
-    dob: '2007-10-10',
-    gender: 'Female',
-    bloodGroup: 'O+',
-    address: '4517 Washington Ave. Manchester, Kentucky 39495',
-    avatar: '/images/sarah_avatar.png',
+    firstName: "Adesare",
+    lastName: "Adegbagi",
+    email: "ade@gmail.com",
+    phone: "+234 703 666 1092",
+    dob: "2007-10-10",
+    gender: "Female",
+    bloodGroup: "O+",
+    address: "4517 Washington Ave. Manchester, Kentucky 39495",
+    avatar: "/images/sarah_avatar.png",
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,61 +50,65 @@ export default function PatientSettingsPage() {
     if (file) {
       const url = URL.createObjectURL(file);
       setAccountInfo((prev) => ({ ...prev, avatar: url }));
-      showToast('Profile photo updated successfully!');
+      showToast("Profile photo updated successfully!");
     }
   };
 
   const handleSaveAccountInfo = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Account information updated successfully!');
+    showToast("Account information updated successfully!");
   };
 
   // 2. Emergency Contact State
   const [emergencyContact, setEmergencyContact] = useState({
-    fullName: 'Adesare',
-    phone: '0817126465333',
-    relationship: 'Spouse',
+    fullName: "Adesare",
+    phone: "0817126465333",
+    relationship: "Spouse",
   });
 
   const handleSaveEmergencyContact = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Emergency contact saved successfully!');
+    showToast("Emergency contact saved successfully!");
   };
 
   // 3. Password Modal State
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
   });
 
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      showToast('Please fill in all required password fields', 'error');
+      showToast("Please fill in all required password fields", "error");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast('New passwords do not match', 'error');
+      showToast("New passwords do not match", "error");
       return;
     }
-    showToast('Password changed successfully!');
+    showToast("Password changed successfully!");
     setIsPasswordModalOpen(false);
-    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    setPasswordForm({
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
   };
 
   // 4. Delete Account Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const handleDeleteAccount = (e: React.FormEvent) => {
     e.preventDefault();
-    if (deleteConfirmText.toLowerCase() !== 'delete') {
-      showToast('Please type "DELETE" to confirm account removal', 'error');
+    if (deleteConfirmText.toLowerCase() !== "delete") {
+      showToast('Please type "DELETE" to confirm account removal', "error");
       return;
     }
-    showToast('Account deletion request submitted.', 'error');
+    showToast("Account deletion request submitted.", "error");
     setIsDeleteModalOpen(false);
   };
 
@@ -108,10 +118,10 @@ export default function PatientSettingsPage() {
       {toast && (
         <div
           className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white transition-all duration-300 transform translate-y-0 ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
+            toast.type === "success" ? "bg-emerald-600" : "bg-rose-600"
           }`}
         >
-          {toast.type === 'success' ? (
+          {toast.type === "success" ? (
             <CheckCircle2 className="w-5 h-5" />
           ) : (
             <AlertCircle className="w-5 h-5" />
@@ -131,7 +141,9 @@ export default function PatientSettingsPage() {
 
       {/* CARD 1: Account Information */}
       <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
-        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">Account Information</h2>
+        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">
+          Account Information
+        </h2>
 
         <form onSubmit={handleSaveAccountInfo} className="space-y-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
@@ -166,7 +178,10 @@ export default function PatientSettingsPage() {
                     type="text"
                     value={accountInfo.firstName}
                     onChange={(e) =>
-                      setAccountInfo((prev) => ({ ...prev, firstName: e.target.value }))
+                      setAccountInfo((prev) => ({
+                        ...prev,
+                        firstName: e.target.value,
+                      }))
                     }
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                   />
@@ -179,7 +194,10 @@ export default function PatientSettingsPage() {
                     type="text"
                     value={accountInfo.lastName}
                     onChange={(e) =>
-                      setAccountInfo((prev) => ({ ...prev, lastName: e.target.value }))
+                      setAccountInfo((prev) => ({
+                        ...prev,
+                        lastName: e.target.value,
+                      }))
                     }
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                   />
@@ -195,7 +213,10 @@ export default function PatientSettingsPage() {
                   type="email"
                   value={accountInfo.email}
                   onChange={(e) =>
-                    setAccountInfo((prev) => ({ ...prev, email: e.target.value }))
+                    setAccountInfo((prev) => ({
+                      ...prev,
+                      email: e.target.value,
+                    }))
                   }
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                 />
@@ -211,7 +232,10 @@ export default function PatientSettingsPage() {
                     type="text"
                     value={accountInfo.phone}
                     onChange={(e) =>
-                      setAccountInfo((prev) => ({ ...prev, phone: e.target.value }))
+                      setAccountInfo((prev) => ({
+                        ...prev,
+                        phone: e.target.value,
+                      }))
                     }
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                   />
@@ -225,7 +249,10 @@ export default function PatientSettingsPage() {
                       type="date"
                       value={accountInfo.dob}
                       onChange={(e) =>
-                        setAccountInfo((prev) => ({ ...prev, dob: e.target.value }))
+                        setAccountInfo((prev) => ({
+                          ...prev,
+                          dob: e.target.value,
+                        }))
                       }
                       className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                     />
@@ -242,7 +269,10 @@ export default function PatientSettingsPage() {
                   <select
                     value={accountInfo.gender}
                     onChange={(e) =>
-                      setAccountInfo((prev) => ({ ...prev, gender: e.target.value }))
+                      setAccountInfo((prev) => ({
+                        ...prev,
+                        gender: e.target.value,
+                      }))
                     }
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none bg-white transition-all"
                   >
@@ -258,7 +288,10 @@ export default function PatientSettingsPage() {
                   <select
                     value={accountInfo.bloodGroup}
                     onChange={(e) =>
-                      setAccountInfo((prev) => ({ ...prev, bloodGroup: e.target.value }))
+                      setAccountInfo((prev) => ({
+                        ...prev,
+                        bloodGroup: e.target.value,
+                      }))
                     }
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none bg-white transition-all"
                   >
@@ -283,7 +316,10 @@ export default function PatientSettingsPage() {
                   type="text"
                   value={accountInfo.address}
                   onChange={(e) =>
-                    setAccountInfo((prev) => ({ ...prev, address: e.target.value }))
+                    setAccountInfo((prev) => ({
+                      ...prev,
+                      address: e.target.value,
+                    }))
                   }
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
                 />
@@ -295,7 +331,7 @@ export default function PatientSettingsPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="bg-[#f80400] hover:bg-[#d80300] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99]"
+              className="bg-primary-red hover:bg-[#d80300] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99]"
             >
               Save Changes
             </button>
@@ -305,8 +341,12 @@ export default function PatientSettingsPage() {
 
       {/* CARD 2: Password */}
       <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
-        <h2 className="text-lg md:text-xl font-bold text-slate-900">Password</h2>
-        <p className="text-xs text-slate-500 font-normal mt-0.5 mb-5">Last changed 3 months ago</p>
+        <h2 className="text-lg md:text-xl font-bold text-slate-900">
+          Password
+        </h2>
+        <p className="text-xs text-slate-500 font-normal mt-0.5 mb-5">
+          Last changed 3 months ago
+        </p>
 
         <div>
           <button
@@ -321,7 +361,9 @@ export default function PatientSettingsPage() {
 
       {/* CARD 3: Emergency Contact */}
       <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
-        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">Emergency Contact</h2>
+        <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">
+          Emergency Contact
+        </h2>
 
         <form onSubmit={handleSaveEmergencyContact} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -333,7 +375,10 @@ export default function PatientSettingsPage() {
                 type="text"
                 value={emergencyContact.fullName}
                 onChange={(e) =>
-                  setEmergencyContact((prev) => ({ ...prev, fullName: e.target.value }))
+                  setEmergencyContact((prev) => ({
+                    ...prev,
+                    fullName: e.target.value,
+                  }))
                 }
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
               />
@@ -347,7 +392,10 @@ export default function PatientSettingsPage() {
                 type="text"
                 value={emergencyContact.phone}
                 onChange={(e) =>
-                  setEmergencyContact((prev) => ({ ...prev, phone: e.target.value }))
+                  setEmergencyContact((prev) => ({
+                    ...prev,
+                    phone: e.target.value,
+                  }))
                 }
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
               />
@@ -361,7 +409,10 @@ export default function PatientSettingsPage() {
                 type="text"
                 value={emergencyContact.relationship}
                 onChange={(e) =>
-                  setEmergencyContact((prev) => ({ ...prev, relationship: e.target.value }))
+                  setEmergencyContact((prev) => ({
+                    ...prev,
+                    relationship: e.target.value,
+                  }))
                 }
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
               />
@@ -381,9 +432,12 @@ export default function PatientSettingsPage() {
 
       {/* CARD 4: Danger Zone */}
       <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
-        <h2 className="text-lg md:text-xl font-bold text-[#f80400] mb-2">Danger Zone</h2>
+        <h2 className="text-lg md:text-xl font-bold text-[#f80400] mb-2">
+          Danger Zone
+        </h2>
         <p className="text-xs md:text-sm text-slate-500 font-normal mb-5 leading-relaxed">
-          Once you delete your account, there is no going back. All your medical records, appointments, and personal data will be permanently removed.
+          Once you delete your account, there is no going back. All your medical
+          records, appointments, and personal data will be permanently removed.
         </p>
 
         <div>
@@ -402,7 +456,9 @@ export default function PatientSettingsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fadeIn">
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-bold text-slate-900">Change Password</h3>
+              <h3 className="text-lg font-bold text-slate-900">
+                Change Password
+              </h3>
               <button
                 onClick={() => setIsPasswordModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
@@ -421,7 +477,10 @@ export default function PatientSettingsPage() {
                   required
                   value={passwordForm.currentPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      currentPassword: e.target.value,
+                    }))
                   }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
                 />
@@ -436,7 +495,10 @@ export default function PatientSettingsPage() {
                   required
                   value={passwordForm.newPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      newPassword: e.target.value,
+                    }))
                   }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
                 />
@@ -451,7 +513,10 @@ export default function PatientSettingsPage() {
                   required
                   value={passwordForm.confirmPassword}
                   onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    setPasswordForm((prev) => ({
+                      ...prev,
+                      confirmPassword: e.target.value,
+                    }))
                   }
                   className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
                 />
@@ -484,7 +549,9 @@ export default function PatientSettingsPage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2 text-rose-600">
                 <ShieldAlert className="w-5 h-5" />
-                <h3 className="text-lg font-bold text-slate-900">Delete Account</h3>
+                <h3 className="text-lg font-bold text-slate-900">
+                  Delete Account
+                </h3>
               </div>
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
@@ -496,7 +563,9 @@ export default function PatientSettingsPage() {
 
             <form onSubmit={handleDeleteAccount} className="space-y-4">
               <p className="text-xs md:text-sm text-slate-600 leading-relaxed">
-                This action cannot be undone. To permanently delete your patient account and all associated medical data, please type <strong className="text-rose-600">DELETE</strong> below.
+                This action cannot be undone. To permanently delete your patient
+                account and all associated medical data, please type{" "}
+                <strong className="text-rose-600">DELETE</strong> below.
               </p>
 
               <div>
