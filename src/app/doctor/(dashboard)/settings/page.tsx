@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/client';
 import {
   Clock,
   Plus,
@@ -65,12 +66,66 @@ export default function DoctorSettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAccountInfo((prev) => ({ ...prev, avatar: url }));
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload an image file', 'error');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be less than 5MB', 'error');
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        showToast('Authentication error', 'error');
+        return;
+      }
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        showToast('Failed to upload image', 'error');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update local state
+      setAccountInfo((prev) => ({ ...prev, avatar: publicUrl }));
       showToast('Profile photo updated successfully!');
+      
+      // TODO: Save to profiles table if needed
+      // await updateDoctorProfile({ avatar_url: publicUrl });
+      
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      showToast('Failed to upload photo', 'error');
     }
   };
 

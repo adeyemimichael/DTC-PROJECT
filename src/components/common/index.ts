@@ -19,4 +19,6 @@ export { BookAppointmentModal } from './BookAppointmentModal';
 export { BookAppointmentButton } from './BookAppointmentButton';
 export { AppointmentDetailsModal } from './AppointmentDetailsModal';
 export type { AppointmentData } from './AppointmentDetailsModal';
+export { InitialVitalsModal } from './InitialVitalsModal';
+
 

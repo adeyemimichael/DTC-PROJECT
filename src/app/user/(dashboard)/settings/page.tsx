@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
+import { useProfile } from "@/src/hooks/useProfile";
+import { createClient } from "@/lib/supabase/client";
 import {
   Calendar,
   Lock,
@@ -13,9 +15,14 @@ import {
   ShieldAlert,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 
 export default function PatientSettingsPage() {
+  const { profile, isLoading: isLoadingProfile, updateProfile } = useProfile();
+  const [isSavingAccount, setIsSavingAccount] = useState(false);
+  const [isSavingEmergency, setIsSavingEmergency] = useState(false);
+
   // Toast state
   const [toast, setToast] = useState<{
     message: string;
@@ -45,22 +52,6 @@ export default function PatientSettingsPage() {
     avatar: "/images/sarah_avatar.png",
   });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAccountInfo((prev) => ({ ...prev, avatar: url }));
-      showToast("Profile photo updated successfully!");
-    }
-  };
-
-  const handleSaveAccountInfo = (e: React.FormEvent) => {
-    e.preventDefault();
-    showToast("Account information updated successfully!");
-  };
-
   // 2. Emergency Contact State
   const [emergencyContact, setEmergencyContact] = useState({
     fullName: "Adesare",
@@ -68,9 +59,146 @@ export default function PatientSettingsPage() {
     relationship: "Spouse",
   });
 
-  const handleSaveEmergencyContact = (e: React.FormEvent) => {
+  // Populate accountInfo and emergencyContact when profile is loaded
+  useEffect(() => {
+    if (profile) {
+      const nameParts = (profile.full_name || "").trim().split(" ");
+      const firstName = nameParts[0] || "";
+      const lastName = nameParts.slice(1).join(" ") || "";
+
+      setAccountInfo((prev) => ({
+        ...prev,
+        firstName: firstName || prev.firstName,
+        lastName: lastName || prev.lastName,
+        email: profile.email || prev.email,
+        phone: profile.phone || prev.phone,
+        dob: profile.date_of_birth || prev.dob,
+        gender: profile.gender
+          ? profile.gender.charAt(0).toUpperCase() + profile.gender.slice(1)
+          : prev.gender,
+        bloodGroup: profile.blood_group || prev.bloodGroup,
+        address: profile.address || prev.address,
+        avatar: profile.avatar_url || prev.avatar,
+      }));
+
+      if (profile.next_of_kin_name || profile.next_of_kin_phone) {
+        setEmergencyContact((prev) => ({
+          ...prev,
+          fullName: profile.next_of_kin_name || prev.fullName,
+          phone: profile.next_of_kin_phone || prev.phone,
+        }));
+      }
+    }
+  }, [profile]);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Convert uploaded image file to Supabase Storage with getPublicUrl
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload an image file', 'error');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be less than 5MB', 'error');
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        showToast('Authentication error', 'error');
+        return;
+      }
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        showToast('Failed to upload image', 'error');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update profile with new URL
+      const res = await updateProfile({ avatar_url: publicUrl });
+      
+      if (res.success) {
+        setAccountInfo((prev) => ({ ...prev, avatar: publicUrl }));
+        showToast('Profile photo updated successfully!');
+      } else {
+        showToast(res.error || 'Failed to update profile photo', 'error');
+      }
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      showToast('Failed to upload photo', 'error');
+    }
+  };
+
+  const handleSaveAccountInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast("Emergency contact saved successfully!");
+    setIsSavingAccount(true);
+
+    const fullName = `${accountInfo.firstName} ${accountInfo.lastName}`.trim();
+    const res = await updateProfile({
+      full_name: fullName,
+      phone: accountInfo.phone,
+      date_of_birth: accountInfo.dob,
+      gender: accountInfo.gender,
+      blood_group: accountInfo.bloodGroup,
+      address: accountInfo.address,
+      avatar_url: accountInfo.avatar,
+    });
+
+    setIsSavingAccount(false);
+
+    if (res.success) {
+      showToast("Account information updated successfully!");
+    } else {
+      showToast(res.error || "Failed to update account information", "error");
+    }
+  };
+
+  const handleSaveEmergencyContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingEmergency(true);
+
+    const res = await updateProfile({
+      next_of_kin_name: emergencyContact.fullName,
+      next_of_kin_phone: emergencyContact.phone,
+    });
+
+    setIsSavingEmergency(false);
+
+    if (res.success) {
+      showToast("Emergency contact saved successfully!");
+    } else {
+      showToast(res.error || "Failed to save emergency contact", "error");
+    }
   };
 
   // 3. Password Modal State
@@ -145,7 +273,16 @@ export default function PatientSettingsPage() {
       />
 
       {/* CARD 1: Account Information */}
-      <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
+      <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs relative">
+        {isLoadingProfile && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] rounded-2xl flex items-center justify-center z-10">
+            <div className="flex items-center gap-2 text-slate-500 font-medium text-sm">
+              <Loader2 className="w-5 h-5 animate-spin text-primary-blue" />
+              Loading profile details...
+            </div>
+          </div>
+        )}
+
         <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">
           Account Information
         </h2>
@@ -156,8 +293,8 @@ export default function PatientSettingsPage() {
             <div className="flex flex-col items-center shrink-0 mx-auto md:mx-0">
               <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 shadow-inner group bg-amber-400 flex items-center justify-center">
                 <Image
-                  src={accountInfo.avatar}
-                  alt={accountInfo.firstName}
+                  src={accountInfo.avatar || "/images/sarah_avatar.png"}
+                  alt={accountInfo.firstName || "Profile"}
                   fill
                   className="object-cover"
                 />
@@ -217,13 +354,8 @@ export default function PatientSettingsPage() {
                 <input
                   type="email"
                   value={accountInfo.email}
-                  onChange={(e) =>
-                    setAccountInfo((prev) => ({
-                      ...prev,
-                      email: e.target.value,
-                    }))
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-slate-800 text-sm md:text-base font-normal focus:border-[#0149ff] focus:ring-1 focus:ring-[#0149ff] focus:outline-none transition-all"
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-500 text-sm md:text-base font-normal outline-none cursor-not-allowed"
                 />
               </div>
 
@@ -336,9 +468,17 @@ export default function PatientSettingsPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="bg-primary-red hover:bg-[#d80300] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99]"
+              disabled={isSavingAccount}
+              className="bg-primary-red hover:bg-[#d80300] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99] flex items-center gap-2 disabled:opacity-70"
             >
-              Save Changes
+              {isSavingAccount ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </div>
         </form>
@@ -427,9 +567,17 @@ export default function PatientSettingsPage() {
           <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="bg-[#f85c59] hover:bg-[#e04b48] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99]"
+              disabled={isSavingEmergency}
+              className="bg-[#f85c59] hover:bg-[#e04b48] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99] flex items-center gap-2 disabled:opacity-70"
             >
-              Save Changes
+              {isSavingEmergency ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                "Save Changes"
+              )}
             </button>
           </div>
         </form>

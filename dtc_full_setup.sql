@@ -104,6 +104,7 @@ create table if not exists patients (
   id                 uuid primary key references profiles(id) on delete cascade,
   date_of_birth      date,
   gender             text check (gender in ('male', 'female', 'other')),
+  blood_group        text,
   address            text,
   next_of_kin_name   text,
   next_of_kin_phone  text,
@@ -113,6 +114,9 @@ create table if not exists patients (
   created_at         timestamptz not null default now(),
   updated_at         timestamptz not null default now()
 );
+
+alter table patients add column if not exists blood_group text;
+
 
 drop trigger if exists trg_patients_updated_at on patients;
 create trigger trg_patients_updated_at

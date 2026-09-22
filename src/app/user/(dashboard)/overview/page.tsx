@@ -6,6 +6,7 @@ import {
   QuickActionsList,
   NotificationsWidget,
 } from "@/src/components/common";
+import { OverviewClient } from "@/src/components/overview/OverviewClient";
 import { Calendar } from "lucide-react";
 
 export default async function OverviewPage() {
@@ -13,6 +14,9 @@ export default async function OverviewPage() {
 
   return (
     <div className="space-y-6 lg:space-y-8 max-w-6xl mx-auto">
+      {/* Vitals Check Modal trigger (pops up only on overview if no vitals exist) */}
+      <OverviewClient />
+
       {/* Welcome Banner Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
