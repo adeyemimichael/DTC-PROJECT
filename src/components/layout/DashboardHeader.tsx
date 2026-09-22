@@ -3,9 +3,9 @@
 import { Bell, LogOut, Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import Image from "next/image";
-import { useState } from "react";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { useProfile } from "@/src/hooks/useProfile";
 
 interface DashboardHeaderProps {
   onMenuToggle?: () => void;
@@ -15,6 +15,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const isDoctor = pathname?.startsWith("/doctor");
+  const { profile } = useProfile();
 
   const getHeaderTitle = (path: string) => {
     if (path.includes("overview")) return "Overview";
@@ -55,6 +56,9 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
     }
   };
 
+  const avatarSrc = profile?.avatar_url || (isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png");
+  const userDisplayName = profile?.full_name || (isDoctor ? "Dr. Stephen" : "User");
+
   return (
     <header className="h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
       <div className="flex items-center">
@@ -74,14 +78,15 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 lg:h-10 lg:w-10 rounded-full overflow-hidden relative border border-slate-200 bg-slate-100 shrink-0">
             <Image
-              src={
-                isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png"
-              }
-              alt="User Avatar"
+              src={avatarSrc}
+              alt={userDisplayName}
               fill
               className="object-cover"
             />
           </div>
+          <span className="hidden sm:inline-block text-xs font-semibold text-slate-700">
+            {userDisplayName}
+          </span>
         </div>
         <button className="relative p-2 text-slate-500 hover:text-gray-900 hover:bg-slate-50 rounded-full transition-colors duration-200 cursor-pointer">
           <Bell className="h-5 w-5" />
@@ -89,6 +94,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
 
         <button
           onClick={logout}
+          aria-label="Logout"
           className="relative p-2 text-primary-red hover:text-[#d80300] rounded-full transition-colors duration-200 cursor-pointer"
         >
           <LogOut className="h-5 w-5" />

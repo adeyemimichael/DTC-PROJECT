@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, Badge, Button, Input } from '@/components/ui';
+import { Card, Button, Input } from '@/components/ui';
+import { useVitals } from '@/src/hooks/useVitals';
+import { InitialVitalsModal } from '@/src/components/common';
 import { 
   Heart, 
   Thermometer, 
@@ -12,7 +14,9 @@ import {
   Upload, 
   MessageSquare, 
   FileText,
-  Weight
+  Weight,
+  Plus,
+  Loader2
 } from 'lucide-react';
 
 interface Vital {
@@ -31,50 +35,6 @@ interface MedicalRecord {
   description: string;
   category: 'Laboratory' | 'Radiology' | 'Clinical Notes' | 'Prescriptions';
 }
-
-const mockVitals: Vital[] = [
-  {
-    name: 'Blood Pressure',
-    value: '118/76 mmHg',
-    status: 'Normal',
-    range: '90/60 - 120/80',
-    icon: Heart,
-  },
-  {
-    name: 'Heart Rate',
-    value: '72 bpm',
-    status: 'Normal',
-    range: '60 - 100',
-    icon: Heart,
-  },
-  {
-    name: 'Body Temperature',
-    value: '98.4 °F',
-    status: 'Normal',
-    range: '97.0 - 99.0',
-    icon: Thermometer,
-  },
-  {
-    name: 'Oxygen Saturation',
-    value: '98%',
-    status: 'Normal',
-    range: '95 - 100',
-    icon: Activity,
-  },
-  {
-    name: 'Weight',
-    value: '142 lbs',
-    status: 'Normal',
-    icon: Weight,
-  },
-  {
-    name: 'Blood Sugar',
-    value: '92 mg/dL',
-    status: 'Normal',
-    range: '70 - 99',
-    icon: Droplet,
-  },
-];
 
 const mockRecords: MedicalRecord[] = [
   {
@@ -122,6 +82,64 @@ const categories = [
 export default function MedicalInfoPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+
+  const { latestVital, isLoading: isLoadingVitals, createVital } = useVitals();
+
+  // Dynamic vitals calculation based on fetched user vitals
+  const displayVitals: Vital[] = latestVital
+    ? [
+        {
+          name: 'Blood Pressure',
+          value: `${latestVital.blood_pressure_systolic}/${latestVital.blood_pressure_diastolic} mmHg`,
+          status: 'Normal',
+          range: '90/60 - 120/80',
+          icon: Heart,
+        },
+        {
+          name: 'Heart Rate',
+          value: `${latestVital.heart_rate_bpm} bpm`,
+          status: 'Normal',
+          range: '60 - 100',
+          icon: Heart,
+        },
+        {
+          name: 'Body Temperature',
+          value: `${latestVital.temperature_c} °C`,
+          status: 'Normal',
+          range: '36.5 - 37.5',
+          icon: Thermometer,
+        },
+        {
+          name: 'Oxygen Saturation',
+          value: latestVital.spo2_percent ? `${latestVital.spo2_percent}%` : 'N/A',
+          status: latestVital.spo2_percent ? 'Normal' : 'Not set',
+          range: '95 - 100',
+          icon: Activity,
+        },
+        {
+          name: 'Weight',
+          value: `${latestVital.weight_kg} kg`,
+          status: 'Normal',
+          icon: Weight,
+        },
+        {
+          name: 'Blood Sugar',
+          value: latestVital.blood_sugar_mmol ? `${latestVital.blood_sugar_mmol} mmol/L` : 'N/A',
+          status: latestVital.blood_sugar_mmol ? 'Normal' : 'Not set',
+          range: '3.9 - 5.6',
+          icon: Droplet,
+        },
+      ]
+    : [];
+
+  const recordedDateText = latestVital
+    ? `Recorded ${new Date(latestVital.recorded_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })}`
+    : null;
 
   // Direct inline filtering logic
   const filteredRecords = mockRecords.filter((rec) => {
@@ -153,6 +171,13 @@ export default function MedicalInfoPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-page-fade">
+      {/* Record Vitals Modal */}
+      <InitialVitalsModal
+        isOpen={isRecordModalOpen}
+        onClose={() => setIsRecordModalOpen(false)}
+        onSubmitVitals={createVital}
+      />
+
       {/* Header section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -177,41 +202,87 @@ export default function MedicalInfoPage() {
 
       {/* Vital Signs Segment */}
       <div className="space-y-4">
-        <div className="flex items-center gap-2 font-medium text-black  text-base">
-          <Heart className="h-5 w-5 text-primary-red " />
-          <h3>Latest Vital Signs</h3>
-          <span className="text-xs font-normal text-slate-400 ml-1">Recorded May 18, 2026</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 font-medium text-black text-base">
+            <Heart className="h-5 w-5 text-primary-red" />
+            <h3>Latest Vital Signs</h3>
+            {recordedDateText && (
+              <span className="text-xs font-normal text-slate-400 ml-1">{recordedDateText}</span>
+            )}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsRecordModalOpen(true)}
+            className="flex items-center gap-1.5 text-xs text-primary-blue border-blue-200 hover:bg-blue-50"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Record Vitals
+          </Button>
         </div>
 
         {/* 6 Grid items */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {mockVitals.map((vital, idx) => {
-            const Icon = vital.icon;
-            return (
-              <Card key={idx} className="p-4 flex flex-col justify-between min-h-[140px]">
-                <div>
-                  <div className="flex items-center justify-between text-[11px] font-medium text-emerald-600">
-                    <span className="flex items-center gap-1">
-                      <Icon className="h-3.5 w-3.5" />
-                      {vital.status}
-                    </span>
-                  </div>
-                  <p className="text-lg font-medium text-black  mt-3 leading-tight">{vital.value}</p>
-                  <p className="text-xs font-normal text-slate-400 mt-1">{vital.name}</p>
+        {isLoadingVitals ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <Card key={i} className="p-4 flex flex-col justify-between min-h-[140px] animate-pulse">
+                <div className="space-y-3">
+                  <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  <div className="h-6 bg-slate-200 rounded w-3/4" />
+                  <div className="h-3 bg-slate-200 rounded w-1/3" />
                 </div>
-                {vital.range && (
-                  <p className="text-[10px] font-normal text-slate-400/80 mt-2">{vital.range}</p>
-                )}
               </Card>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        ) : displayVitals.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {displayVitals.map((vital, idx) => {
+              const Icon = vital.icon;
+              return (
+                <Card key={idx} className="p-4 flex flex-col justify-between min-h-[140px]">
+                  <div>
+                    <div className="flex items-center justify-between text-[11px] font-medium text-emerald-600">
+                      <span className="flex items-center gap-1">
+                        <Icon className="h-3.5 w-3.5" />
+                        {vital.status}
+                      </span>
+                    </div>
+                    <p className="text-lg font-medium text-black mt-3 leading-tight">{vital.value}</p>
+                    <p className="text-xs font-normal text-slate-400 mt-1">{vital.name}</p>
+                  </div>
+                  {vital.range && (
+                    <p className="text-[10px] font-normal text-slate-400/80 mt-2">{vital.range}</p>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <Card className="p-8 flex flex-col items-center justify-center text-center space-y-3 border-dashed border-slate-200">
+            <div className="p-3 bg-blue-50 text-primary-blue rounded-xl">
+              <Heart className="h-6 w-6" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-slate-900">No vitals recorded yet</h4>
+              <p className="text-xs text-slate-500 mt-1 max-w-sm">
+                You haven't recorded your health vitals. Record your baseline vitals to keep your health history up to date.
+              </p>
+            </div>
+            <Button
+              onClick={() => setIsRecordModalOpen(true)}
+              className="btn-primary text-xs py-2 px-4 rounded-lg flex items-center gap-1.5 mt-2 font-bold"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Record Initial Vitals
+            </Button>
+          </Card>
+        )}
       </div>
 
       {/* Medical Records Section */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div className="flex items-center gap-2 font-medium text-black  text-base">
+          <div className="flex items-center gap-2 font-medium text-black text-base">
             <FolderOpen className="h-5 w-5 text-primary-blue fill-secondary-blue" />
             <h3>Medical Records</h3>
           </div>
@@ -235,7 +306,7 @@ export default function MedicalInfoPage() {
               <button
                 key={cat.value}
                 onClick={() => setActiveCategory(cat.value)}
-                className={`px-4 py-2 text-xs font-medium   rounded-full transition-all duration-200 cursor-pointer ${
+                className={`px-4 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
                   isActive
                     ? 'bg-primary-blue text-white shadow-sm'
                     : 'bg-slate-100 text-primary-gray hover:bg-slate-200 hover:text-primary-deepblue'
@@ -260,7 +331,7 @@ export default function MedicalInfoPage() {
                       <FileText className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="text-base font-medium text-black  truncate">{rec.title}</h4>
+                      <h4 className="text-base font-medium text-black truncate">{rec.title}</h4>
                       <p className="text-xs font-medium text-slate-400 mt-0.5">{rec.doctor} · {rec.date}</p>
                       <p className="text-sm font-medium text-primary-gray mt-2 leading-relaxed">{rec.description}</p>
                     </div>

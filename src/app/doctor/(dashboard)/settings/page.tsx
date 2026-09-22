@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
+import { createClient } from '@/lib/supabase/client';
 import {
   Clock,
   Plus,
@@ -17,6 +18,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   Trash2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 interface ServiceItem {
@@ -63,12 +66,66 @@ export default function DoctorSettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setAccountInfo((prev) => ({ ...prev, avatar: url }));
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload an image file', 'error');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('Image must be less than 5MB', 'error');
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      
+      // Get current user
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        showToast('Authentication error', 'error');
+        return;
+      }
+
+      // Upload to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage
+        .from('avatars')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        showToast('Failed to upload image', 'error');
+        return;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase
+        .storage
+        .from('avatars')
+        .getPublicUrl(fileName);
+
+      // Update local state
+      setAccountInfo((prev) => ({ ...prev, avatar: publicUrl }));
       showToast('Profile photo updated successfully!');
+      
+      // TODO: Save to profiles table if needed
+      // await updateDoctorProfile({ avatar_url: publicUrl });
+      
+    } catch (error) {
+      console.error('Avatar upload error:', error);
+      showToast('Failed to upload photo', 'error');
     }
   };
 
@@ -289,6 +346,9 @@ export default function DoctorSettingsPage() {
     newPassword: '',
     confirmPassword: '',
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -904,45 +964,84 @@ export default function DoctorSettingsPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Current Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.currentPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, currentPassword: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.newPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, newPassword: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Confirm New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({ ...prev, confirmPassword: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

@@ -2,7 +2,9 @@
  * Custom React Hooks
  */
 
-// Hooks go here
-// export { useAsync } from './useAsync';
-// export { useFetch } from './useFetch';
-// export { useLocalStorage } from './useLocalStorage';
+export { useVitals } from './useVitals';
+export type { VitalRecord, CreateVitalInput } from './useVitals';
+export { useProfile } from './useProfile';
+export type { UserProfile, UpdateProfileInput } from './useProfile';
+
+
