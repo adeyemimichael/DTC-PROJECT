@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   Trash2,
   ShieldAlert,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 export default function PatientSettingsPage() {
@@ -78,6 +80,9 @@ export default function PatientSettingsPage() {
     newPassword: "",
     confirmPassword: "",
   });
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
@@ -472,54 +477,93 @@ export default function PatientSettingsPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Current Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.currentPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      currentPassword: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.currentPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        currentPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.newPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      newPassword: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.newPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        newPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showNewPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1">
                   Confirm New Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  value={passwordForm.confirmPassword}
-                  onChange={(e) =>
-                    setPasswordForm((prev) => ({
-                      ...prev,
-                      confirmPassword: e.target.value,
-                    }))
-                  }
-                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
-                />
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    required
+                    value={passwordForm.confirmPassword}
+                    onChange={(e) =>
+                      setPasswordForm((prev) => ({
+                        ...prev,
+                        confirmPassword: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3.5 py-2 pr-10 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">

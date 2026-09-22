@@ -13,6 +13,8 @@ import {
   ShieldCheck,
   CreditCard,
   Check,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -26,6 +28,8 @@ const steps = [
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [formData, setFormData] = useState({
     // Step 1 data
@@ -379,23 +383,51 @@ const Register = () => {
               {/* Create Password */}
               <Input
                 label="Create Password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Minimum 8 characters"
                 value={formData.password}
                 onChange={(e) => handleInputChange("password", e.target.value)}
                 error={errors.password}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+                rightIconClickable
               />
 
               {/* Confirm Password */}
               <Input
                 label="Confirm Password"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 placeholder="Repeat your password"
                 value={formData.confirmPassword}
                 onChange={(e) =>
                   handleInputChange("confirmPassword", e.target.value)
                 }
                 error={errors.confirmPassword}
+                rightIcon={
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                }
+                rightIconClickable
               />
 
               {/* Agreement Banner Card */}

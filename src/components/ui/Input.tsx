@@ -6,11 +6,12 @@ export interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> 
   error?: string;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
+  rightIconClickable?: boolean;
   containerClassName?: string;
 }
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', label, error, leftIcon, rightIcon, containerClassName, ...props }, ref) => {
+  ({ className, type = 'text', label, error, leftIcon, rightIcon, rightIconClickable = false, containerClassName, ...props }, ref) => {
     return (
       <div className={cn('w-full flex flex-col gap-2', containerClassName)}>
         {label && (
@@ -37,7 +38,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightIcon && (
-            <div className="absolute right-4 text-slate-400 flex items-center justify-center pointer-events-none">
+            <div className={cn(
+              "absolute right-4 text-slate-400 flex items-center justify-center",
+              !rightIconClickable && "pointer-events-none"
+            )}>
               {rightIcon}
             </div>
           )}
