@@ -21,7 +21,10 @@ export async function GET() {
       .single();
 
     if (patientError) {
-      return NextResponse.json({ error: patientError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: patientError.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ data: patient }, { status: 200 });
@@ -48,8 +51,10 @@ export async function POST(request: Request) {
       date_of_birth,
       gender,
       address,
+      blood_group,
       next_of_kin_name,
       next_of_kin_phone,
+      next_of_kin_relationship,
       passport_url,
     } = body;
 
@@ -61,8 +66,10 @@ export async function POST(request: Request) {
           date_of_birth,
           gender,
           address,
+          blood_group,
           next_of_kin_name,
           next_of_kin_phone,
+          next_of_kin_relationship,
           passport_url,
         },
       ])
@@ -70,7 +77,10 @@ export async function POST(request: Request) {
       .single();
 
     if (patientError) {
-      return NextResponse.json({ error: patientError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: patientError.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ data: patient }, { status: 201 });
@@ -97,8 +107,10 @@ export async function PUT(request: Request) {
       date_of_birth,
       gender,
       address,
+      blood_group,
       next_of_kin_name,
       next_of_kin_phone,
+      next_of_kin_relationship,
       passport_url,
     } = body;
 
@@ -108,8 +120,10 @@ export async function PUT(request: Request) {
         date_of_birth,
         gender,
         address,
+        blood_group,
         next_of_kin_name,
         next_of_kin_phone,
+        next_of_kin_relationship,
         passport_url,
       })
       .eq("id", user.id)
@@ -117,7 +131,10 @@ export async function PUT(request: Request) {
       .single();
 
     if (patientError) {
-      return NextResponse.json({ error: patientError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: patientError.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ data: patient }, { status: 200 });

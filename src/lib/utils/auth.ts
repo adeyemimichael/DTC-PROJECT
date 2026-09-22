@@ -48,14 +48,16 @@ export async function getCurrentProfile() {
         date_of_birth,
         gender,
         address,
+        blood_group,
         next_of_kin_name,
         next_of_kin_phone,
+        next_of_kin_relationship,
         passport_url,
         status,
         created_at,
         updated_at
       )
-    `
+    `,
     )
     .eq("id", user.id)
     .single();
@@ -83,4 +85,3 @@ export async function getCurrentProfile() {
     patient: patientRow,
   };
 }
-

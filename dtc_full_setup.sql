@@ -108,6 +108,7 @@ create table if not exists patients (
   address            text,
   next_of_kin_name   text,
   next_of_kin_phone  text,
+  next_of_kin_relationship text,
   passport_url       text,  -- the patient's single profile/ID photo
   status             text not null default 'pending_payment'
                        check (status in ('pending_payment', 'active', 'inactive')),
