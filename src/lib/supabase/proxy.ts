@@ -102,16 +102,17 @@ export async function updateSession(request: NextRequest) {
     // Patient payment status check
     if (!isAdmin && isUserProtectedRoute) {
       const isPaymentRecoveryRoute = pathname === "/user/payment-recovery";
-      
+      const isConfirmRoute = pathname.startsWith("/user/confirm");
+
       const { data: patient } = await supabase
         .from("patients")
         .select("status")
         .eq("id", user.sub)
         .single();
-        
+
       if (patient) {
         if (patient.status === "pending_payment") {
-          if (!isPaymentRecoveryRoute) {
+          if (!isPaymentRecoveryRoute && !isConfirmRoute) {
             const url = request.nextUrl.clone();
             url.pathname = "/user/payment-recovery";
             return NextResponse.redirect(url);

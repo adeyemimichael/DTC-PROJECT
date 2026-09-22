@@ -12,18 +12,13 @@ export async function GET(request: Request) {
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      console.log("autherror", authError);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    console.log("user", user);
 
     const { searchParams } = new URL(request.url);
     const purpose = searchParams.get("purpose");
 
-    const supabaseAdmin = createAdminClient();
-
-    let query = supabaseAdmin
+    let query = supabase
       .from("payments")
       .select("*")
       .eq("patient_id", user.id)
