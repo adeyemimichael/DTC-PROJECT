@@ -71,9 +71,23 @@ export async function POST(request: Request) {
       notes,
     } = body;
 
-    // If the user is an admin, they can pass any patient_id.
-    // If not, we force the patient_id to be their own user.id.
-    const finalPatientId = isAdmin ? patient_id || user.id : user.id;
+    if (isAdmin) {
+      if (!patient_id) {
+        return NextResponse.json(
+          { error: "Admin must provide a patient_id" },
+          { status: 400 },
+        );
+      }
+    } else {
+      if (patient_id && patient_id !== user.id) {
+        return NextResponse.json(
+          { error: "Unauthorized to add vitals for this patient" },
+          { status: 403 },
+        );
+      }
+    }
+
+    const finalPatientId = isAdmin ? patient_id : user.id;
 
     const { data: vital, error: vitalError } = await supabase
       .from("vitals")
