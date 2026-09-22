@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { useProfile } from "@/src/hooks/useProfile";
-import { createClient } from "@/lib/supabase/client";
+import toast from "react-hot-toast";
 import {
   Calendar,
   Lock,
@@ -22,22 +22,6 @@ export default function PatientSettingsPage() {
   const { profile, isLoading: isLoadingProfile, updateProfile } = useProfile();
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingEmergency, setIsSavingEmergency] = useState(false);
-
-  // Toast state
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
-
-  const showToast = (
-    message: string,
-    type: "success" | "error" = "success",
-  ) => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
 
   // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
@@ -93,69 +77,43 @@ export default function PatientSettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Convert uploaded image file to Supabase Storage with getPublicUrl
+  // Upload avatar -
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      showToast('Please upload an image file', 'error');
+      toast.error('Please upload an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showToast('Image must be less than 5MB', 'error');
+      toast.error('Image must be less than 5MB');
       return;
     }
 
     try {
-      const supabase = createClient();
-      
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        showToast('Authentication error', 'error');
-        return;
-      }
-
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        showToast('Failed to upload image', 'error');
-        return;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      // Update profile with new URL
-      const res = await updateProfile({ avatar_url: publicUrl });
-      
-      if (res.success) {
-        setAccountInfo((prev) => ({ ...prev, avatar: publicUrl }));
-        showToast('Profile photo updated successfully!');
-      } else {
-        showToast(res.error || 'Failed to update profile photo', 'error');
-      }
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Url = reader.result as string;
+        
+        
+        const res = await updateProfile({ avatar_url: base64Url });
+        
+        if (res.success) {
+          setAccountInfo((prev) => ({ ...prev, avatar: base64Url }));
+          toast.success('Profile photo updated successfully!');
+        } else {
+          toast.error(res.error || 'Failed to update profile photo');
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Avatar upload error:', error);
-      showToast('Failed to upload photo', 'error');
+      toast.error('Failed to upload photo');
     }
   };
 
@@ -177,9 +135,9 @@ export default function PatientSettingsPage() {
     setIsSavingAccount(false);
 
     if (res.success) {
-      showToast("Account information updated successfully!");
+      toast.success("Account information updated successfully!");
     } else {
-      showToast(res.error || "Failed to update account information", "error");
+      toast.error(res.error || "Failed to update account information");
     }
   };
 
@@ -195,9 +153,9 @@ export default function PatientSettingsPage() {
     setIsSavingEmergency(false);
 
     if (res.success) {
-      showToast("Emergency contact saved successfully!");
+      toast.success("Emergency contact saved successfully!");
     } else {
-      showToast(res.error || "Failed to save emergency contact", "error");
+      toast.error(res.error || "Failed to save emergency contact");
     }
   };
 
@@ -215,14 +173,14 @@ export default function PatientSettingsPage() {
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      showToast("Please fill in all required password fields", "error");
+      toast.error("Please fill in all required password fields");
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast("New passwords do not match", "error");
+      toast.error("New passwords do not match");
       return;
     }
-    showToast("Password changed successfully!");
+    toast.success("Password changed successfully!");
     setIsPasswordModalOpen(false);
     setPasswordForm({
       currentPassword: "",
@@ -238,31 +196,15 @@ export default function PatientSettingsPage() {
   const handleDeleteAccount = (e: React.FormEvent) => {
     e.preventDefault();
     if (deleteConfirmText.toLowerCase() !== "delete") {
-      showToast('Please type "DELETE" to confirm account removal', "error");
+      toast.error('Please type "DELETE" to confirm account removal');
       return;
     }
-    showToast("Account deletion request submitted.", "error");
+    toast.success("Account deletion request submitted.");
     setIsDeleteModalOpen(false);
   };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white transition-all duration-300 transform translate-y-0 ${
-            toast.type === "success" ? "bg-emerald-600" : "bg-rose-600"
-          }`}
-        >
-          {toast.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <AlertCircle className="w-5 h-5" />
-          )}
-          <span className="text-sm font-medium">{toast.message}</span>
-        </div>
-      )}
-
       {/* Hidden File Input for Avatar */}
       <input
         type="file"

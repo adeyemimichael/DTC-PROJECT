@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import Image from 'next/image';
-import { createClient } from '@/lib/supabase/client';
+import toast from 'react-hot-toast';
 import {
   Clock,
   Plus,
@@ -41,16 +41,6 @@ interface DayAvailability {
 }
 
 export default function DoctorSettingsPage() {
-  // Toast state
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => {
-      setToast(null);
-    }, 3500);
-  };
-
   // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
     firstName: 'Dr. Stephen',
@@ -72,66 +62,76 @@ export default function DoctorSettingsPage() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      showToast('Please upload an image file', 'error');
+      toast.error('Please upload an image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      showToast('Image must be less than 5MB', 'error');
+      toast.error('Image must be less than 5MB');
       return;
     }
 
     try {
-      const supabase = createClient();
-      
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        showToast('Authentication error', 'error');
-        return;
-      }
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async () => {
+        const base64Url = reader.result as string;
+        
+        // Update local state immediately
+        setAccountInfo((prev) => ({ ...prev, avatar: base64Url }));
+        
+        
+        try {
+          const response = await fetch('/api/profiles/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ avatar_url: base64Url }),
+          });
 
-      // Upload to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-      
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage
-        .from('avatars')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: true
-        });
+          const result = await response.json();
 
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        showToast('Failed to upload image', 'error');
-        return;
-      }
+          if (!response.ok) {
+            throw new Error(result.error || 'Failed to save avatar');
+          }
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase
-        .storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      // Update local state
-      setAccountInfo((prev) => ({ ...prev, avatar: publicUrl }));
-      showToast('Profile photo updated successfully!');
-      
-      // TODO: Save to profiles table if needed
-      // await updateDoctorProfile({ avatar_url: publicUrl });
-      
+          toast.success('Profile photo updated successfully!');
+        } catch (apiError: any) {
+          console.error('API error:', apiError);
+          toast.error(apiError.message || 'Failed to save photo to server');
+        }
+      };
+      reader.readAsDataURL(file);
     } catch (error) {
       console.error('Avatar upload error:', error);
-      showToast('Failed to upload photo', 'error');
+      toast.error('Failed to upload photo');
     }
   };
 
-  const handleSaveAccountInfo = (e: React.FormEvent) => {
+  const handleSaveAccountInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Account information updated successfully!');
+    
+    try {
+      const response = await fetch('/api/profiles/me', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: `${accountInfo.firstName} ${accountInfo.lastName}`.trim(),
+          phone: accountInfo.phone,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update account information');
+      }
+
+      toast.success('Account information updated successfully!');
+    } catch (error: any) {
+      console.error('Update error:', error);
+      toast.error(error.message || 'Failed to update account information');
+    }
   };
 
   // 2. Services & Pricing State
@@ -178,7 +178,7 @@ export default function DoctorSettingsPage() {
             : s
         )
       );
-      showToast('Service updated successfully!');
+      toast.success('Service updated successfully!');
     } else {
       const newService: ServiceItem = {
         id: Date.now().toString(),
@@ -187,14 +187,14 @@ export default function DoctorSettingsPage() {
         price: parseFloat(serviceForm.price) || 0,
       };
       setServices((prev) => [...prev, newService]);
-      showToast('New service added successfully!');
+      toast.success('New service added successfully!');
     }
     setIsServiceModalOpen(false);
   };
 
   const handleDeleteService = (id: string) => {
     setServices((prev) => prev.filter((s) => s.id !== id));
-    showToast('Service removed.');
+    toast.success('Service removed.');
   };
 
   // 3. Weekly Availability State
@@ -315,7 +315,7 @@ export default function DoctorSettingsPage() {
   const handleSaveSchedule = () => {
     setAvailability(tempAvailability);
     setIsScheduleModalOpen(false);
-    showToast('Weekly schedule updated successfully!');
+    toast.success('Weekly schedule updated successfully!');
   };
 
   // Calculate stats for availability
@@ -336,7 +336,7 @@ export default function DoctorSettingsPage() {
 
   const handleSaveMeetingLink = (e: React.FormEvent) => {
     e.preventDefault();
-    showToast('Meeting link saved successfully!');
+    toast.success('Meeting link saved successfully!');
   };
 
   // 5. Password Modal State
@@ -353,14 +353,14 @@ export default function DoctorSettingsPage() {
   const handleSavePassword = (e: React.FormEvent) => {
     e.preventDefault();
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
-      showToast('Please fill in all required password fields', 'error');
+      toast.error('Please fill in all required password fields');
       return;
     }
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      showToast('New passwords do not match', 'error');
+      toast.error('New passwords do not match');
       return;
     }
-    showToast('Password changed successfully!');
+    toast.success('Password changed successfully!');
     setIsPasswordModalOpen(false);
     setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
   };
@@ -368,21 +368,6 @@ export default function DoctorSettingsPage() {
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       {/* Toast Notification */}
-      {toast && (
-        <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white transition-all duration-300 transform translate-y-0 ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
-          }`}
-        >
-          {toast.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5" />
-          ) : (
-            <AlertCircle className="w-5 h-5" />
-          )}
-          <span className="text-sm font-medium">{toast.message}</span>
-        </div>
-      )}
-
       {/* Hidden File Input for Avatar */}
       <input
         type="file"
