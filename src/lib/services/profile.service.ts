@@ -129,3 +129,72 @@ export async function updateMyProfile(payload: UpdateMyProfileDto) {
     patient: updatedPatient,
   };
 }
+
+export async function getCurrentProfile() {
+  const supabase = await createClient();
+
+  // 1. Get the authenticated user from Auth
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+
+  if (authError || !user) return null;
+
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select(
+      `
+      id,
+      full_name,
+      phone,
+      role,
+      avatar_url,
+      created_at,
+      updated_at,
+      patients (
+        date_of_birth,
+        gender,
+        address,
+        blood_group,
+        next_of_kin_name,
+        next_of_kin_phone,
+        next_of_kin_relationship,
+        passport_url,
+        status,
+        created_at,
+        updated_at
+      )
+    `,
+    )
+    .eq("id", user.id)
+    .single();
+
+  if (profileError || !profile) return null;
+
+  const patientRow = Array.isArray(profile.patients)
+    ? (profile.patients[0] ?? null)
+    : (profile.patients ?? null);
+
+  return {
+    id: profile.id,
+    email: user.user_metadata.email,
+    email_verified: user.user_metadata.email_verified,
+    phone_verified: user.user_metadata.phone_verified,
+    full_name: profile.full_name,
+    phone: profile.phone,
+    role: profile.role,
+    avatar_url: profile.avatar_url,
+    created_at: profile.created_at,
+    updated_at: profile.updated_at,
+    date_of_birth: patientRow?.date_of_birth ?? null,
+    gender: patientRow?.gender ?? null,
+    address: patientRow?.address ?? null,
+    blood_group: patientRow?.blood_group ?? null,
+    next_of_kin_name: patientRow?.next_of_kin_name ?? null,
+    next_of_kin_phone: patientRow?.next_of_kin_phone ?? null,
+    next_of_kin_relationship: patientRow?.next_of_kin_relationship ?? null,
+    passport_url: patientRow?.passport_url ?? null,
+    status: patientRow?.status ?? null,
+  };
+}

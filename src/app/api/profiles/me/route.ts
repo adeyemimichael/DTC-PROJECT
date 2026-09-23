@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentProfile } from "@/lib/utils/auth";
+import { getCurrentProfile } from "@/lib/services/profile.service";
 
 export async function GET() {
   try {
