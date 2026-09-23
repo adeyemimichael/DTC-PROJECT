@@ -472,7 +472,7 @@ create policy "notifications_update_own_mark_read"
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values
   ('passports', 'passports', false, 5242880,
-    array['image/jpeg', 'image/png', 'application/pdf']),
+    array['image/jpeg', 'image/png',]),
   ('patient-uploads', 'patient-uploads', false, 52428800,
     array['image/jpeg', 'image/png', 'audio/mpeg', 'audio/mp4', 'audio/wav',
           'video/mp4', 'video/quicktime', 'application/pdf']),

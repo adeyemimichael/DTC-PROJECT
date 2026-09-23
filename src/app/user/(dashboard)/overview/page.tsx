@@ -1,4 +1,4 @@
-import { getCurrentUser } from "@/lib/utils/auth";
+import { getCurrentProfile } from "@/lib/utils/auth";
 import {
   BookAppointmentButton,
   NextAppointmentCard,
@@ -10,7 +10,7 @@ import { OverviewClient } from "@/src/components/overview/OverviewClient";
 import { Calendar } from "lucide-react";
 
 export default async function OverviewPage() {
-  const user = await getCurrentUser();
+  const user = await getCurrentProfile();
 
   return (
     <div className="space-y-6 lg:space-y-8 max-w-6xl mx-auto">
@@ -21,14 +21,17 @@ export default async function OverviewPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-lg lg:text-xl font-semibold text-black tracking-tight">
-            Welcome back, {user?.user_metadata?.full_name || "User"}!
+            Welcome back, {user?.profile.full_name || "User"}!
           </h2>
           <p className="text-sm text-primary-gray mt-1 font-sans">
             Member since{" "}
-            {new Date(user?.created_at || "").toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-            })}
+            {new Date(user?.profile.created_at || "").toLocaleDateString(
+              "en-US",
+              {
+                year: "numeric",
+                month: "long",
+              },
+            )}
           </p>
         </div>
         <BookAppointmentButton className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
