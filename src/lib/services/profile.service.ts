@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getSignedUrl } from "@/lib/utils/storage";
 
 export interface UpdateProfileDto {
   full_name?: string;
@@ -124,16 +123,7 @@ export async function updateMyProfile(payload: UpdateMyProfileDto) {
     updatedPatient = data ?? null;
   }
 
-  // ── 6. Resolve passport_url to a signed URL if present ─────────────────────
-  if (updatedPatient?.passport_url) {
-    const rawPassport = updatedPatient.passport_url;
-    const signed = rawPassport.startsWith("http")
-      ? rawPassport
-      : await getSignedUrl("passports", rawPassport);
-    updatedPatient = { ...updatedPatient, passport_url: signed };
-  }
-
-  // ── 7. Return the unified bundle ──────────────────────────────────────────
+  // ── 6. Return the unified bundle ──────────────────────────────────────────
   return {
     profile: updatedProfile,
     patient: updatedPatient,
@@ -186,13 +176,6 @@ export async function getCurrentProfile() {
     ? (profile.patients[0] ?? null)
     : (profile.patients ?? null);
 
-  const rawPassport = patientRow?.passport_url ?? null;
-  const passportSignedUrl = rawPassport
-    ? rawPassport.startsWith("http")
-      ? rawPassport
-      : await getSignedUrl("passports", rawPassport)
-    : null;
-
   return {
     id: profile.id,
     email: user.user_metadata.email,
@@ -211,8 +194,7 @@ export async function getCurrentProfile() {
     next_of_kin_name: patientRow?.next_of_kin_name ?? null,
     next_of_kin_phone: patientRow?.next_of_kin_phone ?? null,
     next_of_kin_relationship: patientRow?.next_of_kin_relationship ?? null,
-    passport_url: passportSignedUrl,
+    passport_url: patientRow?.passport_url ?? null,
     status: patientRow?.status ?? null,
   };
 }
-

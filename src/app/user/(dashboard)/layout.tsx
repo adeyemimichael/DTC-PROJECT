@@ -27,7 +27,7 @@ export default function UserDashboardLayout({
         />
 
         {/* Main Content Area offset by sidebar width on desktop */}
-        <div className="md:pl-64 flex flex-col min-h-screen">
+        <div className="md:pl-64 flex flex-col min-h-screen pt-16 lg:pt-20">
           {/* Top Header */}
           <DashboardHeader onMenuToggle={() => setIsSidebarOpen(true)} />
 

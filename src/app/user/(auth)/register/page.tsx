@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { Button, Input } from "@/components/ui";
 import { cn } from "@/lib/utils";
-import { useAuth, useRegistration } from "@/hooks";
 import {
   Calendar,
   ArrowRight,
@@ -12,9 +12,11 @@ import {
   Lock,
   ShieldCheck,
   CreditCard,
+  Check,
   Eye,
   EyeOff,
 } from "lucide-react";
+import { useAuth } from "@/hooks";
 
 // Registration steps definition
 const steps = [
@@ -24,37 +26,168 @@ const steps = [
 ];
 
 const Register = () => {
-  const { register, isLoading } = useAuth();
-  const {
-    currentStep,
-    formData,
-    errors,
-    updateField,
-    selectGender,
-    toggleCheckbox,
-    nextStep,
-    previousStep,
-    getSubmissionData,
-    isFirstStep,
-    isLastStep,
-  } = useRegistration();
-
+  const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  
+  const { register, isLoading } = useAuth();
+
+  const [formData, setFormData] = useState({
+    // Step 1 data
+    firstName: "",
+    lastName: "",
+    email: "",
+    phoneNumber: "",
+    dob: "",
+    gender: "" as "Male" | "Female" | "Other" | "",
+    address: "",
+    city: "",
+
+    // Step 2 data
+    password: "",
+    confirmPassword: "",
+    agreeToTerms: false,
+
+    // Step 4 data
+  });
+
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const handleCheckboxChange = (field: string, checked: boolean) => {
+    setFormData((prev) => ({ ...prev, [field]: checked }));
+    if (errors[field]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const handleGenderSelect = (gender: "Male" | "Female" | "Other") => {
+    setFormData((prev) => ({ ...prev, gender }));
+    if (errors.gender) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.gender;
+        return next;
+      });
+    }
+  };
+
+  const validateStep1 = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = "First name is required";
+    }
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = "Last name is required";
+    }
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required";
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!formData.phoneNumber.trim()) {
+      newErrors.phoneNumber = "Phone number is required";
+    } else if (!/^\+?[0-9\s\-()]{8,20}$/.test(formData.phoneNumber.trim())) {
+      newErrors.phoneNumber = "Please enter a valid phone number";
+    }
+
+    if (!formData.dob) {
+      newErrors.dob = "Date of birth is required";
+    } else {
+      const birthDate = new Date(formData.dob);
+      const today = new Date();
+      if (birthDate > today) {
+        newErrors.dob = "Date of birth cannot be in the future";
+      }
+    }
+
+    if (!formData.gender) {
+      newErrors.gender = "Please select your gender";
+    }
+
+    if (!formData.address.trim()) {
+      newErrors.address = "Residential address is required";
+    }
+    if (!formData.city.trim()) {
+      newErrors.city = "City is required";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const validateStep2 = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 8) {
+      newErrors.password = "Password must be at least 8 characters";
+    }
+
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = "Confirm password is required";
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!formData.agreeToTerms) {
+      newErrors.agreeToTerms =
+        "You must agree to the Terms of Service and Privacy Policy";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleStep1Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    nextStep();
+    if (validateStep1()) {
+      setCurrentStep(2);
+    }
   };
 
   const handleStep2Submit = (e: React.FormEvent) => {
     e.preventDefault();
-    nextStep();
+    if (validateStep2()) {
+      setCurrentStep(3);
+    }
   };
 
   const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await register(getSubmissionData());
+
+    await register({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      phoneNumber: formData.phoneNumber,
+      dob: formData.dob,
+      gender: formData.gender,
+      address: formData.address,
+      city: formData.city,
+    });
+
+    
   };
 
   return (
@@ -111,14 +244,18 @@ const Register = () => {
                   label="First name"
                   placeholder="e.g John"
                   value={formData.firstName}
-                  onChange={(e) => updateField('firstName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("firstName", e.target.value)
+                  }
                   error={errors.firstName}
                 />
                 <Input
                   label="Last Name"
                   placeholder="e.g Doe"
                   value={formData.lastName}
-                  onChange={(e) => updateField('lastName', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("lastName", e.target.value)
+                  }
                   error={errors.lastName}
                 />
               </div>
@@ -129,7 +266,7 @@ const Register = () => {
                 type="email"
                 placeholder="e.g john@example.com"
                 value={formData.email}
-                onChange={(e) => updateField('email', e.target.value)}
+                onChange={(e) => handleInputChange("email", e.target.value)}
                 error={errors.email}
               />
 
@@ -140,7 +277,9 @@ const Register = () => {
                   type="tel"
                   placeholder="+234 703 666 1092"
                   value={formData.phoneNumber}
-                  onChange={(e) => updateField('phoneNumber', e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("phoneNumber", e.target.value)
+                  }
                   error={errors.phoneNumber}
                 />
                 <Input
@@ -148,7 +287,7 @@ const Register = () => {
                   type="date"
                   placeholder="mm/dd/yyyy"
                   value={formData.dob}
-                  onChange={(e) => updateField('dob', e.target.value)}
+                  onChange={(e) => handleInputChange("dob", e.target.value)}
                   error={errors.dob}
                   className="w-full uppercase [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:cursor-pointer"
                   rightIcon={<Calendar className="w-5 h-5 text-slate-400" />}
@@ -167,7 +306,7 @@ const Register = () => {
                       <button
                         key={g}
                         type="button"
-                        onClick={() => selectGender(g)}
+                        onClick={() => handleGenderSelect(g)}
                         className={cn(
                           "py-3.5 px-4 text-center rounded-[10px] border font-semibold text-[15px] transition-all duration-200 cursor-pointer select-none",
                           isSelected
@@ -192,7 +331,7 @@ const Register = () => {
                 label="Residential Address"
                 placeholder="Street address, apartment, suite"
                 value={formData.address}
-                onChange={(e) => updateField('address', e.target.value)}
+                onChange={(e) => handleInputChange("address", e.target.value)}
                 error={errors.address}
               />
 
@@ -201,7 +340,7 @@ const Register = () => {
                 label="City"
                 placeholder="e.g Lagos"
                 value={formData.city}
-                onChange={(e) => updateField('city', e.target.value)}
+                onChange={(e) => handleInputChange("city", e.target.value)}
                 error={errors.city}
               />
 
@@ -227,7 +366,7 @@ const Register = () => {
                 type={showPassword ? "text" : "password"}
                 placeholder="Minimum 8 characters"
                 value={formData.password}
-                onChange={(e) => updateField('password', e.target.value)}
+                onChange={(e) => handleInputChange("password", e.target.value)}
                 error={errors.password}
                 rightIcon={
                   <button
@@ -251,7 +390,9 @@ const Register = () => {
                 type={showConfirmPassword ? "text" : "password"}
                 placeholder="Repeat your password"
                 value={formData.confirmPassword}
-                onChange={(e) => updateField('confirmPassword', e.target.value)}
+                onChange={(e) =>
+                  handleInputChange("confirmPassword", e.target.value)
+                }
                 error={errors.confirmPassword}
                 rightIcon={
                   <button
@@ -276,7 +417,9 @@ const Register = () => {
                     id="agreeToTerms"
                     type="checkbox"
                     checked={formData.agreeToTerms}
-                    onChange={() => toggleCheckbox('agreeToTerms')}
+                    onChange={(e) =>
+                      handleCheckboxChange("agreeToTerms", e.target.checked)
+                    }
                     className="w-4 h-4 rounded text-primary-blue border-slate-300 focus:ring-primary-blue cursor-pointer"
                   />
                 </div>
@@ -312,7 +455,7 @@ const Register = () => {
               <div className="flex gap-4 pt-2">
                 <Button
                   type="button"
-                  onClick={previousStep}
+                  onClick={() => setCurrentStep(1)}
                   variant="outline"
                   className="flex-none px-6 py-4 rounded-[10px] border border-slate-200 text-primary-deepblue font-bold text-base hover:bg-slate-50 transition-colors duration-200 cursor-pointer flex items-center gap-2"
                 >
@@ -420,7 +563,7 @@ const Register = () => {
               <div className="flex gap-4 pt-2">
                 <Button
                   type="button"
-                  onClick={previousStep}
+                  onClick={() => setCurrentStep(2)}
                   variant="outline"
                   className="flex-none px-6 py-4 rounded-[10px] border border-slate-200 text-primary-deepblue font-bold text-base hover:bg-slate-50 transition-colors duration-200 cursor-pointer flex items-center gap-2"
                 >

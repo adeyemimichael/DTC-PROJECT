@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useProfile } from "@/src/hooks/useProfile";
+import { useProfile, usePassportUpload } from "@/hooks";
+import { getSignedUrl } from "@/lib/utils/storage";
 import toast from "react-hot-toast";
 import {
   Calendar,
@@ -19,10 +20,12 @@ import {
 } from "lucide-react";
 
 export default function PatientSettingsPage() {
-  const { profile, isLoading: isLoadingProfile, updateProfile, uploadPassport } = useProfile();
+  const { profile, isLoading: isLoadingProfile, updateProfile, fetchProfile } = useProfile();
+  const { uploadPassport, isUploading: isUploadingPassport } = usePassportUpload();
+  
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingEmergency, setIsSavingEmergency] = useState(false);
-  const [isUploadingPassport, setIsUploadingPassport] = useState(false);
+  const [passportSignedUrl, setPassportSignedUrl] = useState<string | null>(null);
 
   // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
@@ -75,6 +78,15 @@ export default function PatientSettingsPage() {
     }
   }, [profile]);
 
+  // Generate signed URL
+  useEffect(() => {
+    if (profile?.passport_url) {
+      getSignedUrl('passports', profile.passport_url).then(setPassportSignedUrl);
+    } else {
+      setPassportSignedUrl(null);
+    }
+  }, [profile?.passport_url]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload passport photo
@@ -82,33 +94,25 @@ export default function PatientSettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type (jpeg, png)
-    const allowedTypes = ["image/jpeg", "image/png"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Please upload a JPEG or PNG passport image");
-      return;
-    }
+  
+    const result = await uploadPassport(file);
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Passport file must be smaller than 5MB");
-      return;
-    }
+    if (result.success && result.path) {
+     
+      const updateResult = await updateProfile({
+        passport_url: result.path,
+      });
 
-    try {
-      setIsUploadingPassport(true);
-      const res = await uploadPassport(file);
-      setIsUploadingPassport(false);
-
-      if (res.success) {
-        toast.success("Passport photo uploaded successfully!");
+      if (updateResult.success) {
+        // Set the signed URL from upload result
+        if (result.signedUrl) {
+          setPassportSignedUrl(result.signedUrl);
+        }
+        
+        await fetchProfile();
       } else {
-        toast.error(res.error || "Failed to upload passport photo");
+        toast.error("Passport uploaded but failed to update profile");
       }
-    } catch (error) {
-      setIsUploadingPassport(false);
-      console.error("Passport upload error:", error);
-      toast.error("Failed to upload passport photo");
     }
   };
 
@@ -234,9 +238,9 @@ export default function PatientSettingsPage() {
                     <Loader2 className="w-6 h-6 animate-spin text-primary-blue" />
                     Uploading...
                   </div>
-                ) : profile?.passport_url ? (
+                ) : passportSignedUrl ? (
                   <Image
-                    src={profile.passport_url}
+                    src={passportSignedUrl}
                     alt="Passport Photo"
                     fill
                     className="object-cover"
@@ -254,7 +258,7 @@ export default function PatientSettingsPage() {
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-3 text-xs md:text-sm font-semibold text-[#0149ff] hover:text-blue-700 hover:underline transition-colors focus:outline-none disabled:opacity-50"
               >
-                {profile?.passport_url ? "Change Photo" : "Upload Photo"}
+                {passportSignedUrl ? "Change Photo" : "Upload Photo"}
               </button>
             </div>
 
