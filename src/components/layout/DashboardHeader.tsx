@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
-import { useProfile } from "@/src/hooks/useProfile";
+import { useProfile } from "@/hooks";
+import { getSignedUrl } from "@/lib/utils/storage";
+import { useEffect, useState } from "react";
 
 interface DashboardHeaderProps {
   onMenuToggle?: () => void;
@@ -16,6 +18,16 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
   const router = useRouter();
   const isDoctor = pathname?.startsWith("/doctor");
   const { profile } = useProfile();
+  const [avatarSignedUrl, setAvatarSignedUrl] = useState<string | null>(null);
+
+  // Generate signed URL for passport if it exists (private bucket)
+  useEffect(() => {
+    if (profile?.passport_url) {
+      getSignedUrl('passports', profile.passport_url).then(setAvatarSignedUrl);
+    } else {
+      setAvatarSignedUrl(null);
+    }
+  }, [profile?.passport_url]);
 
   const getHeaderTitle = (path: string) => {
     if (path.includes("overview")) return "Overview";
@@ -56,11 +68,14 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
     }
   };
 
-  const avatarSrc = profile?.avatar_url || (isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png");
+  const avatarSrc =
+    avatarSignedUrl ||  // Use signed URL for passport (private bucket)
+    profile?.avatar_url ||  // Use direct URL for avatar (public bucket)
+    (isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png");
   const userDisplayName = profile?.full_name || (isDoctor ? "Dr. Stephen" : "User");
 
   return (
-    <header className="h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 sticky top-0 z-10">
+    <header className="fixed top-0 left-0 right-0 h-16 lg:h-20 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 z-50">
       <div className="flex items-center">
         <button
           onClick={onMenuToggle}

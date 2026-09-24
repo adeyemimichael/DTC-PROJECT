@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import { useProfile } from "@/src/hooks/useProfile";
+import { useProfile, usePassportUpload } from "@/hooks";
+import { getSignedUrl } from "@/lib/utils/storage";
 import toast from "react-hot-toast";
 import {
   Calendar,
@@ -19,9 +20,12 @@ import {
 } from "lucide-react";
 
 export default function PatientSettingsPage() {
-  const { profile, isLoading: isLoadingProfile, updateProfile } = useProfile();
+  const { profile, isLoading: isLoadingProfile, updateProfile, fetchProfile } = useProfile();
+  const { uploadPassport, isUploading: isUploadingPassport } = usePassportUpload();
+  
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingEmergency, setIsSavingEmergency] = useState(false);
+  const [passportSignedUrl, setPassportSignedUrl] = useState<string | null>(null);
 
   // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
@@ -33,7 +37,6 @@ export default function PatientSettingsPage() {
     gender: "Female",
     bloodGroup: "O+",
     address: "4517 Washington Ave. Manchester, Kentucky 39495",
-    avatar: "/images/sarah_avatar.png",
   });
 
   // 2. Emergency Contact State
@@ -62,58 +65,54 @@ export default function PatientSettingsPage() {
           : prev.gender,
         bloodGroup: profile.blood_group || prev.bloodGroup,
         address: profile.address || prev.address,
-        avatar: profile.avatar_url || prev.avatar,
       }));
 
-      if (profile.next_of_kin_name || profile.next_of_kin_phone) {
+      if (profile.next_of_kin_name || profile.next_of_kin_phone || profile.next_of_kin_relationship) {
         setEmergencyContact((prev) => ({
           ...prev,
           fullName: profile.next_of_kin_name || prev.fullName,
           phone: profile.next_of_kin_phone || prev.phone,
+          relationship: profile.next_of_kin_relationship || prev.relationship,
         }));
       }
     }
   }, [profile]);
 
+  // Generate signed URL
+  useEffect(() => {
+    if (profile?.passport_url) {
+      getSignedUrl('passports', profile.passport_url).then(setPassportSignedUrl);
+    } else {
+      setPassportSignedUrl(null);
+    }
+  }, [profile?.passport_url]);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Upload avatar -
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload passport photo
+  const handlePassportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file');
-      return;
-    }
+  
+    const result = await uploadPassport(file);
 
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image must be less than 5MB');
-      return;
-    }
+    if (result.success && result.path) {
+     
+      const updateResult = await updateProfile({
+        passport_url: result.path,
+      });
 
-    try {
-      // Convert to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64Url = reader.result as string;
-        
-        
-        const res = await updateProfile({ avatar_url: base64Url });
-        
-        if (res.success) {
-          setAccountInfo((prev) => ({ ...prev, avatar: base64Url }));
-          toast.success('Profile photo updated successfully!');
-        } else {
-          toast.error(res.error || 'Failed to update profile photo');
+      if (updateResult.success) {
+        // Set the signed URL from upload result
+        if (result.signedUrl) {
+          setPassportSignedUrl(result.signedUrl);
         }
-      };
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error('Avatar upload error:', error);
-      toast.error('Failed to upload photo');
+        
+        await fetchProfile();
+      } else {
+        toast.error("Passport uploaded but failed to update profile");
+      }
     }
   };
 
@@ -126,10 +125,9 @@ export default function PatientSettingsPage() {
       full_name: fullName,
       phone: accountInfo.phone,
       date_of_birth: accountInfo.dob,
-      gender: accountInfo.gender,
+      gender: accountInfo.gender.toLowerCase() as any,
       blood_group: accountInfo.bloodGroup,
       address: accountInfo.address,
-      avatar_url: accountInfo.avatar,
     });
 
     setIsSavingAccount(false);
@@ -148,6 +146,7 @@ export default function PatientSettingsPage() {
     const res = await updateProfile({
       next_of_kin_name: emergencyContact.fullName,
       next_of_kin_phone: emergencyContact.phone,
+      next_of_kin_relationship: emergencyContact.relationship,
     });
 
     setIsSavingEmergency(false);
@@ -205,12 +204,12 @@ export default function PatientSettingsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      {/* Hidden File Input for Avatar */}
+      {/* Hidden File Input for Passport */}
       <input
         type="file"
         ref={fileInputRef}
-        onChange={handleAvatarChange}
-        accept="image/*"
+        onChange={handlePassportChange}
+        accept="image/jpeg,image/png"
         className="hidden"
       />
 
@@ -231,22 +230,35 @@ export default function PatientSettingsPage() {
 
         <form onSubmit={handleSaveAccountInfo} className="space-y-6">
           <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start">
-            {/* Avatar Column */}
+            {/* Passport Photo Column */}
             <div className="flex flex-col items-center shrink-0 mx-auto md:mx-0">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-100 shadow-inner group bg-amber-400 flex items-center justify-center">
-                <Image
-                  src={accountInfo.avatar || "/images/sarah_avatar.png"}
-                  alt={accountInfo.firstName || "Profile"}
-                  fill
-                  className="object-cover"
-                />
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-slate-200 shadow-sm bg-slate-100 flex items-center justify-center">
+                {isUploadingPassport ? (
+                  <div className="flex flex-col items-center gap-1 text-slate-500 text-xs">
+                    <Loader2 className="w-6 h-6 animate-spin text-primary-blue" />
+                    Uploading...
+                  </div>
+                ) : passportSignedUrl ? (
+                  <Image
+                    src={passportSignedUrl}
+                    alt="Passport Photo"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-1 text-slate-400 p-2 text-center">
+                    <Upload className="w-6 h-6" />
+                    <span className="text-[10px] font-medium leading-tight">No Passport</span>
+                  </div>
+                )}
               </div>
               <button
                 type="button"
+                disabled={isUploadingPassport}
                 onClick={() => fileInputRef.current?.click()}
-                className="mt-3 text-xs md:text-sm font-semibold text-[#0149ff] hover:text-blue-700 hover:underline transition-colors focus:outline-none"
+                className="mt-3 text-xs md:text-sm font-semibold text-[#0149ff] hover:text-blue-700 hover:underline transition-colors focus:outline-none disabled:opacity-50"
               >
-                Change Photo
+                {passportSignedUrl ? "Change Photo" : "Upload Photo"}
               </button>
             </div>
 

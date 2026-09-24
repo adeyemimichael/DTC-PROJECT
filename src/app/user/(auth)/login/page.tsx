@@ -2,49 +2,18 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui";
-import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
+import { useAuth } from "@/hooks";
 import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
-  const router = useRouter();
+  const { login, isLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    setIsLoading(true);
-
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Invalid email or password. Please try again.",
-        );
-      }
-
-      toast.success("Logged in successfully!");
-
-      router.push("/user/overview");
-    } catch (err: any) {
-      toast.error(
-        err.message || "Invalid email or password. Please try again.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
+    await login({ email, password });
   };
 
   return (

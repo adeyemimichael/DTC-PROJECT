@@ -1,4 +1,5 @@
-import { createClient } from "../supabase/server";
+"use client"
+import { createClient } from "../supabase/client";
 
 export type PrivateBucket =
   | "passports"
@@ -12,7 +13,7 @@ export async function getSignedUrl(
 ): Promise<string | null> {
   if (!storagePath) return null;
 
-  const supabase = await createClient();
+  const supabase = createClient();
 
   const { data, error } = await supabase.storage
     .from(bucket)

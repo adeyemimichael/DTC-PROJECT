@@ -16,7 +16,7 @@ import {
   Eye,
   EyeOff,
 } from "lucide-react";
-import toast from "react-hot-toast";
+import { useAuth } from "@/hooks";
 
 // Registration steps definition
 const steps = [
@@ -27,9 +27,11 @@ const steps = [
 
 const Register = () => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  
+  const { register, isLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     // Step 1 data
@@ -173,41 +175,19 @@ const Register = () => {
   const handleStep3Submit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    setIsLoading(true);
+    await register({
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      email: formData.email,
+      password: formData.password,
+      phoneNumber: formData.phoneNumber,
+      dob: formData.dob,
+      gender: formData.gender,
+      address: formData.address,
+      city: formData.city,
+    });
 
-    try {
-      // 1. Register User
-      const authResponse = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          phoneNumber: formData.phoneNumber,
-          dob: formData.dob,
-          gender: formData.gender,
-          address: formData.address,
-          city: formData.city,
-        }),
-      });
-
-      const authData = await authResponse.json();
-      if (!authResponse.ok) {
-        throw new Error(authData.error || "Failed to register.");
-      }
-
-      toast.success("Registration successful! Redirecting to payment...");
-
-      // Redirect to Paystack checkout
-      if (authData.paymentUrl) {
-        window.location.href = authData.paymentUrl;
-      }
-    } catch (err: any) {
-      toast.error(err.message || "An error occurred during registration.");
-      setIsLoading(false);
-    }
+    
   };
 
   return (
