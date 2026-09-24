@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { getSignedUrl } from "@/lib/utils/storage";
 
 export async function POST(request: Request) {
   try {
@@ -67,10 +68,13 @@ export async function POST(request: Request) {
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
+    const signedUrl = await getSignedUrl("passports", storagePath);
+
     return NextResponse.json(
       {
         data: {
           path: storagePath,
+          signedUrl,
         },
       },
       { status: 201 },
@@ -83,3 +87,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

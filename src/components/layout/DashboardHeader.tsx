@@ -56,7 +56,10 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
     }
   };
 
-  const avatarSrc = profile?.avatar_url || (isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png");
+  const avatarSrc =
+    profile?.passport_url ||
+    profile?.avatar_url ||
+    (isDoctor ? "/images/stephen.jpg" : "/images/sarah_avatar.png");
   const userDisplayName = profile?.full_name || (isDoctor ? "Dr. Stephen" : "User");
 
   return (
