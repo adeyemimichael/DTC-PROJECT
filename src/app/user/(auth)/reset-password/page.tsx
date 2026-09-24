@@ -1,22 +1,59 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "@/hooks";
+import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token");
+  
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const { resetPassword, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!token) {
+      toast.error("Invalid or missing reset token");
+    }
+  }, [token]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!token) {
+      toast.error("Invalid or missing reset token");
+      return;
+    }
+
+    if (password.length < 8) {
+      toast.error("Password must be at least 8 characters");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    await resetPassword(token, password);
+  };
 
   return (
     <div className="max-w-md mx-auto">
       <div className="text-center mb-10">
         <h1 className="text-[2.5rem] font-bold text-gray-900 tracking-tight mb-3">
-          Forgot Password
+          Reset Password
         </h1>
         <p className="text-secondary-600 text-lg">Create a new password</p>
       </div>
 
-      <form className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
           <label
             htmlFor="password"
@@ -29,9 +66,12 @@ export default function ResetPasswordPage() {
               id="password"
               type={showPassword ? "text" : "password"}
               placeholder="Minimum 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3.5 pr-12 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
               required
               minLength={8}
+              disabled={isLoading}
             />
             <button
               type="button"
@@ -59,9 +99,12 @@ export default function ResetPasswordPage() {
               id="confirm-password"
               type={showConfirmPassword ? "text" : "password"}
               placeholder="Repeat your password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-3.5 pr-12 rounded-xl border border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-brand-blue/20 focus:border-brand-blue transition-all"
               required
               minLength={8}
+              disabled={isLoading}
             />
             <button
               type="button"
@@ -82,8 +125,9 @@ export default function ResetPasswordPage() {
             type="submit"
             variant="primary"
             className="w-full py-4 rounded-xl text-base font-semibold"
+            disabled={isLoading || !token}
           >
-            Confirm
+            {isLoading ? "Resetting..." : "Reset Password"}
           </Button>
         </div>
       </form>
