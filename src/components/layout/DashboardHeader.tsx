@@ -35,6 +35,7 @@ export function DashboardHeader({ onMenuToggle }: DashboardHeaderProps) {
     if (path.includes("patients")) return "Patients";
     if (path.includes("messages")) return "Messages";
     if (path.includes("medical-info")) return "Medical Info";
+    if (path.includes("my-uploads")) return "My Uploads";
     if (path.includes("settings")) return "Settings";
     if (path.includes("help")) return "Help";
     return "Dashboard";
