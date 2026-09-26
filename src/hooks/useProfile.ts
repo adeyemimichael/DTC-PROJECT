@@ -98,42 +98,6 @@ export function useProfile() {
     }
   };
 
-  const uploadPassport = async (
-    file: File
-  ): Promise<{ success: boolean; path?: string; error?: string }> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload/passport', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to upload passport' };
-      }
-
-      const { path: storagePath, signedUrl } = result.data || {};
-      if (storagePath) {
-        const updateRes = await updateProfile({ passport_url: storagePath });
-        if (!updateRes.success) {
-          return { success: false, error: updateRes.error || 'Failed to save passport path to profile' };
-        }
-        if (signedUrl) {
-          setProfile((prev) => (prev ? { ...prev, passport_url: signedUrl } : null));
-        }
-      }
-
-      return { success: true, path: storagePath };
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An error occurred while uploading passport';
-      return { success: false, error: message };
-    }
-  };
-
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
@@ -144,7 +108,6 @@ export function useProfile() {
     error,
     fetchProfile,
     updateProfile,
-    uploadPassport,
   };
 }
 

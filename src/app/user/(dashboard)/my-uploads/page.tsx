@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Card, Button } from '@/components/ui';
 import {
   FolderUp,
@@ -16,109 +16,112 @@ import {
   Trash2,
   Eye,
   CloudUpload,
+  Video,
+  Music,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useFileUpload } from '@/hooks';
 
-type UploadCategory = 'Lab Results' | 'Imaging' | 'Prescriptions' | 'Others';
+type UploadCategory = 'Lab Results' | 'General';
+type ApiCategory = 'lab_result_scan' | 'general';
 
-interface UploadedFile {
+interface DisplayFile {
   id: string;
-  name: string;
-  category: UploadCategory;
-  size: string;
-  uploadedAt: string;
-  type: string;
-  status: 'uploaded';
+  patient_id: string;
+  file_type: string;
+  category: ApiCategory;
+  storage_path: string;
+  description: string | null;
+  created_at: string;
+  signedUrl?: string;
+  displayCategory: UploadCategory;
+  displayName: string;
+  displaySize: string;
+  displayDate: string;
 }
-
-// Mock uploaded files — these will be replaced with real API data
-const mockUploads: UploadedFile[] = [
-  {
-    id: '1',
-    name: 'Blood_Test_Results_May2026.pdf',
-    category: 'Lab Results',
-    size: '1.2 MB',
-    uploadedAt: '2026-05-18',
-    type: 'application/pdf',
-    status: 'uploaded',
-  },
-  {
-    id: '2',
-    name: 'Chest_Xray_Report.jpg',
-    category: 'Imaging',
-    size: '3.4 MB',
-    uploadedAt: '2026-05-14',
-    type: 'image/jpeg',
-    status: 'uploaded',
-  },
-  {
-    id: '3',
-    name: 'Cetirizine_Prescription.pdf',
-    category: 'Prescriptions',
-    size: '420 KB',
-    uploadedAt: '2026-05-22',
-    type: 'application/pdf',
-    status: 'uploaded',
-  },
-];
 
 const filterCategories = [
   { label: 'All Files', value: 'all' },
-  { label: 'Lab Results', value: 'Lab Results' },
-  { label: 'Imaging', value: 'Imaging' },
-  { label: 'Prescriptions', value: 'Prescriptions' },
-  { label: 'Others', value: 'Others' },
+  { label: 'Lab Results', value: 'lab_result_scan' },
+  { label: 'General', value: 'general' },
 ];
 
-const uploadCategories: UploadCategory[] = ['Lab Results', 'Imaging', 'Prescriptions', 'Others'];
+const uploadCategories: { label: UploadCategory; value: ApiCategory }[] = [
+  { label: 'Lab Results', value: 'lab_result_scan' },
+  { label: 'General', value: 'general' },
+];
 
-const getCategoryTheme = (category: string) => {
+const mapApiCategoryToDisplay = (apiCat: ApiCategory): UploadCategory => {
+  return apiCat === 'lab_result_scan' ? 'Lab Results' : 'General';
+};
+
+const getCategoryTheme = (category: ApiCategory | string) => {
   switch (category) {
+    case 'lab_result_scan':
     case 'Lab Results':
       return { text: 'text-primary-blue', bg: 'bg-blue-50', dot: 'bg-primary-blue' };
-    case 'Imaging':
-      return { text: 'text-amber-600', bg: 'bg-amber-50', dot: 'bg-amber-500' };
-    case 'Prescriptions':
-      return { text: 'text-indigo-600', bg: 'bg-indigo-50', dot: 'bg-indigo-500' };
+    case 'general':
+    case 'General':
+      return { text: 'text-slate-500', bg: 'bg-slate-100', dot: 'bg-slate-400' };
     default:
       return { text: 'text-slate-500', bg: 'bg-slate-100', dot: 'bg-slate-400' };
   }
 };
 
-const getFileIcon = (type: string) => {
-  if (type.startsWith('image/')) return ImageIcon;
-  if (type === 'application/pdf') return FileText;
+const getFileIcon = (fileType: string) => {
+  if (fileType === 'image') return ImageIcon;
+  if (fileType === 'document') return FileText;
+  if (fileType === 'video') return Video;
+  if (fileType === 'audio') return Music;
   return File;
 };
 
 export default function MyUploadsPage() {
-  const [uploads, setUploads] = useState<UploadedFile[]>(mockUploads);
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
   // Upload flow state
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<UploadCategory>('Lab Results');
-  const [isUploading, setIsUploading] = useState(false);
+  const [description, setDescription] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<ApiCategory>('lab_result_scan');
+
+
+  const { 
+    uploads, 
+    uploadDocument, 
+    fetchUploads, 
+    removeUpload,
+    isUploading, 
+    isFetching 
+  } = useFileUpload();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_TYPES = [
-    'image/jpeg', 'image/png', 'image/webp',
+    'image/jpeg',
+    'image/png',
+    'audio/mpeg',
+    'audio/mp4',
+    'audio/wav',
+    'video/mp4',
+    'video/quicktime',
     'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   ];
-  const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+  const MAX_SIZE = 50 * 1024 * 1024; // 50MB
+
+  // Fetch existing uploads on mount
+  useEffect(() => {
+    fetchUploads();
+  }, [fetchUploads]);
 
   const validateAndStage = (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error('Only PDF, Word, JPEG, PNG, or WebP files are allowed');
+      toast.error('Only PDF, images (JPEG, PNG), audio (MP3, WAV), and video (MP4, MOV) files are allowed');
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast.error('File must be smaller than 10MB');
+      toast.error('File must be smaller than 50MB');
       return;
     }
     setPendingFile(file);
@@ -140,42 +143,49 @@ export default function MyUploadsPage() {
 
   const handleConfirmUpload = async () => {
     if (!pendingFile) return;
-    setIsUploading(true);
 
-    try {
-      // TODO: replace with real API call to POST /api/upload/document
-      await new Promise((res) => setTimeout(res, 1500));
+    const result = await uploadDocument({
+      file: pendingFile,
+      description: description.trim() || undefined,
+      category: selectedCategory,
+    });
 
-      const newUpload: UploadedFile = {
-        id: Date.now().toString(),
-        name: pendingFile.name,
-        category: selectedCategory,
-        size: pendingFile.size > 1024 * 1024
-          ? `${(pendingFile.size / (1024 * 1024)).toFixed(1)} MB`
-          : `${Math.round(pendingFile.size / 1024)} KB`,
-        uploadedAt: new Date().toISOString().split('T')[0],
-        type: pendingFile.type,
-        status: 'uploaded',
-      };
-
-      setUploads((prev) => [newUpload, ...prev]);
+    if (result.success) {
+      // Hook already added to uploads list
       setPendingFile(null);
-      toast.success(`${pendingFile.name} uploaded successfully!`);
-    } catch {
-      toast.error('Upload failed. Please try again.');
-    } finally {
-      setIsUploading(false);
+      setDescription('');
+      setSelectedCategory('lab_result_scan');
     }
   };
 
-  const handleDelete = (id: string) => {
-    setUploads((prev) => prev.filter((u) => u.id !== id));
+  const handleDelete = async (id: string) => {
+    // TODO: Implement delete API endpoint
+    removeUpload(id);
     toast.success('File removed');
   };
 
-  const filtered = uploads.filter((u) => {
+  // Transform uploads for display
+  const displayUploads: DisplayFile[] = uploads.map((file) => {
+    const fileName = file.storage_path.split('/').pop() || 'unknown';
+    const category = file.category as ApiCategory;
+    
+    return {
+      ...file,
+      category,
+      displayCategory: mapApiCategoryToDisplay(category),
+      displayName: file.description || fileName,
+      displaySize: 'N/A',
+      displayDate: new Date(file.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      }),
+    };
+  });
+
+  const filtered = displayUploads.filter((u) => {
     const matchesCategory = activeCategory === 'all' || u.category === activeCategory;
-    const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = u.displayName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -203,7 +213,7 @@ export default function MyUploadsPage() {
         ref={fileInputRef}
         type="file"
         className="hidden"
-        accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.webp"
+        accept=".pdf,.jpg,.jpeg,.png,.mp3,.mp4,.wav,.mov"
         onChange={handleFileInput}
       />
 
@@ -213,10 +223,7 @@ export default function MyUploadsPage() {
         <Card className="p-6 border-2 border-primary-blue/30 bg-blue-50/40">
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-xs">
-              {(() => {
-                const Icon = getFileIcon(pendingFile.type);
-                return <Icon className="h-6 w-6 text-primary-blue" />;
-              })()}
+              <CloudUpload className="h-6 w-6 text-primary-blue" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-900 truncate">{pendingFile.name}</p>
@@ -226,6 +233,20 @@ export default function MyUploadsPage() {
                   : `${Math.round(pendingFile.size / 1024)} KB`}
               </p>
 
+              {/* Description input */}
+              <div className="mt-4">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">
+                  Description (optional)
+                </label>
+                <input
+                  type="text"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="e.g., Blood test results from January 2026"
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-primary-blue focus:ring-1 focus:ring-primary-blue/20 focus:outline-none"
+                />
+              </div>
+
               {/* Category selector */}
               <div className="mt-4">
                 <label className="block text-xs font-medium text-slate-600 mb-2">
@@ -233,19 +254,19 @@ export default function MyUploadsPage() {
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {uploadCategories.map((cat) => {
-                    const theme = getCategoryTheme(cat);
+                    const theme = getCategoryTheme(cat.value);
                     return (
                       <button
-                        key={cat}
+                        key={cat.value}
                         type="button"
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => setSelectedCategory(cat.value)}
                         className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer ${
-                          selectedCategory === cat
+                          selectedCategory === cat.value
                             ? `${theme.bg} ${theme.text} border-current`
                             : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        {cat}
+                        {cat.label}
                       </button>
                     );
                   })}
@@ -273,7 +294,10 @@ export default function MyUploadsPage() {
                 </Button>
                 <button
                   type="button"
-                  onClick={() => setPendingFile(null)}
+                  onClick={() => {
+                    setPendingFile(null);
+                    setDescription('');
+                  }}
                   disabled={isUploading}
                   className="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1 disabled:opacity-50"
                 >
@@ -304,7 +328,7 @@ export default function MyUploadsPage() {
             Drag & drop a file here, or <span className="text-primary-blue">browse</span>
           </p>
           <p className="text-xs text-slate-400 mt-1.5">
-            Supported: PDF, Word, JPEG, PNG, WebP · Max 10MB
+            Supported: PDF, images, audio, video · Max 50MB
           </p>
         </div>
       )}
@@ -317,9 +341,13 @@ export default function MyUploadsPage() {
             <FolderUp className="h-5 w-5 text-primary-blue" />
             <h3>
               Uploaded Files{' '}
-              <span className="text-sm font-normal text-slate-400">
-                ({uploads.length})
-              </span>
+              {isFetching ? (
+                <Loader2 className="inline h-4 w-4 animate-spin text-slate-400" />
+              ) : (
+                <span className="text-sm font-normal text-slate-400">
+                  ({uploads.length})
+                </span>
+              )}
             </h3>
           </div>
           {/* Search */}
@@ -353,77 +381,88 @@ export default function MyUploadsPage() {
         </div>
 
         {/* File items */}
-        <div className="space-y-3">
-          {filtered.length > 0 ? (
-            filtered.map((file) => {
-              const theme = getCategoryTheme(file.category);
-              const FileIcon = getFileIcon(file.type);
-              return (
-                <Card
-                  key={file.id}
-                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 hover:shadow-sm transition-shadow"
-                >
-                  <div className="flex gap-4 min-w-0">
-                    <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
-                      <FileIcon className="h-5 w-5 text-slate-400" />
+        {isFetching ? (
+          <Card className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-blue mb-3" />
+            <p className="text-sm text-slate-500">Loading your uploads...</p>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {filtered.length > 0 ? (
+              filtered.map((file) => {
+                const theme = getCategoryTheme(file.category);
+                const FileIcon = getFileIcon(file.file_type);
+                return (
+                  <Card
+                    key={file.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5 hover:shadow-sm transition-shadow"
+                  >
+                    <div className="flex gap-4 min-w-0 flex-1">
+                      <div className="h-11 w-11 rounded-xl bg-slate-100 flex items-center justify-center shrink-0">
+                        <FileIcon className="h-5 w-5 text-slate-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{file.displayName}</p>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {file.displaySize} · Uploaded {file.displayDate}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-slate-900 truncate">{file.name}</p>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {file.size} · Uploaded {file.uploadedAt}
-                      </p>
-                    </div>
-                  </div>
 
-                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 w-full sm:w-auto border-t sm:border-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
-                    <span className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}>
-                      <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
-                      {file.category}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        className="p-2 rounded-lg text-slate-400 hover:text-primary-blue hover:bg-blue-50 transition-colors"
-                        aria-label="View file"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(file.id)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-primary-red hover:bg-red-50 transition-colors"
-                        aria-label="Delete file"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 w-full sm:w-auto border-t sm:border-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
+                      <span className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}>
+                        <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
+                        {file.displayCategory}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        {file.signedUrl && (
+                          <a
+                            href={file.signedUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 rounded-lg text-slate-400 hover:text-primary-blue hover:bg-blue-50 transition-colors"
+                            aria-label="View file"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(file.id)}
+                          className="p-2 rounded-lg text-slate-400 hover:text-primary-red hover:bg-red-50 transition-colors"
+                          aria-label="Delete file"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </Card>
-              );
-            })
-          ) : (
-            <Card className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="h-16 w-16 bg-slate-100 text-slate-300 rounded-2xl flex items-center justify-center mb-5">
-                <FolderUp className="h-8 w-8" />
-              </div>
-              <h3 className="text-base font-bold text-primary-deepblue">No files found</h3>
-              <p className="text-sm text-primary-gray mt-1.5 max-w-xs font-medium">
-                {searchQuery || activeCategory !== 'all'
-                  ? 'Try adjusting your search or category filter.'
-                  : 'Upload your first medical document to get started.'}
-              </p>
-              {!searchQuery && activeCategory === 'all' && (
-                <Button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="mt-5 bg-primary-blue hover:bg-[#003be6] text-white text-xs px-5 py-2 rounded-xl flex items-center gap-2 font-semibold border-0"
-                >
-                  <Upload className="h-3.5 w-3.5" />
-                  Upload First File
-                </Button>
-              )}
-            </Card>
-          )}
-        </div>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="h-16 w-16 bg-slate-100 text-slate-300 rounded-2xl flex items-center justify-center mb-5">
+                  <FolderUp className="h-8 w-8" />
+                </div>
+                <h3 className="text-base font-bold text-primary-deepblue">No files found</h3>
+                <p className="text-sm text-primary-gray mt-1.5 max-w-xs font-medium">
+                  {searchQuery || activeCategory !== 'all'
+                    ? 'Try adjusting your search or category filter.'
+                    : 'Upload your first medical document to get started.'}
+                </p>
+                {!searchQuery && activeCategory === 'all' && (
+                  <Button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="mt-5 bg-primary-blue hover:bg-[#003be6] text-white text-xs px-5 py-2 rounded-xl flex items-center gap-2 font-semibold border-0"
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                    Upload First File
+                  </Button>
+                )}
+              </Card>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
