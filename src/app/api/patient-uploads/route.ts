@@ -25,7 +25,10 @@ export async function GET(request: Request) {
       .order("created_at", { ascending: false });
 
     if (uploadsError) {
-      return NextResponse.json({ error: uploadsError.message }, { status: 500 });
+      return NextResponse.json(
+        { error: uploadsError.message },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ data: uploads }, { status: 200 });
@@ -35,9 +38,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-
   try {
+    const supabase = await createClient();
+
+    // ── Auth ─────────────────────────────────────────────────────────────────
     const {
       data: { user },
       error: authError,
@@ -47,30 +51,108 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await request.json();
-    const { file_type, category, storage_path, description } = body;
+    // ── Parse the multipart form ──────────────────────────────────────────────
+    const formData = await request.formData();
+    const file = formData.get("file") as File | null;
+    const description = formData.get("description") as string | null;
+    const category = (formData.get("category") as string | null) ?? "general";
 
-    // patient_uploads_insert_own policy only allows users to insert their own records
-    const { data: upload, error: uploadError } = await supabase
+    if (!file) {
+      return NextResponse.json(
+        {
+          error:
+            "No file provided. Send a multipart/form-data request with a 'file' field.",
+        },
+        { status: 400 },
+      );
+    }
+
+    // ── Validate category ─────────────────────────────────────────────────────
+    const validCategories = ["lab_result_scan", "general"];
+    if (!validCategories.includes(category)) {
+      return NextResponse.json(
+        {
+          error: `Invalid category: "${category}". Must be "lab_result_scan" or "general".`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // ── Validate mime type and resolve file_type for the DB record ────────────
+    const mimeToFileType: Record<string, string> = {
+      "image/jpeg": "image",
+      "image/png": "image",
+      "audio/mpeg": "audio",
+      "audio/mp4": "audio",
+      "audio/wav": "audio",
+      "video/mp4": "video",
+      "video/quicktime": "video",
+      "application/pdf": "document",
+    };
+
+    const file_type = mimeToFileType[file.type];
+    if (!file_type) {
+      return NextResponse.json(
+        {
+          error: `Unsupported file type: ${file.type}. Allowed: jpeg, png, mp3, mp4 audio, wav, mp4 video, quicktime, pdf.`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // ── Validate file size (bucket limit: 50 MB) ──────────────────────────────
+    const maxBytes = 50 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json(
+        { error: "File must be smaller than 50 MB." },
+        { status: 400 },
+      );
+    }
+
+    // ── Build the storage path ────────────────────────────────────────────────
+    // MUST start with "{userId}/..." so the RLS INSERT policy passes.
+    const extension = file.name.split(".").pop() ?? "bin";
+    const storagePath = `${user.id}/${Date.now()}.${extension}`;
+
+    // ── 1. Upload file to storage ─────────────────────────────────────────────
+    const arrayBuffer = await file.arrayBuffer();
+    const { error: uploadError } = await supabase.storage
+      .from("patient-uploads")
+      .upload(storagePath, arrayBuffer, {
+        contentType: file.type,
+        upsert: false, // patient-uploads are immutable — no overwriting
+      });
+
+    if (uploadError) {
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+
+    // ── 2. Insert DB record ───────────────────────────────────────────────────
+    const { data: uploadRecord, error: dbError } = await supabase
       .from("patient_uploads")
       .insert([
         {
           patient_id: user.id, // Enforce patient's own ID
           file_type,
-          category: category || "general",
-          storage_path,
-          description,
+          category,
+          storage_path: storagePath,
+          description: description ?? null,
         },
       ])
       .select()
       .single();
 
-    if (uploadError) {
-      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    if (dbError) {
+      // Note: In a production app, you might want to delete the uploaded file here if DB insert fails
+      throw new Error(`Database insert failed: ${dbError.message}`);
     }
 
-    return NextResponse.json({ data: upload }, { status: 201 });
-  } catch (err) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+    return NextResponse.json({ data: uploadRecord }, { status: 201 });
+  } catch (err: any) {
+    const status = err.message === "Unauthorized" ? 401 : 500;
+    return NextResponse.json(
+      { error: err.message || "Upload failed" },
+      { status },
+    );
   }
 }
