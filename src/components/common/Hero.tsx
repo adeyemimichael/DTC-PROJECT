@@ -32,7 +32,7 @@ export function Hero() {
 
           {/* Call-to-Actions (CTAs) */}
           <div className="mt-8 flex flex-wrap items-center gap-4">
-            <Link href="#register">
+            <Link href="/user/register">
               <Button variant="primary" size="md" className="min-w-38.5 shadow-sm">
                 Register Now
               </Button>

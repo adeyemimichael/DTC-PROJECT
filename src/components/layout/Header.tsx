@@ -154,7 +154,7 @@ export function Header({ className }: HeaderProps) {
             )}
           >
             <Link
-              href="#login"
+              href="/user/login"
               onClick={() => setIsMobileMenuOpen(false)}
               className="w-full"
             >
@@ -163,7 +163,7 @@ export function Header({ className }: HeaderProps) {
               </Button>
             </Link>
             <Link
-              href="#register"
+              href="/user/register"
               onClick={() => setIsMobileMenuOpen(false)}
               className="w-full"
             >
