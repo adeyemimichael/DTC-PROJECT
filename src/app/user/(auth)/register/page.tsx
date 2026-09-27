@@ -192,25 +192,25 @@ const Register = () => {
 
   return (
     <div className="min-h-screen bg-white font-sans flex flex-col">
-      <main className="flex-1 flex flex-col justify-start items-center py-10 md:py-16 px-4 animate-page-fade ">
+      <main className="flex-1 flex flex-col justify-start items-center py-6 sm:py-10 md:py-16 px-4 animate-page-fade">
         {/* Step Indicator Panel */}
-        <div className="w-full max-w-175 text-center mb-8">
-          <h1 className="text-[28px] md:text-[36px] font-bold text-primary-deepblue tracking-tight leading-tight mb-2">
+        <div className="w-full max-w-175 text-center mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-[28px] md:text-[36px] font-bold text-primary-deepblue tracking-tight leading-tight mb-2">
             Create Your Account
           </h1>
-          <p className="text-[14px] md:text-[15px] text-primary-gray mb-8">
+          <p className="text-sm sm:text-[14px] md:text-[15px] text-primary-gray mb-6 sm:mb-8 px-2">
             One-time $49 registration. No subscriptions. Pay only when you book.
           </p>
 
           {/* Steps Progress Bar */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-[13px] md:text-sm font-semibold select-none">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 sm:gap-x-6 gap-y-3 text-xs sm:text-[13px] md:text-sm font-semibold select-none">
             {steps.map((s) => {
               const isActiveOrCompleted = s.id <= currentStep;
               return (
                 <div key={s.id} className="flex items-center gap-2">
                   <span
                     className={cn(
-                      "w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold transition-all duration-300",
+                      "w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-[11px] font-bold transition-all duration-300",
                       isActiveOrCompleted
                         ? "bg-primary-red text-white"
                         : "bg-slate-200 text-white",
@@ -220,7 +220,7 @@ const Register = () => {
                   </span>
                   <span
                     className={cn(
-                      "transition-colors duration-300 font-medium",
+                      "transition-colors duration-300 font-medium text-xs sm:text-sm",
                       isActiveOrCompleted
                         ? "text-primary-deepblue font-bold"
                         : "text-slate-400",
@@ -237,7 +237,7 @@ const Register = () => {
         {/* Form Area */}
         <div className="w-full max-w-165">
           {currentStep === 1 && (
-            <form onSubmit={handleStep1Submit} className="space-y-6">
+            <form onSubmit={handleStep1Submit} className="space-y-4 sm:space-y-6">
               {/* Row 1: Name Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                 <Input

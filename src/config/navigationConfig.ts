@@ -6,6 +6,7 @@ import {
   MessageSquare,
   HelpCircle,
   Settings,
+  Folder,
 } from "lucide-react";
 import { NavigationConfig, UserProfile } from "@/components/navigation/types";
 
@@ -41,6 +42,7 @@ export const patientNavigationConfig: NavigationConfig = {
         { id: "overview", label: "Overview", href: "/user/overview", icon: LayoutGrid },
         { id: "appointments", label: "Appointments", href: "/user/appointments", icon: CalendarDays },
         { id: "medical-info", label: "Medical Info", href: "/user/medical-info", icon: HeartPulse },
+        { id: "my-uploads", label: "My Uploads", href: "/user/my-uploads", icon: Folder },
       ],
     },
     {

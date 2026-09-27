@@ -11,7 +11,6 @@ import {
   Droplet, 
   FolderOpen, 
   Search, 
-  Upload, 
   MessageSquare, 
   FileText,
   Weight,
@@ -192,10 +191,6 @@ export default function MedicalInfoPage() {
           <Button className="btn-secondary bg-primary-blue hover:bg-[#003be6] text-white flex items-center gap-2 flex-1 sm:flex-none shadow-sm border-0">
             <MessageSquare className="h-4 w-4" />
             Message Doctor
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2 flex-1 sm:flex-none border-slate-200 hover:bg-slate-50">
-            <Upload className="h-4 w-4" />
-            Upload file
           </Button>
         </div>
       </div>
