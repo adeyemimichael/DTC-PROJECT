@@ -16,17 +16,17 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="max-w-md mx-auto">
-      <div className="text-center mb-10">
-        <h1 className="text-[2.5rem] font-bold text-gray-900 tracking-tight mb-3">
+    <div className="max-w-md mx-auto w-full">
+      <div className="text-center mb-6 sm:mb-10">
+        <h1 className="text-3xl sm:text-[2.5rem] font-bold text-gray-900 tracking-tight mb-3">
           Forgot Password
         </h1>
-        <p className="text-secondary-600 text-lg">
+        <p className="text-secondary-600 text-base sm:text-lg px-4">
           Enter your details below for password reset link
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
         <div className="space-y-2">
           <label
             htmlFor="email"
