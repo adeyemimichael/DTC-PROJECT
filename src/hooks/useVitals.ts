@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from "react";
 
 export interface VitalRecord {
   id: string;
@@ -37,34 +37,39 @@ export function useVitals() {
     setError(null);
 
     try {
-      const response = await fetch('/api/vitals', {
-        method: 'GET',
+      const response = await fetch("/api/patients/vitals", {
+        method: "GET",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch vitals');
+        throw new Error(result.error || "Failed to fetch vitals");
       }
 
       setVitals(result.data || []);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An error occurred while fetching vitals';
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching vitals";
       setError(message);
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const createVital = async (input: CreateVitalInput): Promise<{ success: boolean; data?: VitalRecord; error?: string }> => {
+  const createVital = async (
+    input: CreateVitalInput,
+  ): Promise<{ success: boolean; data?: VitalRecord; error?: string }> => {
     try {
-      const response = await fetch('/api/vitals', {
-        method: 'POST',
+      const response = await fetch("/api/patients/vitals", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(input),
       });
@@ -72,14 +77,20 @@ export function useVitals() {
       const result = await response.json();
 
       if (!response.ok) {
-        return { success: false, error: result.error || 'Failed to record vitals' };
+        return {
+          success: false,
+          error: result.error || "Failed to record vitals",
+        };
       }
 
       const newRecord: VitalRecord = result.data;
       setVitals((prev) => [newRecord, ...prev]);
       return { success: true, data: newRecord };
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'An error occurred while recording vitals';
+      const message =
+        err instanceof Error
+          ? err.message
+          : "An error occurred while recording vitals";
       return { success: false, error: message };
     }
   };

@@ -1,11 +1,14 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Sidebar } from '@/components/layout/Sidebar';
-import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { BookAppointmentModal } from '@/components/common/BookAppointmentModal';
-import { BookingContext } from '@/context/BookingContext';
-import { patientNavigationConfig, defaultPatientUser } from '@/config/navigationConfig';
+import { useState } from "react";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
+import { BookAppointmentModal } from "@/components/common/BookAppointmentModal";
+import { BookingContext } from "@/context/BookingContext";
+import {
+  patientNavigationConfig,
+  defaultPatientUser,
+} from "@/config/navigationConfig";
 
 export default function UserDashboardLayout({
   children,
@@ -39,7 +42,10 @@ export default function UserDashboardLayout({
       </div>
 
       {/* Global Stepper Booking Modal */}
-      <BookAppointmentModal isOpen={isBookingOpen} onClose={() => setIsBookingOpen(false)} />
+      <BookAppointmentModal
+        isOpen={isBookingOpen}
+        onClose={() => setIsBookingOpen(false)}
+      />
     </BookingContext.Provider>
   );
 }
