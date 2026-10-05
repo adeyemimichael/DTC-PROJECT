@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -20,14 +20,176 @@ import {
   Printer,
 } from 'lucide-react';
 import { mockPatientsList, PatientData, MedicalRecordItem } from '@/data/patientsData';
+import {
+  formatPatientSince,
+  formatPatientStatus,
+  getAgeFromDob,
+  getPrimaryImage,
+  resolveValue,
+  usePatients,
+} from '@/src/hooks/usePatients';
 
 export default function PatientDetailsPage() {
   const params = useParams();
   const patientId = (params?.id as string) || '1';
+  const {
+    patients,
+    fetchPatients,
+    fetchPatientVitals,
+    fetchPatientMedicalRecords,
+    fetchPatientUploads,
+    vitals,
+    medicalRecords,
+    patientUploads,
+    isLoadingMedicalRecords,
+    isLoadingPatientUploads,
+  } = usePatients();
 
-  // Find patient by ID, or fallback to Sarah Mitchell (ID 1)
-  const patient: PatientData =
-    mockPatientsList.find((p) => p.id === patientId) || mockPatientsList[0];
+  useEffect(() => {
+    void fetchPatients();
+  }, [fetchPatients]);
+
+  useEffect(() => {
+    if (patientId) {
+      void fetchPatientVitals(patientId);
+      void fetchPatientMedicalRecords(patientId);
+      void fetchPatientUploads(patientId);
+    }
+  }, [fetchPatientMedicalRecords, fetchPatientUploads, fetchPatientVitals, patientId]);
+
+  const fallbackPatient = mockPatientsList.find((p) => p.id === patientId) ?? mockPatientsList[0];
+
+  const patient: PatientData = useMemo(() => {
+    const livePatientRecord = patients.find((patientRecord) => patientRecord.id === patientId) ?? null;
+
+    if (!livePatientRecord) {
+      return fallbackPatient;
+    }
+
+    const computedAge = livePatientRecord.date_of_birth ? getAgeFromDob(livePatientRecord.date_of_birth) : null;
+    const avatarSource = getPrimaryImage(livePatientRecord, '');
+    const createdAtText = formatPatientSince(livePatientRecord.created_at);
+    const activeCondition = formatPatientStatus(livePatientRecord.status);
+
+    return {
+      ...fallbackPatient,
+      id: livePatientRecord.id,
+      name: resolveValue(livePatientRecord.full_name, fallbackPatient.name),
+      avatar: avatarSource,
+      gender: resolveValue(livePatientRecord.gender, fallbackPatient.gender),
+      age: computedAge !== null && computedAge !== undefined ? computedAge : fallbackPatient.age,
+      bloodType: resolveValue(livePatientRecord.blood_group, fallbackPatient.bloodType),
+      contact: resolveValue(livePatientRecord.phone, fallbackPatient.contact),
+      address: resolveValue(livePatientRecord.address, fallbackPatient.address),
+      since: createdAtText,
+      condition: activeCondition,
+      lastVisit: fallbackPatient.lastVisit,
+      nextAppointment: fallbackPatient.nextAppointment,
+      summary: fallbackPatient.summary,
+      vitals: fallbackPatient.vitals,
+      vitalsHistory: fallbackPatient.vitalsHistory,
+      medicalRecords: fallbackPatient.medicalRecords,
+      visitHistory: fallbackPatient.visitHistory,
+    };
+  }, [fallbackPatient, patientId, patients]);
+
+  const latestVital = vitals[0] ?? null;
+
+  const displayedVitals = useMemo(() => {
+    if (!latestVital) {
+      return {
+        bp: '--',
+        hr: '--',
+        weight: '--',
+        tsh: 'Not set',
+        biomarkerName: 'Blood Sugar',
+      };
+    }
+
+    return {
+      bp: `${latestVital.blood_pressure_systolic}/${latestVital.blood_pressure_diastolic}`,
+      hr: `${latestVital.heart_rate_bpm}`,
+      weight: `${latestVital.weight_kg} kg`,
+      tsh: latestVital.blood_sugar_mmol ? `${latestVital.blood_sugar_mmol.toFixed(1)} mmol/L` : 'Not set',
+      biomarkerName: 'Blood Sugar',
+    };
+  }, [latestVital]);
+
+  const displayedVitalHistory = useMemo(() => {
+    if (vitals.length === 0) {
+      return [];
+    }
+
+    return vitals.map((vital) => ({
+      date: new Date(vital.recorded_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }),
+      weight: `${vital.weight_kg} kg`,
+      temp: `${vital.temperature_c ?? '--'} °C`,
+      hr: `${vital.heart_rate_bpm ?? '--'} bpm`,
+      bp: vital.blood_pressure_systolic && vital.blood_pressure_diastolic
+        ? `${vital.blood_pressure_systolic}/${vital.blood_pressure_diastolic}`
+        : '--',
+      fbs: vital.blood_sugar_mmol ? `${vital.blood_sugar_mmol.toFixed(1)} mmol/L` : '--',
+    }));
+  }, [vitals]);
+
+  const displayedMedicalRecords = useMemo(() => {
+    const adminRecords = medicalRecords.map((record) => {
+      const recordType =
+        record.category === 'prescription'
+          ? 'Prescription'
+          : record.category === 'lab_result'
+            ? 'Lab Result'
+            : record.category === 'imaging_report'
+              ? 'Imaging Report'
+              : record.category === 'clinical_note'
+                ? 'Clinical Progress Note'
+                : 'Clinical Progress Note';
+
+      const details = typeof record.details === 'string'
+        ? record.details
+        : record.details && typeof record.details === 'object'
+          ? JSON.stringify(record.details)
+          : 'No additional details provided.';
+
+      return {
+        id: record.id,
+        title: record.title || 'Medical document',
+        type: recordType,
+        date: record.created_at
+          ? new Date(record.created_at).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })
+          : 'Unknown date',
+        details,
+        author: record.clinician?.full_name || 'Clinical team',
+        fileUrl: record.signedUrl || undefined,
+      } satisfies MedicalRecordItem;
+    });
+
+    const patientUploadRecords = patientUploads.map((upload) => ({
+      id: upload.id,
+      title: upload.description || 'Uploaded document',
+      type: upload.category === 'lab_result_scan' ? 'Lab Result' : 'General',
+      date: upload.created_at
+        ? new Date(upload.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
+        : 'Unknown date',
+      details: upload.description || 'Uploaded by patient',
+      author: 'Patient upload',
+      fileUrl: upload.signedUrl || undefined,
+    } satisfies MedicalRecordItem));
+
+    return [...adminRecords, ...patientUploadRecords];
+  }, [medicalRecords, patientUploads]);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -73,14 +235,47 @@ export default function PatientDetailsPage() {
     showToast('Printing medical document...');
   };
 
+  const getPreviewForRecord = (fileUrl?: string, title?: string) => {
+    if (!fileUrl) {
+      return (
+        <div className="w-full h-full flex items-center justify-center bg-slate-100 text-slate-500 text-sm font-normal">
+          Preview unavailable
+        </div>
+      );
+    }
+
+    const lowerFileUrl = fileUrl.toLowerCase();
+    const isPdf = lowerFileUrl.includes('.pdf') || lowerFileUrl.includes('application/pdf');
+
+    if (isPdf) {
+      return (
+        <iframe
+          src={fileUrl}
+          title={title || 'Medical document preview'}
+          className="w-full h-full min-h-[360px] rounded-2xl bg-white"
+        />
+      );
+    }
+
+    return (
+      <div className="relative w-full h-full min-h-[360px] rounded-2xl overflow-hidden bg-slate-100">
+        <Image
+          src={fileUrl}
+          alt={title || 'Medical document preview'}
+          fill
+          className="object-contain"
+        />
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white transition-all duration-300 transform translate-y-0 ${
-            toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
-          }`}
+          className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-xl text-white transition-all duration-300 transform translate-y-0 ${toast.type === 'success' ? 'bg-emerald-600' : 'bg-rose-600'
+            }`}
         >
           {toast.type === 'success' ? (
             <CheckCircle2 className="w-5 h-5" />
@@ -104,69 +299,73 @@ export default function PatientDetailsPage() {
       {/* CARD 1: Top Patient Header Card */}
       <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
         <div className='bg-[#FCFCFC] p-4 rounded-md'>
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
-          {/* Patient Info Left */}
-          <div className="flex items-center gap-4">
-            <div className="relative w-16 h-16 rounded-full overflow-hidden border border-slate-100 shadow-2xs shrink-0 bg-slate-200">
-              <Image
-                src={patient.avatar}
-                alt={patient.name}
-                fill
-                className="object-cover"
-              />
+
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-6 border-b border-slate-100">
+            {/* Patient Info Left */}
+            <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16 rounded-full overflow-hidden border border-slate-100 shadow-2xs shrink-0 bg-slate-200 flex items-center justify-center text-slate-700 font-medium text-lg">
+                {patient.avatar ? (
+                  <Image
+                    src={patient.avatar}
+                    alt={patient.name}
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <span>{patient.name.charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+
+              <div>
+                <h1 className="text-xl md:text-2xl font-normal text-slate-900">{patient.name}</h1>
+                <p className="text-xs md:text-sm text-slate-500 font-normal">
+                  {patient.gender}, {patient.age} · {patient.bloodType}
+                </p>
+                <p className="text-xs text-slate-400 font-normal mt-0.5">
+                  Patient since {patient.since}
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons Right */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsMessageOpen(true)}
+                className="bg-[#eef4ff] hover:bg-[#e2edff] text-[#0149ff] font-normal text-xs md:text-sm px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" /> Message
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsAddNoteOpen(true)}
+                className="bg-[#f80400] hover:bg-[#d80300] text-white font-normal text-xs md:text-sm px-4 py-2.5 rounded-xl transition-colors shadow-xs inline-flex items-center gap-2"
+              >
+                <FileArchive className="w-4 h-4" /> Add Medical File/Note
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Metadata Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
+            <div>
+              <span className="block text-xs text-slate-400 font-normal mb-1">Contact</span>
+              <p className="text-xs md:text-sm text-slate-800 font-normal">{patient.contact}</p>
             </div>
 
             <div>
-              <h1 className="text-xl md:text-2xl font-normal text-slate-900">{patient.name}</h1>
-              <p className="text-xs md:text-sm text-slate-500 font-normal">
-                {patient.gender}, {patient.age} · {patient.bloodType}
-              </p>
-              <p className="text-xs text-slate-400 font-normal mt-0.5">
-                Patient since {patient.since}
+              <span className="block text-xs text-slate-400 font-normal mb-1">Address</span>
+              <p className="text-xs md:text-sm text-slate-800 font-normal">{patient.address}</p>
+            </div>
+
+            <div>
+              <span className="block text-xs text-slate-400 font-normal mb-1">Conditions</span>
+              <p className="text-xs md:text-sm font-normal text-[#0149ff] hover:underline cursor-pointer">
+                {patient.condition}
               </p>
             </div>
           </div>
-
-          {/* Action Buttons Right */}
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setIsMessageOpen(true)}
-              className="bg-[#eef4ff] hover:bg-[#e2edff] text-[#0149ff] font-normal text-xs md:text-sm px-4 py-2.5 rounded-xl transition-colors inline-flex items-center gap-2"
-            >
-              <MessageCircle className="w-4 h-4" /> Message
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setIsAddNoteOpen(true)}
-              className="bg-[#f80400] hover:bg-[#d80300] text-white font-normal text-xs md:text-sm px-4 py-2.5 rounded-xl transition-colors shadow-xs inline-flex items-center gap-2"
-            >
-              <FileArchive className="w-4 h-4" /> Add Medical File/Note
-            </button>
-          </div>
-        </div>
-
-        {/* Bottom Metadata Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6">
-          <div>
-            <span className="block text-xs text-slate-400 font-normal mb-1">Contact</span>
-            <p className="text-xs md:text-sm text-slate-800 font-normal">{patient.contact}</p>
-          </div>
-
-          <div>
-            <span className="block text-xs text-slate-400 font-normal mb-1">Address</span>
-            <p className="text-xs md:text-sm text-slate-800 font-normal">{patient.address}</p>
-          </div>
-
-          <div>
-            <span className="block text-xs text-slate-400 font-normal mb-1">Conditions</span>
-            <p className="text-xs md:text-sm font-normal text-[#0149ff] hover:underline cursor-pointer">
-              {patient.condition}
-            </p>
-          </div>
-        </div>
         </div>
       </section>
 
@@ -187,7 +386,7 @@ export default function PatientDetailsPage() {
                 <span className="text-xs font-normal text-emerald-600">Normal</span>
               </div>
               <p className="text-lg md:text-xl font-normal text-slate-900">
-                {patient.vitals.bp}
+                {displayedVitals.bp}
                 <span className="text-xs font-normal text-slate-500 ml-1">mmHg</span>
               </p>
               <p className="text-xs text-slate-500 font-normal mt-1">Blood Pressure</p>
@@ -200,7 +399,7 @@ export default function PatientDetailsPage() {
                 <span className="text-xs font-normal text-emerald-600">Normal</span>
               </div>
               <p className="text-lg md:text-xl font-normal text-slate-900">
-                {patient.vitals.hr}
+                {displayedVitals.hr}
                 <span className="text-xs font-normal text-slate-500 ml-1">bpm</span>
               </p>
               <p className="text-xs text-slate-500 font-normal mt-1">Heart Rate</p>
@@ -213,8 +412,8 @@ export default function PatientDetailsPage() {
                 <span className="text-xs font-normal text-emerald-600">Normal</span>
               </div>
               <p className="text-lg md:text-xl font-normal text-slate-900">
-                {patient.vitals.weight}
-                <span className="text-xs font-normal text-slate-500 ml-1">lbs</span>
+                {displayedVitals.weight}
+                <span className="text-xs font-normal text-slate-500 ml-1">kg</span>
               </p>
               <p className="text-xs text-slate-500 font-normal mt-1">Weight</p>
             </div>
@@ -225,9 +424,9 @@ export default function PatientDetailsPage() {
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 <span className="text-xs font-normal text-emerald-600">Normal</span>
               </div>
-              <p className="text-lg md:text-xl font-normal text-slate-900">{patient.vitals.tsh}</p>
+              <p className="text-lg md:text-xl font-normal text-slate-900">{displayedVitals.tsh}</p>
               <p className="text-xs text-slate-500 font-normal mt-1">
-                {patient.vitals.biomarkerName}
+                {displayedVitals.biomarkerName}
               </p>
             </div>
           </div>
@@ -268,7 +467,7 @@ export default function PatientDetailsPage() {
             {/* Medical Records */}
             <div className="bg-[#EFEFEF] rounded-xl p-4 border border-slate-100/80">
               <p className="text-xl md:text-2xl font-normal text-slate-900 mb-1">
-                {patient.summary.medicalRecordsCount}
+                {displayedMedicalRecords.length}
               </p>
               <p className="text-xs text-slate-500 font-normal">Medical Records</p>
             </div>
@@ -296,7 +495,7 @@ export default function PatientDetailsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-xs md:text-sm">
-              {patient.vitalsHistory.map((row, idx) => (
+              {displayedVitalHistory.map((row, idx) => (
                 <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                   <td className="py-3 font-normal text-slate-900">{row.date}</td>
                   <td className="py-3 text-slate-700 font-normal">{row.weight}</td>
@@ -316,34 +515,40 @@ export default function PatientDetailsPage() {
         <h2 className="text-base md:text-lg font-normal text-slate-900 mb-5">Medical Records</h2>
 
         <div className="space-y-3">
-          {patient.medicalRecords.map((record) => (
-            <div
-              key={record.id}
-              className="border border-slate-100 rounded-xl p-4 flex items-center justify-between hover:border-slate-200 transition-all"
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 shrink-0">
-                  <FileText className="w-5 h-5 text-slate-500" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-normal text-slate-900">
-                    {record.title} - <span className="text-[#0149ff] font-normal">{record.type}</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 font-normal mt-0.5">
-                    {record.date} · {record.details}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setViewingRecord(record)}
-                className="bg-[#eef4ff] hover:bg-[#e2edff] text-[#0149ff] text-xs font-normal px-4 py-1.5 rounded-lg transition-colors shrink-0"
+          {isLoadingMedicalRecords || isLoadingPatientUploads ? (
+            <p className="text-sm text-slate-500 font-normal">Loading medical records...</p>
+          ) : displayedMedicalRecords.length === 0 ? (
+            <p className="text-sm text-slate-500 font-normal">No medical records uploaded yet.</p>
+          ) : (
+            displayedMedicalRecords.map((record) => (
+              <div
+                key={record.id}
+                className="border border-slate-100 rounded-xl p-4 flex items-center justify-between hover:border-slate-200 transition-all"
               >
-                View
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-600 shrink-0">
+                    <FileText className="w-5 h-5 text-slate-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-normal text-slate-900">
+                      {record.title} - <span className="text-[#0149ff] font-normal">{record.type}</span>
+                    </h3>
+                    <p className="text-xs text-slate-500 font-normal mt-0.5">
+                      {record.date} · {record.details}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setViewingRecord(record)}
+                  className="bg-[#eef4ff] hover:bg-[#e2edff] text-[#0149ff] text-xs font-normal px-4 py-1.5 rounded-lg transition-colors shrink-0"
+                >
+                  View
+                </button>
+              </div>
+            ))
+          )}
         </div>
       </section>
 
@@ -466,13 +671,17 @@ export default function PatientDetailsPage() {
           <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-100 relative bg-slate-200">
-                  <Image
-                    src={patient.avatar}
-                    alt={patient.name}
-                    fill
-                    className="object-cover"
-                  />
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-100 relative bg-slate-200 flex items-center justify-center text-slate-700 font-medium text-xs">
+                  {patient.avatar ? (
+                    <Image
+                      src={patient.avatar}
+                      alt={patient.name}
+                      fill
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span>{patient.name.charAt(0).toUpperCase()}</span>
+                  )}
                 </div>
                 <div>
                   <h3 className="text-base font-normal text-slate-900">Message {patient.name}</h3>
@@ -559,14 +768,9 @@ export default function PatientDetailsPage() {
               </div>
             </div>
 
-            {/* Document Preview Image Area */}
-            <div className="relative w-full aspect-[4/3] rounded-2xl border border-slate-200/80 overflow-hidden mb-6 bg-slate-100 shadow-inner flex items-center justify-center">
-              <Image
-                src={viewingRecord.fileUrl || '/images/serviceimage1.jpg'}
-                alt={viewingRecord.title}
-                fill
-                className="object-cover"
-              />
+            {/* Document Preview */}
+            <div className="w-full rounded-2xl border border-slate-200/80 overflow-hidden mb-6 bg-slate-100 shadow-inner flex items-center justify-center">
+              {getPreviewForRecord(viewingRecord.fileUrl, viewingRecord.title)}
             </div>
 
             {/* Footer */}

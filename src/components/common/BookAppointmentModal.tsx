@@ -39,14 +39,6 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [reason, setReason] = useState<string>('');
-  const [vitals, setVitals] = useState({
-    weight: '',
-    temperature: '',
-    heartRate: '',
-    systolic: '',
-    diastolic: '',
-    bloodSugar: '',
-  });
 
   if (!isOpen) return null;
 
@@ -56,14 +48,6 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
     setSelectedDate('');
     setSelectedTime('');
     setReason('');
-    setVitals({
-      weight: '',
-      temperature: '',
-      heartRate: '',
-      systolic: '',
-      diastolic: '',
-      bloodSugar: '',
-    });
   };
 
   const handleClose = () => {
@@ -71,7 +55,7 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
     onClose();
   };
 
-  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 6));
+  const nextStep = () => setCurrentStep((prev) => Math.min(prev + 1, 5));
   const prevStep = () => setCurrentStep((prev) => Math.max(prev - 1, 1));
 
   const handleServiceSelect = (service: Service) => {
@@ -89,11 +73,7 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
     nextStep();
   };
 
-  const handleVitalsChange = (field: string, value: string) => {
-    setVitals((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const steps = [1, 2, 3, 4, 5];
+  const steps = [1, 2, 3, 4];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
@@ -102,11 +82,11 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
 
       {/* Modal Card */}
       <div className="relative bg-white w-full h-full sm:h-auto sm:max-h-[90vh] sm:max-w-lg sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden z-10 animate-in slide-in-from-bottom-8 duration-300">
-        
+
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100 shrink-0">
           <h3 className="text-lg font-bold text-primary-deepblue">Book Appointment</h3>
-          <button 
+          <button
             onClick={handleClose}
             className="p-2 text-slate-500 hover:text-primary-deepblue hover:bg-slate-50 rounded-full transition-colors cursor-pointer"
           >
@@ -116,21 +96,19 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
 
         {/* Modal Scroll Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          
+
           {/* Stepper Progress Bar (Only show if not success step 6) */}
           {currentStep <= 5 && (
             <div className="flex items-center justify-between w-full max-w-sm mx-auto mb-8 select-none">
               {steps.map((step, idx) => (
                 <React.Fragment key={step}>
-                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
-                    currentStep >= step ? 'bg-primary-red text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
+                  <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${currentStep >= step ? 'bg-primary-red text-white' : 'bg-slate-200 text-slate-500'
+                    }`}>
                     {step}
                   </div>
                   {idx < steps.length - 1 && (
-                    <div className={`flex-1 h-0.5 mx-2 transition-all duration-300 ${
-                      currentStep > step ? 'bg-primary-red' : 'bg-slate-200'
-                    }`} />
+                    <div className={`flex-1 h-0.5 mx-2 transition-all duration-300 ${currentStep > step ? 'bg-primary-red' : 'bg-slate-200'
+                      }`} />
                   )}
                 </React.Fragment>
               ))}
@@ -139,7 +117,7 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
 
           {/* Subheader Back navigation (Only if step 2-5) */}
           {currentStep > 1 && currentStep <= 5 && (
-            <button 
+            <button
               onClick={prevStep}
               className="flex items-center gap-2 text-primary-deepblue hover:text-primary-blue font-medium text-base cursor-pointer select-none"
             >
@@ -260,82 +238,13 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
 
               {/* Submit Trigger */}
               <Button onClick={nextStep} className="w-full btn-primary py-4 rounded-xl text-base font-bold">
-                Next: Record Vitals
-              </Button>
-            </div>
-          )}
-
-          {/* Step 5: Record Current Vitals */}
-          {currentStep === 5 && (
-            <div className="space-y-6">
-              {/* HIPAA Disclaimer Info block */}
-              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 flex gap-3 text-slate-500">
-                <Info className="h-5 w-5 text-primary-blue shrink-0 mt-0.5" />
-                <p className="text-xs font-normal leading-relaxed">
-                  Tracking your vitals at every visit helps Dr. Stephen monitor trends over time. Investing in a bathroom scale, digital thermometer, and BP apparatus makes at-home tracking easy and reliable.
-                </p>
-              </div>
-
-              {/* Vitals Form Fields */}
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label="Current Weight (kg)"
-                    placeholder="e.g 72"
-                    value={vitals.weight}
-                    onChange={(e) => handleVitalsChange('weight', e.target.value)}
-                  />
-                  <Input
-                    label="Temperature (°C)"
-                    placeholder="e.g 36.5"
-                    value={vitals.temperature}
-                    onChange={(e) => handleVitalsChange('temperature', e.target.value)}
-                  />
-                </div>
-                
-                <Input
-                  label="Heart Rate (bpm)"
-                  placeholder="e.g 72"
-                  value={vitals.heartRate}
-                  onChange={(e) => handleVitalsChange('heartRate', e.target.value)}
-                />
-
-                <div>
-                  <label className="text-sm font-normal text-primary-deepblue block mb-2 select-none">
-                    Blood Pressure (mmHg)
-                  </label>
-                  <div className="flex items-center gap-4">
-                    <Input
-                      placeholder="Systolic"
-                      value={vitals.systolic}
-                      onChange={(e) => handleVitalsChange('systolic', e.target.value)}
-                    />
-                    <span className="text-slate-300 font-normal text-lg">/</span>
-                    <Input
-                      placeholder="Diastolic"
-                      value={vitals.diastolic}
-                      onChange={(e) => handleVitalsChange('diastolic', e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <Input
-                  label="Fasting Blood Sugar (mg/dL) (Optional)"
-                  placeholder="e.g 92"
-                  value={vitals.bloodSugar}
-                  onChange={(e) => handleVitalsChange('bloodSugar', e.target.value)}
-                />
-              </div>
-
-              {/* Confirm Trigger */}
-              <Button onClick={nextStep} className="w-full btn-primary py-4 rounded-xl text-base font-bold">
                 Confirm Booking
               </Button>
             </div>
           )}
 
-          {/* Step 6: Success State Screen overlay */}
-          {currentStep === 6 && (
+          {/* Success State Screen overlay */}
+          {currentStep === 5 && (
             <div className="py-8 flex flex-col items-center justify-center text-center space-y-4 animate-in zoom-in-95 duration-200">
               <CheckCircle2 className="h-16 w-16 text-emerald-500 fill-emerald-50" />
               <h4 className="text-xl font-bold text-primary-deepblue">Booking Confirmed!</h4>
