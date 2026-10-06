@@ -10,7 +10,7 @@ export interface BookAppointmentButtonProps extends ButtonProps {
 
 export function BookAppointmentButton({ className, children, disabled, onClick, ...props }: BookAppointmentButtonProps) {
   const openBooking = useBooking();
-  const isDisabled = disabled ?? true;
+  const isDisabled = disabled ?? false;
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     if (isDisabled) {
