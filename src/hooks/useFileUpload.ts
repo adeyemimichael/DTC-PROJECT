@@ -183,7 +183,7 @@ export function useFileUpload() {
 
         setState((prev) => ({ ...prev, progress: 30 }));
 
-        const response = await fetch("/api/patient/uploads", {
+        const response = await fetch("/api/patients/uploads", {
           method: "POST",
           body: formData,
         });
