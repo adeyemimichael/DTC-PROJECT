@@ -161,10 +161,10 @@ export default function PatientDetailsPage() {
         type: recordType,
         date: record.created_at
           ? new Date(record.created_at).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              year: 'numeric',
-            })
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })
           : 'Unknown date',
         details,
         author: record.clinician?.full_name || 'Clinical team',
@@ -178,10 +178,10 @@ export default function PatientDetailsPage() {
       type: upload.category === 'lab_result_scan' ? 'Lab Result' : 'General',
       date: upload.created_at
         ? new Date(upload.created_at).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric',
-          })
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })
         : 'Unknown date',
       details: upload.description || 'Uploaded by patient',
       author: 'Patient upload',

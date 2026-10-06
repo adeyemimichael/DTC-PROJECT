@@ -109,12 +109,12 @@ export function AppointmentDetailsModal({
         }),
       medicalFile: uploadedFileName
         ? {
-            name: uploadedFileName,
-            type: 'Lab Result',
-            date: new Date().toISOString().split('T')[0],
-            doctor: appointment.doctorName || 'Dr. Stephen Adeyemi',
-          }
-        : appointment.medicalFile ,
+          name: uploadedFileName,
+          type: 'Lab Result',
+          date: new Date().toISOString().split('T')[0],
+          doctor: appointment.doctorName || 'Dr. Stephen Adeyemi',
+        }
+        : appointment.medicalFile,
     };
 
     if (onUpdateAppointment) onUpdateAppointment(updated);
@@ -168,8 +168,8 @@ export function AppointmentDetailsModal({
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in overflow-y-auto">
-      <div className="bg-white rounded-xl max-w-6xl w-full p-6 lg:p-8 shadow-2xl relative border border-gray-100 my-8">
+    <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 lg:p-8 shadow-2xl relative border border-gray-100 my-6">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -412,37 +412,37 @@ export function AppointmentDetailsModal({
             {(appointment.isVirtual ||
               appointment.type.toLowerCase().includes('telemedicine') ||
               appointment.status === 'in_progress') && (
-              <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="h-10 w-10 rounded-xl bg-[#0149ff] text-white flex items-center justify-center shrink-0">
-                    <Video className="h-5 w-5" />
+                <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-[#0149ff] text-white flex items-center justify-center shrink-0">
+                      <Video className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
+                        Google Meet Link
+                      </span>
+                      <a
+                        href={meetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm font-sans text-primary-blue truncate hover:underline flex items-center gap-1 mt-0.5"
+                      >
+                        <span className="truncate">{meetUrl}</span>
+                        <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                      </a>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
-                      Google Meet Link
-                    </span>
-                    <a
-                      href={meetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-sans text-primary-blue truncate hover:underline flex items-center gap-1 mt-0.5"
-                    >
-                      <span className="truncate">{meetUrl}</span>
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                    </a>
-                  </div>
-                </div>
 
-                <a
-                  href={meetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-4 py-2.5 text-primary-blue font-bold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center"
-                >
-                  Join Meeting
-                </a>
-              </div>
-            )}
+                  <a
+                    href={meetUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2.5 text-primary-blue font-bold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center"
+                  >
+                    Join Meeting
+                  </a>
+                </div>
+              )}
 
             {/* Known Conditions (If not completed) */}
             {appointment.status !== 'completed' &&
