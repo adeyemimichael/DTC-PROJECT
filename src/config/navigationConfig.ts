@@ -16,10 +16,25 @@ export const doctorNavigationConfig: NavigationConfig = {
       id: "main",
       label: "Main Menu",
       items: [
-        { id: "overview", label: "Overview", href: "/doctor/doctors-overview", icon: LayoutGrid },
-        { id: "appointments", label: "Appointments", href: "/doctor/appointments", icon: CalendarDays },
-        { id: "patients", label: "Patients", href: "/doctor/patients", icon: Users },
-        { id: "messages", label: "Messages", href: "/doctor/messages", icon: MessageSquare, badge: 2 },
+        {
+          id: "overview",
+          label: "Overview",
+          href: "/doctor/doctors-overview",
+          icon: LayoutGrid,
+        },
+        {
+          id: "appointments",
+          label: "Appointments",
+          href: "/doctor/appointments",
+          icon: CalendarDays,
+        },
+        {
+          id: "patients",
+          label: "Patients",
+          href: "/doctor/patients",
+          icon: Users,
+        },
+        // { id: "messages", label: "Messages", href: "/doctor/messages", icon: MessageSquare, badge: 2 },
       ],
     },
     {
@@ -27,7 +42,12 @@ export const doctorNavigationConfig: NavigationConfig = {
       label: "Preferences",
       items: [
         { id: "help", label: "Help", href: "/doctor/help", icon: HelpCircle },
-        { id: "settings", label: "Settings", href: "/doctor/settings", icon: Settings },
+        {
+          id: "settings",
+          label: "Settings",
+          href: "/doctor/settings",
+          icon: Settings,
+        },
       ],
     },
   ],
@@ -39,10 +59,30 @@ export const patientNavigationConfig: NavigationConfig = {
       id: "main",
       label: "Main Menu",
       items: [
-        { id: "overview", label: "Overview", href: "/user/overview", icon: LayoutGrid },
-        { id: "appointments", label: "Appointments", href: "/user/appointments", icon: CalendarDays },
-        { id: "medical-info", label: "Medical Info", href: "/user/medical-info", icon: HeartPulse },
-        { id: "my-uploads", label: "My Uploads", href: "/user/my-uploads", icon: Folder },
+        {
+          id: "overview",
+          label: "Overview",
+          href: "/user/overview",
+          icon: LayoutGrid,
+        },
+        {
+          id: "appointments",
+          label: "Appointments",
+          href: "/user/appointments",
+          icon: CalendarDays,
+        },
+        {
+          id: "medical-info",
+          label: "Medical Info",
+          href: "/user/medical-info",
+          icon: HeartPulse,
+        },
+        {
+          id: "my-uploads",
+          label: "My Uploads",
+          href: "/user/my-uploads",
+          icon: Folder,
+        },
       ],
     },
     {
@@ -50,7 +90,12 @@ export const patientNavigationConfig: NavigationConfig = {
       label: "Preferences",
       items: [
         { id: "help", label: "Help", href: "/user/help", icon: HelpCircle },
-        { id: "settings", label: "Settings", href: "/user/settings", icon: Settings },
+        {
+          id: "settings",
+          label: "Settings",
+          href: "/user/settings",
+          icon: Settings,
+        },
       ],
     },
   ],
