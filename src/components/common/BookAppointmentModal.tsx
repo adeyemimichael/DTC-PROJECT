@@ -3,24 +3,13 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { Card, Badge, Button, Input } from '../ui';
-import { X, ArrowLeft, Info, CheckCircle2 } from 'lucide-react';
+import { X, ArrowLeft, Info, CheckCircle2, Loader2 } from 'lucide-react';
+import { useServices, type Service } from '@/hooks';
 
 interface BookAppointmentModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-interface Service {
-  name: string;
-  duration: string;
-  price: string;
-}
-
-const services: Service[] = [
-  { name: 'General Consultation', duration: '30 minutes', price: '$75' },
-  { name: 'Special Care', duration: '45 minutes', price: '$150' },
-  { name: 'Telemedicine', duration: '20 minutes', price: '$45' },
-];
 
 const dates = [
   { day: 'Wed, June 3', slots: '4 slots available' },
@@ -39,6 +28,10 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [selectedTime, setSelectedTime] = useState<string>('');
   const [reason, setReason] = useState<string>('');
+
+  // Services come from /api/services. RLS shows only active services to
+  // patients, so the booking picker never lists inactive/mock services.
+  const { services, isLoadingServices, servicesError } = useServices();
 
   if (!isOpen) return null;
 
@@ -136,21 +129,40 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
             <div className="space-y-4">
               <h4 className="text-base font-bold text-black mb-2">Select Service</h4>
               <div className="space-y-3">
-                {services.map((service, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleServiceSelect(service)}
-                    className="w-full flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50/50 transition-all duration-200 text-left cursor-pointer group"
-                  >
-                    <div>
-                      <h5 className="font-normal text-primary-deepblue group-hover:text-primary-blue transition-colors">
-                        {service.name}
-                      </h5>
-                      <span className="text-xs text-primary-gray font-normal block mt-0.5">{service.duration}</span>
-                    </div>
-                    <span className="text-base font-normal text-primary-deepblue">{service.price}</span>
-                  </button>
-                ))}
+                {servicesError ? (
+                  <p className="text-sm text-rose-500 font-normal py-6 text-center">
+                    {servicesError}
+                  </p>
+                ) : isLoadingServices ? (
+                  <p className="text-sm text-slate-400 font-normal py-6 text-center flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-primary-blue" />
+                    Loading services...
+                  </p>
+                ) : services.length === 0 ? (
+                  <p className="text-sm text-slate-400 font-normal py-6 text-center">
+                    No services available right now.
+                  </p>
+                ) : (
+                  services.map((service) => (
+                    <button
+                      key={service.id}
+                      onClick={() => handleServiceSelect(service)}
+                      className="w-full flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:border-slate-200 hover:bg-slate-50/50 transition-all duration-200 text-left cursor-pointer group"
+                    >
+                      <div>
+                        <h5 className="font-normal text-primary-deepblue group-hover:text-primary-blue transition-colors">
+                          {service.name}
+                        </h5>
+                        <span className="text-xs text-primary-gray font-normal block mt-0.5">
+                          {service.duration_minutes} minutes
+                        </span>
+                      </div>
+                      <span className="text-base font-normal text-primary-deepblue">
+                        {service.currency} {service.price}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -211,11 +223,15 @@ export function BookAppointmentModal({ isOpen, onClose }: BookAppointmentModalPr
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400 font-medium">Duration</span>
-                  <span className="text-primary-deepblue font-normal">{selectedService?.duration}</span>
+                  <span className="text-primary-deepblue font-normal">
+                    {selectedService ? `${selectedService.duration_minutes} minutes` : ''}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm border-t border-slate-200/60 pt-3">
                   <span className="text-slate-400 font-medium">Total</span>
-                  <span className="text-primary-red font-normal">{selectedService?.price}</span>
+                  <span className="text-primary-red font-normal">
+                    {selectedService ? `${selectedService.currency} ${selectedService.price}` : ''}
+                  </span>
                 </div>
               </div>
 

@@ -20,14 +20,9 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Loader2,
 } from 'lucide-react';
-
-interface ServiceItem {
-  id: string;
-  name: string;
-  duration: string;
-  price: number;
-}
+import { useServices, type Service } from '@/hooks';
 
 interface TimeSlot {
   start: string;
@@ -134,67 +129,106 @@ export default function DoctorSettingsPage() {
     }
   };
 
-  // 2. Services & Pricing State
-  const [services, setServices] = useState<ServiceItem[]>([
-    { id: '1', name: 'General Consultation', duration: '30 min', price: 75 },
-    { id: '2', name: 'Specialist Care', duration: '45 min', price: 150 },
-    { id: '3', name: 'Telemedicine', duration: '20 min', price: 50 },
-  ]);
+  // 2. Services & Pricing State 
+  const {
+    services,
+    isLoadingServices,
+    servicesError,
+    createService,
+    updateService,
+    deleteService,
+  } = useServices();
 
   const [isServiceModalOpen, setIsServiceModalOpen] = useState(false);
-  const [editingService, setEditingService] = useState<ServiceItem | null>(null);
-  const [serviceForm, setServiceForm] = useState({ name: '', duration: '30 min', price: '' });
+  const [editingService, setEditingService] = useState<Service | null>(null);
+  const [isSavingService, setIsSavingService] = useState(false);
+  const [serviceForm, setServiceForm] = useState({
+    name: '',
+    description: '',
+    duration_minutes: 30,
+    price: '',
+    currency: 'NGN',
+    is_active: true,
+  });
 
   const handleOpenAddService = () => {
     setEditingService(null);
-    setServiceForm({ name: '', duration: '30 min', price: '' });
-    setIsServiceModalOpen(true);
-  };
-
-  const handleOpenEditService = (service: ServiceItem) => {
-    setEditingService(service);
     setServiceForm({
-      name: service.name,
-      duration: service.duration,
-      price: service.price.toString(),
+      name: '',
+      description: '',
+      duration_minutes: 30,
+      price: '',
+      currency: 'NGN',
+      is_active: true,
     });
     setIsServiceModalOpen(true);
   };
 
-  const handleSaveService = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!serviceForm.name || !serviceForm.price) return;
-
-    if (editingService) {
-      setServices((prev) =>
-        prev.map((s) =>
-          s.id === editingService.id
-            ? {
-                ...s,
-                name: serviceForm.name,
-                duration: serviceForm.duration,
-                price: parseFloat(serviceForm.price) || 0,
-              }
-            : s
-        )
-      );
-      toast.success('Service updated successfully!');
-    } else {
-      const newService: ServiceItem = {
-        id: Date.now().toString(),
-        name: serviceForm.name,
-        duration: serviceForm.duration,
-        price: parseFloat(serviceForm.price) || 0,
-      };
-      setServices((prev) => [...prev, newService]);
-      toast.success('New service added successfully!');
-    }
-    setIsServiceModalOpen(false);
+  const handleOpenEditService = (service: Service) => {
+    setEditingService(service);
+    setServiceForm({
+      name: service.name ?? '',
+      description: service.description ?? '',
+      duration_minutes: service.duration_minutes ?? 30,
+      price: String(service.price ?? ''),
+      currency: service.currency ?? 'NGN',
+      is_active: service.is_active ?? true,
+    });
+    setIsServiceModalOpen(true);
   };
 
-  const handleDeleteService = (id: string) => {
-    setServices((prev) => prev.filter((s) => s.id !== id));
-    toast.success('Service removed.');
+  const handleSaveService = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!serviceForm.name.trim()) {
+      toast.error('Service name is required');
+      return;
+    }
+    if (!serviceForm.duration_minutes || serviceForm.duration_minutes <= 0) {
+      toast.error('Duration is required');
+      return;
+    }
+    const priceNum = parseFloat(serviceForm.price);
+    if (Number.isNaN(priceNum) || priceNum < 0) {
+      toast.error('Price must be a valid amount');
+      return;
+    }
+
+    const payload = {
+      name: serviceForm.name.trim(),
+      description: serviceForm.description.trim() || undefined,
+      duration_minutes: serviceForm.duration_minutes,
+      price: priceNum,
+      currency: serviceForm.currency || 'NGN',
+      is_active: serviceForm.is_active,
+    };
+
+    setIsSavingService(true);
+    try {
+      const res = editingService
+        ? await updateService(editingService.id, payload)
+        : await createService(payload);
+
+      if (res.success) {
+        toast.success(
+          editingService ? 'Service updated successfully!' : 'New service added successfully!',
+        );
+        setIsServiceModalOpen(false);
+      } else {
+        toast.error(res.error || 'Failed to save service');
+      }
+    } finally {
+      setIsSavingService(false);
+    }
+  };
+
+  const handleDeleteService = async (id: string) => {
+    const res = await deleteService(id);
+    if (res.success) {
+      toast.success('Service removed.');
+      setIsServiceModalOpen(false);
+    } else {
+      toast.error(res.error || 'Failed to remove service');
+    }
   };
 
   // 3. Weekly Availability State
@@ -543,30 +577,56 @@ export default function DoctorSettingsPage() {
         <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-5">Services & Pricing</h2>
 
         <div className="space-y-3 mb-5">
-          {services.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-all"
-            >
-              <div>
-                <h3 className="text-sm md:text-base font-semibold text-slate-900">{item.name}</h3>
-                <p className="text-xs text-slate-500 font-normal mt-0.5">{item.duration}</p>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <span className="text-base md:text-lg font-bold text-[#f80400]">
-                  ${item.price}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleOpenEditService(item)}
-                  className="px-3 py-1 rounded-md bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors shadow-2xs"
-                >
-                  Edit
-                </button>
-              </div>
+          {servicesError ? (
+            <div className="py-8 text-center text-rose-500 text-sm font-normal flex items-center justify-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {servicesError}
             </div>
-          ))}
+          ) : isLoadingServices ? (
+            <div className="py-8 text-center text-slate-400 text-sm font-normal flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-[#0149ff]" />
+              Loading services...
+            </div>
+          ) : services.length === 0 ? (
+            <div className="py-8 text-center text-slate-400 text-sm font-normal">
+              No services yet. Add your first service charges.
+            </div>
+          ) : (
+            services.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-50/70 border border-slate-100 hover:border-slate-200 transition-all"
+              >
+                <div>
+                  <h3 className="text-sm md:text-base font-semibold text-slate-900">
+                    {item.name}
+                    {!item.is_active && (
+                      <span className="ml-2 inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-500 align-middle">
+                        Inactive
+                      </span>
+                    )}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-normal mt-0.5">
+                    {item.duration_minutes} min
+                    {item.description ? ` · ${item.description}` : ''}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <span className="text-base md:text-lg font-bold text-[#f80400]">
+                    {item.currency} {item.price}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditService(item)}
+                    className="px-3 py-1 rounded-md bg-white border border-slate-200 text-slate-700 text-xs font-medium hover:bg-slate-100 transition-colors shadow-2xs"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
 
         <button
@@ -707,34 +767,54 @@ export default function DoctorSettingsPage() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Description
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Optional short description"
+                  value={serviceForm.description}
+                  onChange={(e) =>
+                    setServiceForm((prev) => ({ ...prev, description: e.target.value }))
+                  }
+                  className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
                     Duration
                   </label>
                   <select
-                    value={serviceForm.duration}
+                    value={serviceForm.duration_minutes}
                     onChange={(e) =>
-                      setServiceForm((prev) => ({ ...prev, duration: e.target.value }))
+                      setServiceForm((prev) => ({
+                        ...prev,
+                        duration_minutes: parseInt(e.target.value, 10) || 0,
+                      }))
                     }
                     className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none bg-white"
                   >
-                    <option value="15 min">15 min</option>
-                    <option value="20 min">20 min</option>
-                    <option value="30 min">30 min</option>
-                    <option value="45 min">45 min</option>
-                    <option value="60 min">60 min</option>
-                    <option value="90 min">90 min</option>
+                    <option value={15}>15 min</option>
+                    <option value={20}>20 min</option>
+                    <option value={30}>30 min</option>
+                    <option value={45}>45 min</option>
+                    <option value={60}>60 min</option>
+                    <option value={90}>90 min</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1">
-                    Price ($)
+                    Price
                   </label>
                   <input
                     type="number"
                     required
+                    min="0"
+                    step="0.01"
                     placeholder="75"
                     value={serviceForm.price}
                     onChange={(e) =>
@@ -745,14 +825,59 @@ export default function DoctorSettingsPage() {
                 </div>
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Currency
+                  </label>
+                  <select
+                    value={serviceForm.currency}
+                    onChange={(e) =>
+                      setServiceForm((prev) => ({ ...prev, currency: e.target.value }))
+                    }
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none bg-white"
+                  >
+                    <option value="NGN">NGN (₦)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="EUR">EUR (€)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Status
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setServiceForm((prev) => ({ ...prev, is_active: !prev.is_active }))
+                    }
+                    className="w-full px-3.5 py-2 rounded-xl border border-slate-200 text-sm font-medium flex items-center justify-between transition-colors hover:bg-slate-50"
+                  >
+                    <span className={serviceForm.is_active ? 'text-emerald-600' : 'text-slate-400'}>
+                      {serviceForm.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                    <span
+                      className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors ${
+                        serviceForm.is_active ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-3 w-3 transform rounded-full bg-white transition-transform ${
+                          serviceForm.is_active ? 'translate-x-3.5' : 'translate-x-0.5'
+                        }`}
+                      />
+                    </span>
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                 {editingService ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      handleDeleteService(editingService.id);
-                      setIsServiceModalOpen(false);
-                    }}
+                    onClick={() => handleDeleteService(editingService.id)}
                     className="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1"
                   >
                     <Trash2 className="w-3.5 h-3.5" /> Remove
@@ -771,9 +896,11 @@ export default function DoctorSettingsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-semibold text-white bg-[#0149ff] hover:bg-blue-700 rounded-xl shadow-xs"
+                    disabled={isSavingService}
+                    className="px-5 py-2 text-xs font-semibold text-white bg-[#0149ff] hover:bg-blue-700 rounded-xl shadow-xs inline-flex items-center gap-1.5 disabled:opacity-70"
                   >
-                    Save Service
+                    {isSavingService && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                    {isSavingService ? 'Saving...' : 'Save Service'}
                   </button>
                 </div>
               </div>
