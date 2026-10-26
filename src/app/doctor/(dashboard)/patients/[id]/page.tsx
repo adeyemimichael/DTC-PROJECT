@@ -16,16 +16,16 @@ import {
   Upload,
   CheckCircle2,
   AlertCircle,
+  Loader2,
   Send,
   Printer,
 } from 'lucide-react';
-import { mockPatientsList, PatientData, MedicalRecordItem } from '@/data/patientsData';
+import { PatientData, MedicalRecordItem } from '@/data/patientsData';
 import {
   formatPatientSince,
   formatPatientStatus,
   getAgeFromDob,
   getPrimaryImage,
-  resolveValue,
   usePatients,
 } from '@/src/hooks/usePatients';
 
@@ -41,8 +41,10 @@ export default function PatientDetailsPage() {
     vitals,
     medicalRecords,
     patientUploads,
+    isLoadingPatients,
     isLoadingMedicalRecords,
     isLoadingPatientUploads,
+    patientsError,
   } = usePatients();
 
   useEffect(() => {
@@ -57,41 +59,45 @@ export default function PatientDetailsPage() {
     }
   }, [fetchPatientMedicalRecords, fetchPatientUploads, fetchPatientVitals, patientId]);
 
-  const fallbackPatient = mockPatientsList.find((p) => p.id === patientId) ?? mockPatientsList[0];
+  // The live patient record from the roster fetch. Used by the `patient` view
+  // model below and by the loading/not-found guards. No mock fallback.
+  const livePatientRecord = patients.find((record) => record.id === patientId) ?? null;
 
+  // Patient view model built from live data only. Fields that aren't fetched
+  // yet (lastVisit, nextAppointment, summary counts, visitHistory, etc.) are
+  // omitted and rendered as "—" / empty states rather than pulled from
+  // mockPatientsList.
   const patient: PatientData = useMemo(() => {
-    const livePatientRecord = patients.find((patientRecord) => patientRecord.id === patientId) ?? null;
-
     if (!livePatientRecord) {
-      return fallbackPatient;
+      return {
+        id: patientId,
+        name: '—',
+        avatar: '',
+        gender: '—',
+        bloodType: '—',
+        since: '—',
+        contact: '—',
+        address: '—',
+        condition: '—',
+      };
     }
 
     const computedAge = livePatientRecord.date_of_birth ? getAgeFromDob(livePatientRecord.date_of_birth) : null;
     const avatarSource = getPrimaryImage(livePatientRecord, '');
-    const createdAtText = formatPatientSince(livePatientRecord.created_at);
-    const activeCondition = formatPatientStatus(livePatientRecord.status);
 
     return {
-      ...fallbackPatient,
       id: livePatientRecord.id,
-      name: resolveValue(livePatientRecord.full_name, fallbackPatient.name),
+      name: livePatientRecord.full_name ?? '—',
       avatar: avatarSource,
-      gender: resolveValue(livePatientRecord.gender, fallbackPatient.gender),
-      age: computedAge !== null && computedAge !== undefined ? computedAge : fallbackPatient.age,
-      bloodType: resolveValue(livePatientRecord.blood_group, fallbackPatient.bloodType),
-      contact: resolveValue(livePatientRecord.phone, fallbackPatient.contact),
-      address: resolveValue(livePatientRecord.address, fallbackPatient.address),
-      since: createdAtText,
-      condition: activeCondition,
-      lastVisit: fallbackPatient.lastVisit,
-      nextAppointment: fallbackPatient.nextAppointment,
-      summary: fallbackPatient.summary,
-      vitals: fallbackPatient.vitals,
-      vitalsHistory: fallbackPatient.vitalsHistory,
-      medicalRecords: fallbackPatient.medicalRecords,
-      visitHistory: fallbackPatient.visitHistory,
+      gender: livePatientRecord.gender ?? '—',
+      age: computedAge ?? undefined,
+      bloodType: livePatientRecord.blood_group ?? '—',
+      contact: livePatientRecord.phone ?? '—',
+      address: livePatientRecord.address ?? '—',
+      since: formatPatientSince(livePatientRecord.created_at),
+      condition: formatPatientStatus(livePatientRecord.status),
     };
-  }, [fallbackPatient, patientId, patients]);
+  }, [livePatientRecord, patientId]);
 
   const latestVital = vitals[0] ?? null;
 
@@ -269,6 +275,50 @@ export default function PatientDetailsPage() {
     );
   };
 
+  
+  if (isLoadingPatients) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6 pb-12">
+        <div>
+          <Link
+            href="/doctor/patients"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-normal text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Patient Roster
+          </Link>
+        </div>
+        <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs flex items-center justify-center min-h-[300px]">
+          <div className="flex items-center gap-2 text-slate-500 font-normal text-sm">
+            <Loader2 className="w-5 h-5 animate-spin text-[#0149ff]" />
+            Loading patient details...
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!livePatientRecord) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-6 pb-12">
+        <div>
+          <Link
+            href="/doctor/patients"
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-slate-900 font-normal text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Back to Patient Roster
+          </Link>
+        </div>
+        <div className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs flex flex-col items-center justify-center min-h-[300px] text-center">
+          <AlertCircle className="w-8 h-8 text-slate-400 mb-3" />
+          <h2 className="text-lg font-normal text-slate-900 mb-1">Patient not found</h2>
+          <p className="text-sm text-slate-500 font-normal">
+            {patientsError || "We couldn't find this patient's records."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-12">
       {/* Toast Notification */}
@@ -319,7 +369,7 @@ export default function PatientDetailsPage() {
               <div>
                 <h1 className="text-xl md:text-2xl font-normal text-slate-900">{patient.name}</h1>
                 <p className="text-xs md:text-sm text-slate-500 font-normal">
-                  {patient.gender}, {patient.age} · {patient.bloodType}
+                  {patient.gender}, {patient.age ?? '—'} · {patient.bloodType}
                 </p>
                 <p className="text-xs text-slate-400 font-normal mt-0.5">
                   Patient since {patient.since}
@@ -443,7 +493,7 @@ export default function PatientDetailsPage() {
             {/* Total Visits */}
             <div className="bg-[#EFEFEF] rounded-xl p-4 border border-slate-100/80">
               <p className="text-xl md:text-2xl font-normal text-slate-900 mb-1">
-                {patient.summary.totalVisits}
+                {patient.summary?.totalVisits ?? '—'}
               </p>
               <p className="text-xs text-slate-500 font-normal">Total Visits</p>
             </div>
@@ -451,7 +501,7 @@ export default function PatientDetailsPage() {
             {/* Last Visit */}
             <div className="bg-[#EFEFEF] rounded-xl p-4 border border-slate-100/80">
               <p className="text-base md:text-lg font-normal text-slate-900 mb-1">
-                {patient.summary.lastVisit}
+                {patient.summary?.lastVisit ?? '—'}
               </p>
               <p className="text-xs text-slate-500 font-normal">Last Visit</p>
             </div>
@@ -459,7 +509,7 @@ export default function PatientDetailsPage() {
             {/* Next Appointment */}
             <div className="bg-[#EFEFEF] rounded-xl p-4 border border-slate-100/80">
               <p className="text-base md:text-lg font-normal text-slate-900 mb-1">
-                {patient.summary.nextAppointment}
+                {patient.summary?.nextAppointment ?? '—'}
               </p>
               <p className="text-xs text-slate-500 font-normal">Next Appointment</p>
             </div>
@@ -557,25 +607,29 @@ export default function PatientDetailsPage() {
         <h2 className="text-base md:text-lg font-normal text-slate-900 mb-5">Visit History</h2>
 
         <div className="space-y-3">
-          {patient.visitHistory.map((visit, idx) => (
-            <div
-              key={idx}
-              className="bg-slate-50/70 rounded-xl p-4 flex items-start gap-4 border border-slate-100"
-            >
-              <div className="min-w-[70px]">
-                <span className="block text-sm font-normal text-slate-900">{visit.date}</span>
-                <span className="text-xs text-slate-400 font-normal">{visit.year}</span>
+          {patient.visitHistory?.length ? (
+            patient.visitHistory.map((visit, idx) => (
+              <div
+                key={idx}
+                className="bg-slate-50/70 rounded-xl p-4 flex items-start gap-4 border border-slate-100"
+              >
+                <div className="min-w-[70px]">
+                  <span className="block text-sm font-normal text-slate-900">{visit.date}</span>
+                  <span className="text-xs text-slate-400 font-normal">{visit.year}</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm md:text-base font-normal text-slate-900">
+                    {visit.title}
+                  </h3>
+                  <p className="text-xs md:text-sm text-slate-500 font-normal mt-1">
+                    {visit.summary}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1">
-                <h3 className="text-sm md:text-base font-normal text-slate-900">
-                  {visit.title}
-                </h3>
-                <p className="text-xs md:text-sm text-slate-500 font-normal mt-1">
-                  {visit.summary}
-                </p>
-              </div>
-            </div>
-          ))}
+            ))
+          ) : (
+            <p className="text-sm text-slate-500 font-normal">No visit history recorded yet.</p>
+          )}
         </div>
       </section>
 

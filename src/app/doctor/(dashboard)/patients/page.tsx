@@ -4,8 +4,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Search, ChevronRight } from 'lucide-react';
-import { mockPatientsList } from '@/data/patientsData';
-import { getAgeFromDob, getPrimaryImage, resolveValue, usePatients } from '@/src/hooks/usePatients';
+import { formatPatientStatus, getAgeFromDob, getPrimaryImage, usePatients } from '@/src/hooks/usePatients';
 
 export default function DoctorPatientsPage() {
   const { patients, isLoadingPatients, patientsError, fetchPatients } = usePatients();
@@ -16,22 +15,24 @@ export default function DoctorPatientsPage() {
   }, [fetchPatients]);
 
   const filteredPatients = useMemo(() => {
+    // Build roster rows from live data only. Fields that aren't fetched yet
+    // (visits count, last visit, next appointment) render as "—" rather than
+    // pulling sample data from mockPatientsList.
     const rosterPatients = patients.map((patient) => {
-      const mockPatient = mockPatientsList.find((item) => item.id === patient.id) ?? mockPatientsList[0];
       const computedAge = patient.date_of_birth ? getAgeFromDob(patient.date_of_birth) : null;
       const avatarSource = getPrimaryImage(patient, '');
 
       return {
-        ...mockPatient,
         id: patient.id,
-        name: resolveValue(patient.full_name, mockPatient.name),
+        name: patient.full_name ?? '—',
         avatar: avatarSource,
-        age: computedAge !== null && computedAge !== undefined ? computedAge : mockPatient.age,
-        gender: resolveValue(patient.gender, mockPatient.gender),
-        bloodType: resolveValue(patient.blood_group, mockPatient.bloodType),
-        visitsCount: mockPatient.visitsCount,
-        lastVisit: mockPatient.lastVisit,
-        nextAppointment: mockPatient.nextAppointment,
+        gender: patient.gender ?? '—',
+        age: computedAge ?? '—',
+        bloodType: patient.blood_group ?? '—',
+        condition: formatPatientStatus(patient.status),
+        visitsCount: '—',
+        lastVisit: '—',
+        nextAppointment: '—',
       };
     });
 

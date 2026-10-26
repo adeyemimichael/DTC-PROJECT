@@ -29,31 +29,31 @@ export interface PatientData {
   name: string;
   avatar: string;
   gender: string;
-  age: number;
+  age?: number;
   bloodType: string;
-  visitsCount: number;
+  visitsCount?: number;
   since: string;
   contact: string;
   address: string;
   condition: string;
-  lastVisit: string;
-  nextAppointment: string;
-  vitals: {
+  lastVisit?: string;
+  nextAppointment?: string;
+  vitals?: {
     bp: string;
     hr: string;
     weight: string;
     tsh: string;
     biomarkerName: string;
   };
-  summary: {
-    totalVisits: number;
-    lastVisit: string;
-    nextAppointment: string;
-    medicalRecordsCount: number;
+  summary?: {
+    totalVisits?: number;
+    lastVisit?: string;
+    nextAppointment?: string;
+    medicalRecordsCount?: number;
   };
-  vitalsHistory: VitalHistoryRow[];
-  medicalRecords: MedicalRecordItem[];
-  visitHistory: VisitHistoryItem[];
+  vitalsHistory?: VitalHistoryRow[];
+  medicalRecords?: MedicalRecordItem[];
+  visitHistory?: VisitHistoryItem[];
 }
 
 export const mockPatientsList: PatientData[] = [

@@ -12,7 +12,7 @@ import { OverviewClient } from "@/src/components/overview/OverviewClient";
 import { Calendar } from "lucide-react";
 
 export default function OverviewPage() {
-  const { profile } = useProfile();
+  const { profile, isLoading } = useProfile();
 
   return (
     <div className="space-y-6 lg:space-y-8 max-w-6xl mx-auto">
@@ -22,18 +22,27 @@ export default function OverviewPage() {
       {/* Welcome Banner Row */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-lg lg:text-xl font-semibold text-black tracking-tight">
-            Welcome back, {profile?.full_name || "User"}!
-          </h2>
-          <p className="text-sm text-primary-gray mt-1 font-sans">
-            Member since{" "}
-            {new Date(
-              profile?.created_at || "1999-01-21T23:16:51.117992+00:00",
-            ).toLocaleDateString("en-US", {
-              year: "numeric",
-              month: "long",
-            })}{" "}
-          </p>
+          {isLoading ? (
+            <>
+              <div className="h-6 w-56 rounded bg-slate-200 animate-pulse" />
+              <div className="mt-2 h-4 w-40 rounded bg-slate-100 animate-pulse" />
+            </>
+          ) : (
+            <>
+              <h2 className="text-lg lg:text-xl font-semibold text-black tracking-tight">
+                Welcome back, {profile?.full_name || "User"}!
+              </h2>
+              <p className="text-sm text-primary-gray mt-1 font-sans">
+                Member since{" "}
+                {profile?.created_at
+                  ? new Date(profile.created_at).toLocaleDateString("en-US", {
+                      year: "numeric",
+                      month: "long",
+                    })
+                  : "Recently"}{" "}
+              </p>
+            </>
+          )}
         </div>
         <BookAppointmentButton className="btn-primary flex items-center gap-2 shadow-sm w-full sm:w-auto">
           <Calendar className="h-5 w-5" />

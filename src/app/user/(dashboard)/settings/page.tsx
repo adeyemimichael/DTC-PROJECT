@@ -27,23 +27,22 @@ export default function PatientSettingsPage() {
   const [isSavingEmergency, setIsSavingEmergency] = useState(false);
   const [passportSignedUrl, setPassportSignedUrl] = useState<string | null>(null);
 
-  // 1. Account Information State
   const [accountInfo, setAccountInfo] = useState({
-    firstName: "Adesare",
-    lastName: "Adegbagi",
-    email: "ade@gmail.com",
-    phone: "+234 703 666 1092",
-    dob: "2007-10-10",
-    gender: "Female",
-    bloodGroup: "O+",
-    address: "4517 Washington Ave. Manchester, Kentucky 39495",
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    dob: "",
+    gender: "",
+    bloodGroup: "",
+    address: "",
   });
 
-  // 2. Emergency Contact State
+  // 2. Emergency Contact State — seeded empty; populated from the profile.
   const [emergencyContact, setEmergencyContact] = useState({
-    fullName: "Adesare",
-    phone: "0817126465333",
-    relationship: "Spouse",
+    fullName: "",
+    phone: "",
+    relationship: "",
   });
 
   // Populate accountInfo and emergencyContact when profile is loaded
@@ -459,7 +458,15 @@ export default function PatientSettingsPage() {
       </section>
 
       {/* CARD 3: Emergency Contact */}
-      <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs">
+      <section className="bg-white rounded-2xl p-6 md:p-8 border border-slate-100 shadow-xs relative">
+        {isLoadingProfile && (
+          <div className="absolute inset-0 bg-white/70 backdrop-blur-[1px] rounded-2xl flex items-center justify-center z-10">
+            <div className="flex items-center gap-2 text-slate-500 font-medium text-sm">
+              <Loader2 className="w-5 h-5 animate-spin text-primary-blue" />
+              Loading profile details...
+            </div>
+          </div>
+        )}
         <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-6">
           Emergency Contact
         </h2>
