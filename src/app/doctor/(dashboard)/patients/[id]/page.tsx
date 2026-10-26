@@ -63,10 +63,7 @@ export default function PatientDetailsPage() {
   // model below and by the loading/not-found guards. No mock fallback.
   const livePatientRecord = patients.find((record) => record.id === patientId) ?? null;
 
-  // Patient view model built from live data only. Fields that aren't fetched
-  // yet (lastVisit, nextAppointment, summary counts, visitHistory, etc.) are
-  // omitted and rendered as "—" / empty states rather than pulled from
-  // mockPatientsList.
+
   const patient: PatientData = useMemo(() => {
     if (!livePatientRecord) {
       return {

@@ -15,9 +15,9 @@ export default function DoctorPatientsPage() {
   }, [fetchPatients]);
 
   const filteredPatients = useMemo(() => {
-    // Build roster rows from live data only. Fields that aren't fetched yet
+
     // (visits count, last visit, next appointment) render as "—" rather than
-    // pulling sample data from mockPatientsList.
+    // pulling sample data 
     const rosterPatients = patients.map((patient) => {
       const computedAge = patient.date_of_birth ? getAgeFromDob(patient.date_of_birth) : null;
       const avatarSource = getPrimaryImage(patient, '');
