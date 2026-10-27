@@ -43,11 +43,11 @@ const DAY_NAMES = [
   "Saturday",
 ];
 
-// Helper: parse "8:00 AM", "08:00", "2:00 PM", "14:00"
+// Helper: parse "8:00 AM", "08:00", "08:00:00", "2:00 PM", "14:00", "14:00:00"
 export function parseTimeString(t: string): { hour: number; minute: number } {
   if (!t) return { hour: 0, minute: 0 };
   const clean = t.trim();
-  const match = clean.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  const match = clean.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
   if (!match) return { hour: 0, minute: 0 };
 
   let hour = parseInt(match[1], 10);
@@ -71,16 +71,29 @@ export function to12HourString(hour: number, minute: number): string {
 }
 
 /**
- * Get default clinician ID (first admin profile found)
+ * Get default clinician ID (prefer one who has availability records configured)
  */
 export async function getDefaultClinicianId(): Promise<string | null> {
   const adminClient = createAdminClient();
+
+  // 1. Prefer clinician who already has availability records in the database
+  const { data: avail } = await adminClient
+    .from("clinician_availability")
+    .select("clinician_id")
+    .limit(1)
+    .maybeSingle();
+
+  if (avail?.clinician_id) {
+    return avail.clinician_id;
+  }
+
+  // 2. Fallback to first admin profile
   const { data } = await adminClient
     .from("profiles")
     .select("id")
     .eq("role", "admin")
     .limit(1)
-    .single();
+    .maybeSingle();
 
   return data?.id || null;
 }
@@ -384,17 +397,23 @@ export async function getAvailableSlotsForRange(options: {
   clinicianId?: string;
 }) {
   const daysCount = Math.min(Math.max(options.days || 7, 1), 30);
-  let baseDate = new Date();
+  const now = new Date();
+
+  let startYear = now.getFullYear();
+  let startMonth = now.getMonth();
+  let startDay = now.getDate();
 
   if (options.startDate) {
     const [y, m, d] = options.startDate.split("-").map(Number);
-    baseDate = new Date(Date.UTC(y, m - 1, d));
+    startYear = y;
+    startMonth = m - 1;
+    startDay = d;
   }
 
   const results = [];
 
   for (let i = 0; i < daysCount; i++) {
-    const current = new Date(baseDate.getTime() + i * 24 * 60 * 60 * 1000);
+    const current = new Date(Date.UTC(startYear, startMonth, startDay + i));
     const y = current.getUTCFullYear();
     const m = String(current.getUTCMonth() + 1).padStart(2, "0");
     const d = String(current.getUTCDate()).padStart(2, "0");

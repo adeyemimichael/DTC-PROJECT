@@ -22,18 +22,7 @@ import {
   EyeOff,
   Loader2,
 } from 'lucide-react';
-import { useServices, type Service } from '@/hooks';
-
-interface TimeSlot {
-  start: string;
-  end: string;
-}
-
-interface DayAvailability {
-  day: string;
-  active: boolean;
-  slots: TimeSlot[];
-}
+import { useServices, useDoctorAvailability, type Service, type DayAvailability } from '@/hooks';
 
 export default function DoctorSettingsPage() {
   // 1. Account Information State
@@ -232,58 +221,12 @@ export default function DoctorSettingsPage() {
   };
 
   // 3. Weekly Availability State
-  const [availability, setAvailability] = useState<DayAvailability[]>([
-    {
-      day: 'Monday',
-      active: true,
-      slots: [
-        { start: '8:00 AM', end: '12:00 PM' },
-        { start: '2:00 PM', end: '5:00 PM' },
-      ],
-    },
-    {
-      day: 'Tuesday',
-      active: true,
-      slots: [
-        { start: '8:00 AM', end: '12:00 PM' },
-        { start: '2:00 PM', end: '5:00 PM' },
-      ],
-    },
-    {
-      day: 'Wednesday',
-      active: true,
-      slots: [
-        { start: '8:00 AM', end: '12:00 PM' },
-        { start: '2:00 PM', end: '5:00 PM' },
-      ],
-    },
-    {
-      day: 'Thursday',
-      active: true,
-      slots: [
-        { start: '8:00 AM', end: '12:00 PM' },
-        { start: '2:00 PM', end: '5:00 PM' },
-      ],
-    },
-    {
-      day: 'Friday',
-      active: true,
-      slots: [
-        { start: '8:00 AM', end: '12:00 PM' },
-        { start: '2:00 PM', end: '5:00 PM' },
-      ],
-    },
-    {
-      day: 'Saturday',
-      active: false,
-      slots: [],
-    },
-    {
-      day: 'Sunday',
-      active: false,
-      slots: [],
-    },
-  ]);
+  const {
+    availability,
+    isLoading: isLoadingAvailability,
+    isSaving: isSavingAvailability,
+    saveAvailability,
+  } = useDoctorAvailability();
 
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [tempAvailability, setTempAvailability] = useState<DayAvailability[]>([]);
@@ -346,10 +289,11 @@ export default function DoctorSettingsPage() {
     });
   };
 
-  const handleSaveSchedule = () => {
-    setAvailability(tempAvailability);
-    setIsScheduleModalOpen(false);
-    toast.success('Weekly schedule updated successfully!');
+  const handleSaveSchedule = async () => {
+    const res = await saveAvailability(tempAvailability);
+    if (res.success) {
+      setIsScheduleModalOpen(false);
+    }
   };
 
   // Calculate stats for availability
@@ -1047,9 +991,11 @@ export default function DoctorSettingsPage() {
                 <button
                   type="button"
                   onClick={handleSaveSchedule}
-                  className="px-6 py-2.5 rounded-xl bg-[#f80400] hover:bg-[#d80300] text-white text-xs md:text-sm font-semibold transition-colors shadow-xs"
+                  disabled={isSavingAvailability}
+                  className="px-6 py-2.5 rounded-xl bg-[#f80400] hover:bg-[#d80300] text-white text-xs md:text-sm font-semibold transition-colors shadow-xs inline-flex items-center gap-2 disabled:opacity-70"
                 >
-                  Save Schedule
+                  {isSavingAvailability && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {isSavingAvailability ? 'Saving...' : 'Save Schedule'}
                 </button>
               </div>
             </div>

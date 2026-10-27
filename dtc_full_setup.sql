@@ -313,6 +313,36 @@ create policy "medical_documents_update_admin_only"
   with check (is_admin());
 
 
+-- ====================================================================
+-- 1. CLINICIAN AVAILABILITY TABLE
+-- Stores the doctor's recurring weekly working blocks (Monday - Sunday)
+-- day_of_week: 0 = Sunday, 1 = Monday, 2 = Tuesday ... 6 = Saturday
+-- ====================================================================
+create table if not exists clinician_availability (
+  id             uuid primary key default gen_random_uuid(),
+  clinician_id   uuid not null references profiles(id) on delete cascade,
+  day_of_week    smallint not null check (day_of_week between 0 and 6),
+  start_time     time not null, -- e.g. '08:00:00'
+  end_time       time not null, -- e.g. '12:00:00'
+  is_active      boolean not null default true,
+  created_at     timestamptz not null default now(),
+  check (end_time > start_time)
+);
+create index if not exists idx_clinician_avail 
+  on clinician_availability(clinician_id, day_of_week);
+-- Enable RLS
+alter table clinician_availability enable row level security;
+-- Patients can view active schedules to see available time slots
+create policy "clinician_availability_select"
+  on clinician_availability for select
+  using (is_active = true or is_admin() or clinician_id = auth.uid());
+-- Only the doctor or an admin can manage their availability
+create policy "clinician_availability_manage_own_or_admin"
+  on clinician_availability for all
+  using (is_admin() or clinician_id = auth.uid())
+  with check (is_admin() or clinician_id = auth.uid());
+
+
 -- =========================================================
 -- APPOINTMENTS
 -- patient_upload_id = what the patient attached at booking.
@@ -388,6 +418,7 @@ create policy "appointments_update_admin_only"
                  where md.id = completion_note_id and md.patient_id = patient_id)
     )
   );
+
 
 
 -- =========================================================
