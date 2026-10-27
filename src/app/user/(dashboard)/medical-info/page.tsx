@@ -1,21 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Card, Button, Input } from '@/components/ui';
 import { useVitals } from '@/src/hooks/useVitals';
 import { InitialVitalsModal } from '@/src/components/common';
-import { 
-  Heart, 
-  Thermometer, 
-  Activity, 
-  Droplet, 
-  FolderOpen, 
-  Search, 
-  MessageSquare, 
+import {
+  useMedicalDocuments,
+  categoryLabel,
+  type MedicalDocument,
+} from '@/hooks';
+import { getSignedUrl } from '@/lib/utils/storage';
+import {
+  Heart,
+  Thermometer,
+  Activity,
+  Droplet,
+  FolderOpen,
+  Search,
+  MessageSquare,
   FileText,
   Weight,
   Plus,
-  Loader2
+  Loader2,
+  X,
+  Printer,
 } from 'lucide-react';
 
 interface Vital {
@@ -23,166 +32,179 @@ interface Vital {
   value: string;
   status: string;
   range?: string;
-  icon: any;
+  icon: React.ElementType;
 }
 
-interface MedicalRecord {
-  id: string;
-  title: string;
-  doctor: string;
-  date: string;
-  description: string;
-  category: 'Laboratory' | 'Radiology' | 'Clinical Notes' | 'Prescriptions';
+
+const CATEGORIES = [
+  { label: 'All Records',   value: 'all'           },
+  { label: 'Lab Order',     value: 'lab_order'     },
+  { label: 'Prescription',  value: 'prescription'  },
+  { label: 'Referral',      value: 'referral'      },
+  { label: 'Clinical Note', value: 'clinical_note' },
+] as const;
+
+type CategoryValue = (typeof CATEGORIES)[number]['value'];
+
+/** Colour theme per DB category */
+function getCategoryTheme(category: string) {
+  switch (category) {
+    case 'lab_order':     return { text: 'text-primary-blue', dot: 'bg-primary-blue' };
+    case 'prescription':  return { text: 'text-indigo-500',   dot: 'bg-indigo-500'   };
+    case 'referral':      return { text: 'text-amber-500',    dot: 'bg-amber-500'    };
+    case 'clinical_note': return { text: 'text-emerald-500',  dot: 'bg-emerald-500'  };
+    default:              return { text: 'text-slate-500',    dot: 'bg-slate-500'    };
+  }
 }
 
-const mockRecords: MedicalRecord[] = [
-  {
-    id: '1',
-    title: 'Complete Blood Count (CBC)',
-    doctor: 'Dr. Stephen Adeyemi',
-    date: '2026-05-18',
-    description: 'All values within normal reference ranges.',
-    category: 'Laboratory',
-  },
-  {
-    id: '2',
-    title: 'Lumbar Spine X-Ray',
-    doctor: 'Dr. Stephen Adeyemi',
-    date: '2026-05-18',
-    description: 'Mild degenerative changes at L4-L5. No fractures or acute abnormalities.',
-    category: 'Radiology',
-  },
-  {
-    id: '3',
-    title: 'Back Pain Evaluation Notes',
-    doctor: 'Dr. Stephen Adeyemi',
-    date: '2026-05-18',
-    description: 'Recommended physiotherapy 2x weekly for 6 weeks. Anti-inflammatory medication prescribed.',
-    category: 'Clinical Notes',
-  },
-  {
-    id: '4',
-    title: 'Cetirizine 10mg Prescription',
-    doctor: 'Dr. Stephen Adeyemi',
-    date: '2026-05-22',
-    description: 'Take 1 tablet daily at night. Refills remaining: 3.',
-    category: 'Prescriptions',
-  },
-];
+/** Status badge only shown for lab_order records */
+function getStatusBadge(status: string | null | undefined) {
+  switch (status) {
+    case 'ordered':
+      return { label: 'Ordered',         className: 'bg-amber-100 text-amber-700'    };
+    case 'result_uploaded':
+      return { label: 'Result Uploaded', className: 'bg-blue-100 text-blue-700'      };
+    case 'completed':
+      return { label: 'Completed',       className: 'bg-emerald-100 text-emerald-700'};
+    default:
+      return null;
+  }
+}
 
-const categories = [
-  { label: 'All Records', value: 'all' },
-  { label: 'Laboratory', value: 'laboratory' },
-  { label: 'Radiology', value: 'radiology' },
-  { label: 'Clinical Notes', value: 'clinical-notes' },
-  { label: 'Prescriptions', value: 'prescriptions' },
-];
+
+function formatDetails(category: string, details: Record<string, unknown>): string {
+  if (!details || typeof details !== 'object') return '';
+  switch (category) {
+    case 'lab_order': {
+      const parts: string[] = [];
+      if (details.test_name)   parts.push(`Test: ${details.test_name}`);
+      if (details.instructions) parts.push(`Instructions: ${details.instructions}`);
+      return parts.join(' · ');
+    }
+    case 'prescription': {
+      const meds = Array.isArray(details.medications)
+        ? (details.medications as string[]).join(', ')
+        : String(details.medications ?? '');
+      return meds ? `Medications: ${meds}` : '';
+    }
+    case 'referral': {
+      const parts: string[] = [];
+      if (details.referred_to) parts.push(`Referred to: ${details.referred_to}`);
+      if (details.reason)      parts.push(`Reason: ${details.reason}`);
+      return parts.join(' · ');
+    }
+    case 'clinical_note':
+      return String(details.content ?? '');
+    default:
+      return Object.values(details).join(' · ');
+  }
+}
 
 export default function MedicalInfoPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [searchQuery,     setSearchQuery]     = useState('');
+  const [activeCategory,  setActiveCategory]  = useState<CategoryValue>('all');
   const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
 
   const { latestVital, isLoading: isLoadingVitals, createVital } = useVitals();
 
-  // Dynamic vitals calculation based on fetched user vitals
+  // Real records — no patient_id: route resolves to signed-in user
+  const { documents, isLoadingDocuments, documentsError, fetchDocuments } =
+    useMedicalDocuments();
+
+  useEffect(() => {
+    void fetchDocuments();
+  }, [fetchDocuments]);
+
+  // ── Document viewer ───────────────────────────────────────────────────────
+  const [viewingRecord, setViewingRecord] = useState<MedicalDocument | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [isLoadingViewerUrl, setIsLoadingViewerUrl] = useState(false);
+
+  const handleViewRecord = async (rec: MedicalDocument) => {
+    setViewingRecord(rec);
+    setViewerUrl(null);
+    if (rec.pdf_storage_path) {
+      setIsLoadingViewerUrl(true);
+      const url = await getSignedUrl('medical-documents', rec.pdf_storage_path);
+      setViewerUrl(url);
+      setIsLoadingViewerUrl(false);
+    }
+  };
+
+  const handleCloseViewer = () => {
+    setViewingRecord(null);
+    setViewerUrl(null);
+  };
+
+  // ── Vitals ───────────────────────────────────────────────────────────────
   const displayVitals: Vital[] = latestVital
     ? [
         {
           name: 'Blood Pressure',
           value: `${latestVital.blood_pressure_systolic}/${latestVital.blood_pressure_diastolic} mmHg`,
-          status: 'Normal',
-          range: '90/60 - 120/80',
-          icon: Heart,
+          status: 'Normal', range: '90/60 - 120/80', icon: Heart,
         },
         {
           name: 'Heart Rate',
           value: `${latestVital.heart_rate_bpm} bpm`,
-          status: 'Normal',
-          range: '60 - 100',
-          icon: Heart,
+          status: 'Normal', range: '60 - 100', icon: Heart,
         },
         {
           name: 'Body Temperature',
           value: `${latestVital.temperature_c} °C`,
-          status: 'Normal',
-          range: '36.5 - 37.5',
-          icon: Thermometer,
+          status: 'Normal', range: '36.5 - 37.5', icon: Thermometer,
         },
         {
           name: 'Oxygen Saturation',
           value: latestVital.spo2_percent ? `${latestVital.spo2_percent}%` : 'N/A',
           status: latestVital.spo2_percent ? 'Normal' : 'Not set',
-          range: '95 - 100',
-          icon: Activity,
+          range: '95 - 100', icon: Activity,
         },
         {
           name: 'Weight',
           value: `${latestVital.weight_kg} kg`,
-          status: 'Normal',
-          icon: Weight,
+          status: 'Normal', icon: Weight,
         },
         {
           name: 'Blood Sugar',
-          value: latestVital.blood_sugar_mmol ? `${latestVital.blood_sugar_mmol} mmol/L` : 'N/A',
+          value: latestVital.blood_sugar_mmol
+            ? `${latestVital.blood_sugar_mmol} mmol/L` : 'N/A',
           status: latestVital.blood_sugar_mmol ? 'Normal' : 'Not set',
-          range: '3.9 - 5.6',
-          icon: Droplet,
+          range: '3.9 - 5.6', icon: Droplet,
         },
       ]
     : [];
 
   const recordedDateText = latestVital
     ? `Recorded ${new Date(latestVital.recorded_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
+        month: 'short', day: 'numeric', year: 'numeric',
       })}`
     : null;
 
-  // Direct inline filtering logic
-  const filteredRecords = mockRecords.filter((rec) => {
-    const recCategorySlug = rec.category.toLowerCase().replace(' ', '-');
-    const matchesCategory = activeCategory === 'all' || recCategorySlug === activeCategory;
-    const matchesSearch = 
-      rec.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      rec.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      rec.doctor.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
+  const filteredRecords: MedicalDocument[] = documents.filter((rec) => {
+    const matchesCategory =
+      activeCategory === 'all' || rec.category === activeCategory;
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      !q ||
+      (rec.title ?? '').toLowerCase().includes(q) ||
+      (rec.clinician?.full_name ?? '').toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
   });
 
-  // Helpers for category visual colors
-  const getCategoryTheme = (category: string) => {
-    switch (category) {
-      case 'Laboratory':
-        return { text: 'text-primary-blue', dot: 'bg-primary-blue' };
-      case 'Radiology':
-        return { text: 'text-amber-500', dot: 'bg-amber-500' };
-      case 'Clinical Notes':
-        return { text: 'text-emerald-500', dot: 'bg-emerald-500' };
-      case 'Prescriptions':
-        return { text: 'text-indigo-500', dot: 'bg-indigo-500' };
-      default:
-        return { text: 'text-slate-500', dot: 'bg-slate-500' };
-    }
-  };
-
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-page-fade">
-      {/* Record Vitals Modal */}
       <InitialVitalsModal
         isOpen={isRecordModalOpen}
         onClose={() => setIsRecordModalOpen(false)}
         onSubmitVitals={createVital}
       />
 
-      {/* Header section */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-medium text-black tracking-tight">
-            Medical Info
-          </h2>
+          <h2 className="text-2xl font-medium text-black tracking-tight">Medical Info</h2>
           <p className="text-sm text-primary-gray mt-1 font-semibold">
             Your health records and vitals history
           </p>
@@ -195,7 +217,7 @@ export default function MedicalInfoPage() {
         </div>
       </div>
 
-      {/* Vital Signs Segment */}
+      {/* Vitals */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2 font-medium text-black text-base">
@@ -216,10 +238,9 @@ export default function MedicalInfoPage() {
           </Button>
         </div>
 
-        {/* 6 Grid items */}
         {isLoadingVitals ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+            {[1,2,3,4,5,6].map((i) => (
               <Card key={i} className="p-4 flex flex-col justify-between min-h-[140px] animate-pulse">
                 <div className="space-y-3">
                   <div className="h-3 bg-slate-200 rounded w-1/2" />
@@ -260,7 +281,8 @@ export default function MedicalInfoPage() {
             <div>
               <h4 className="text-base font-bold text-slate-900">No vitals recorded yet</h4>
               <p className="text-xs text-slate-500 mt-1 max-w-sm">
-                You haven't recorded your health vitals. Record your baseline vitals to keep your health history up to date.
+                You haven&apos;t recorded your health vitals. Record your baseline vitals to keep
+                your health history up to date.
               </p>
             </div>
             <Button
@@ -274,14 +296,13 @@ export default function MedicalInfoPage() {
         )}
       </div>
 
-      {/* Medical Records Section */}
+      {/* Medical Records */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-2 font-medium text-black text-base">
             <FolderOpen className="h-5 w-5 text-primary-blue fill-secondary-blue" />
             <h3>Medical Records</h3>
           </div>
-          {/* Search bar UI Primitive */}
           <Input
             type="text"
             placeholder="Search records..."
@@ -293,9 +314,9 @@ export default function MedicalInfoPage() {
           />
         </div>
 
-        {/* Category Pills Switcher */}
+        {/* Category pills — real DB categories only */}
         <div className="flex flex-wrap gap-2 select-none">
-          {categories.map((cat) => {
+          {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.value;
             return (
               <button
@@ -313,32 +334,76 @@ export default function MedicalInfoPage() {
           })}
         </div>
 
-        {/* Records list items */}
+        {/* Records list */}
         <div className="space-y-4">
-          {filteredRecords.length > 0 ? (
+          {documentsError ? (
+            <Card className="flex flex-col items-center justify-center py-12 text-center">
+              <p className="text-sm text-rose-500 font-normal">{documentsError}</p>
+            </Card>
+          ) : isLoadingDocuments ? (
+            <div className="flex items-center justify-center py-12 gap-2 text-slate-400 text-sm font-normal">
+              <Loader2 className="h-4 w-4 animate-spin text-primary-blue" />
+              Loading your medical records...
+            </div>
+          ) : filteredRecords.length > 0 ? (
             filteredRecords.map((rec) => {
-              const theme = getCategoryTheme(rec.category);
+              const theme       = getCategoryTheme(rec.category);
+              const label       = categoryLabel(rec.category);
+              const statusBadge = rec.category === 'lab_order'
+                ? getStatusBadge(rec.status) : null;
+              const detailText  = rec.details && typeof rec.details === 'object'
+                ? formatDetails(rec.category, rec.details as Record<string, unknown>)
+                : typeof rec.details === 'string' ? rec.details : '';
+              const formattedDate = rec.created_at
+                ? new Date(rec.created_at).toLocaleDateString('en-US', {
+                    year: 'numeric', month: 'short', day: 'numeric',
+                  })
+                : '—';
+
               return (
-                <Card key={rec.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5">
+                <Card
+                  key={rec.id}
+                  className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-5"
+                >
                   <div className="flex gap-4 min-w-0">
-                    {/* Icon card wrapper */}
                     <div className="h-12 w-12 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-400">
                       <FileText className="h-6 w-6" />
                     </div>
                     <div>
-                      <h4 className="text-base font-medium text-black truncate">{rec.title}</h4>
-                      <p className="text-xs font-medium text-slate-400 mt-0.5">{rec.doctor} · {rec.date}</p>
-                      <p className="text-sm font-medium text-primary-gray mt-2 leading-relaxed">{rec.description}</p>
+                      <h4 className="text-base font-medium text-black truncate">
+                        {rec.title || 'Medical document'}
+                      </h4>
+                      <p className="text-xs font-medium text-slate-400 mt-0.5">
+                        {rec.clinician?.full_name ?? 'Clinical team'} · {formattedDate}
+                      </p>
+                      {detailText && (
+                        <p className="text-sm font-medium text-primary-gray mt-2 leading-relaxed line-clamp-2">
+                          {detailText}
+                        </p>
+                      )}
                     </div>
                   </div>
 
-                  {/* Right side category & actions */}
-                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 w-full sm:w-auto border-t sm:border-t-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
+                  {/* Right side */}
+                  <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-3 w-full sm:w-auto border-t sm:border-t-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
                     <span className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}>
                       <span className={`h-2.5 w-2.5 rounded-full ${theme.dot}`} />
-                      {rec.category}
+                      {label}
                     </span>
-                    <Button variant="secondary" size="sm" className="bg-secondary-blue text-primary-blue hover:bg-blue-100 border-0">
+
+                    {/* Status badge — lab_order only */}
+                    {statusBadge && (
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusBadge.className}`}>
+                        {statusBadge.label}
+                      </span>
+                    )}
+
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleViewRecord(rec)}
+                      className="bg-secondary-blue text-primary-blue hover:bg-blue-100 border-0"
+                    >
                       View details
                     </Button>
                   </div>
@@ -350,16 +415,124 @@ export default function MedicalInfoPage() {
               <div className="h-16 w-16 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center mb-6">
                 <FileText className="h-8 w-8" />
               </div>
-              <h3 className="text-lg font-bold text-primary-deepblue">
-                No records found
-              </h3>
+              <h3 className="text-lg font-bold text-primary-deepblue">No records found</h3>
               <p className="text-sm text-primary-gray mt-2 max-w-sm font-medium">
-                Try adjusting your search terms or selecting a different category filter.
+                {searchQuery
+                  ? 'Try adjusting your search or selecting a different category.'
+                  : 'Your doctor has not uploaded any medical records yet.'}
               </p>
             </Card>
           )}
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      {viewingRecord && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-2xl w-full shadow-2xl border border-slate-100 max-h-[90vh] flex flex-col">
+
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5 shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0">
+                  <FileText className="w-5 h-5 text-slate-500" />
+                </div>
+                <div>
+                  <h3 className="text-base md:text-lg font-semibold text-slate-900">
+                    {viewingRecord.title || 'Medical document'}
+                  </h3>
+                  <p className="text-xs text-slate-500 font-normal mt-0.5">
+                    {categoryLabel(viewingRecord.category)}
+                    {' · '}
+                    {viewingRecord.clinician?.full_name ?? 'Clinical team'}
+                    {' · '}
+                    {viewingRecord.created_at
+                      ? new Date(viewingRecord.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric', month: 'short', day: 'numeric',
+                        })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                {viewerUrl && (
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    title="Print"
+                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                  >
+                    <Printer className="w-4 h-4" />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleCloseViewer}
+                  className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Document preview area */}
+            <div className="flex-1 overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 flex items-center justify-center min-h-[300px] mb-5">
+              {isLoadingViewerUrl ? (
+                <div className="flex flex-col items-center gap-2 text-slate-400 text-sm">
+                  <Loader2 className="w-6 h-6 animate-spin text-primary-blue" />
+                  Loading document...
+                </div>
+              ) : viewerUrl ? (
+                viewerUrl.toLowerCase().includes('.pdf') ||
+                viewerUrl.includes('application/pdf') ||
+                viewingRecord.pdf_storage_path?.endsWith('.pdf') ? (
+                  <iframe
+                    src={viewerUrl}
+                    title={viewingRecord.title ?? 'Medical document'}
+                    className="w-full h-full min-h-[360px]"
+                  />
+                ) : (
+                  <div className="relative w-full h-full min-h-[360px]">
+                    <Image
+                      src={viewerUrl}
+                      alt={viewingRecord.title ?? 'Medical document'}
+                      fill
+                      className="object-contain"
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-slate-400 text-sm font-normal text-center px-6">
+                  <FileText className="w-10 h-10 text-slate-300" />
+                  No file attached to this record.
+                </div>
+              )}
+            </div>
+
+            {/* Details footer */}
+            <div className="flex items-center justify-between gap-4 shrink-0">
+              <p className="text-xs text-slate-500 font-normal line-clamp-2">
+                {viewingRecord.details && typeof viewingRecord.details === 'object'
+                  ? formatDetails(
+                      viewingRecord.category,
+                      viewingRecord.details as Record<string, unknown>,
+                    )
+                  : typeof viewingRecord.details === 'string'
+                  ? viewingRecord.details
+                  : ''}
+              </p>
+              <button
+                type="button"
+                onClick={handleCloseViewer}
+                className="bg-primary-blue hover:bg-[#003be6] text-white font-normal px-6 py-2.5 rounded-xl text-sm transition-colors shadow-xs shrink-0"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

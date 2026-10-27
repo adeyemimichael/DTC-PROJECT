@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,6 +28,11 @@ import {
   getPrimaryImage,
   usePatients,
 } from '@/src/hooks/usePatients';
+import {
+  useMedicalDocuments,
+  type MedicalDocumentCategory,
+  type MedicalDocumentStatus,
+} from '@/hooks';
 
 export default function PatientDetailsPage() {
   const params = useParams();
@@ -139,23 +144,52 @@ export default function PatientDetailsPage() {
     }));
   }, [vitals]);
 
+  /** Convert a details jsonb object */
+  const formatDetails = (
+    category: string,
+    details: Record<string, unknown>,
+  ): string => {
+    if (!details || typeof details !== 'object') return 'No additional details provided.';
+    switch (category) {
+      case 'lab_order': {
+        const parts: string[] = [];
+        if (details.test_name) parts.push(`Test: ${details.test_name}`);
+        if (details.instructions) parts.push(`Instructions: ${details.instructions}`);
+        return parts.join(' · ') || 'Lab order';
+      }
+      case 'prescription': {
+        const meds = Array.isArray(details.medications)
+          ? (details.medications as string[]).join(', ')
+          : String(details.medications ?? '');
+        return meds ? `Medications: ${meds}` : 'Prescription';
+      }
+      case 'referral': {
+        const parts: string[] = [];
+        if (details.referred_to) parts.push(`Referred to: ${details.referred_to}`);
+        if (details.reason) parts.push(`Reason: ${details.reason}`);
+        return parts.join(' · ') || 'Referral';
+      }
+      case 'clinical_note': {
+        return String(details.content ?? 'Clinical note');
+      }
+      default:
+        return Object.values(details).join(' · ') || 'No additional details provided.';
+    }
+  };
+
   const displayedMedicalRecords = useMemo(() => {
     const adminRecords = medicalRecords.map((record) => {
-      const recordType =
-        record.category === 'prescription'
-          ? 'Prescription'
-          : record.category === 'lab_result'
-            ? 'Lab Result'
-            : record.category === 'imaging_report'
-              ? 'Imaging Report'
-              : record.category === 'clinical_note'
-                ? 'Clinical Progress Note'
-                : 'Clinical Progress Note';
+      const recordType: MedicalRecordItem['type'] =
+        record.category === 'lab_order'      ? 'Lab Order'    :
+        record.category === 'prescription'   ? 'Prescription' :
+        record.category === 'referral'       ? 'Referral'     :
+        record.category === 'clinical_note'  ? 'Clinical Note':
+                                               'Clinical Note';
 
       const details = typeof record.details === 'string'
         ? record.details
         : record.details && typeof record.details === 'object'
-          ? JSON.stringify(record.details)
+          ? formatDetails(record.category ?? '', record.details as Record<string, unknown>)
           : 'No additional details provided.';
 
       return {
@@ -178,7 +212,7 @@ export default function PatientDetailsPage() {
     const patientUploadRecords = patientUploads.map((upload) => ({
       id: upload.id,
       title: upload.description || 'Uploaded document',
-      type: upload.category === 'lab_result_scan' ? 'Lab Result' : 'General',
+      type: 'Patient Upload' as MedicalRecordItem['type'],
       date: upload.created_at
         ? new Date(upload.created_at).toLocaleDateString('en-US', {
           month: 'short',
@@ -209,21 +243,94 @@ export default function PatientDetailsPage() {
   const [isMessageOpen, setIsMessageOpen] = useState(false);
   const [viewingRecord, setViewingRecord] = useState<MedicalRecordItem | null>(null);
 
-  // Form states
-  const [noteForm, setNoteForm] = useState({
+  // Upload hook
+  const { uploadDocument, isUploading: isUploadingDoc } = useMedicalDocuments();
+
+  // Upload form state 
+  const EMPTY_NOTE = {
     title: '',
-    type: 'Lab Result',
-    notes: '',
-  });
+    category: 'lab_order' as MedicalDocumentCategory,
+    // lab_order fields
+    test_name: '',
+    instructions: '',
+    lab_status: 'ordered' as MedicalDocumentStatus,
+    // prescription fields
+    medications: '',
+    // referral fields
+    referred_to: '',
+    referral_reason: '',
+    // clinical_note fields
+    content: '',
+    // file
+    file: null as File | null,
+  };
 
-  const [messageText, setMessageText] = useState('');
+  const [noteForm, setNoteForm] = useState(EMPTY_NOTE);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSaveNote = (e: React.FormEvent) => {
+  const handleSaveNote = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!noteForm.title || !noteForm.notes) return;
-    showToast(`Medical file/note added successfully to ${patient.name}'s record!`);
-    setIsAddNoteOpen(false);
-    setNoteForm({ title: '', type: 'Lab Result', notes: '' });
+
+    if (!noteForm.title.trim()) {
+      showToast('Title is required', 'error');
+      return;
+    }
+    if (!noteForm.file) {
+      showToast('Please attach a PDF file', 'error');
+      return;
+    }
+
+    // Build per-category details object
+    let details: Record<string, unknown> = {};
+    if (noteForm.category === 'lab_order') {
+      if (!noteForm.test_name.trim()) {
+        showToast('Test name is required for a lab order', 'error');
+        return;
+      }
+      details = { test_name: noteForm.test_name.trim(), instructions: noteForm.instructions.trim() };
+    } else if (noteForm.category === 'prescription') {
+      if (!noteForm.medications.trim()) {
+        showToast('Medications are required for a prescription', 'error');
+        return;
+      }
+      details = {
+        medications: noteForm.medications
+          .split('\n')
+          .map((m) => m.trim())
+          .filter(Boolean),
+      };
+    } else if (noteForm.category === 'referral') {
+      if (!noteForm.referred_to.trim() || !noteForm.referral_reason.trim()) {
+        showToast('Referred to and reason are required for a referral', 'error');
+        return;
+      }
+      details = { referred_to: noteForm.referred_to.trim(), reason: noteForm.referral_reason.trim() };
+    } else if (noteForm.category === 'clinical_note') {
+      if (!noteForm.content.trim()) {
+        showToast('Content is required for a clinical note', 'error');
+        return;
+      }
+      details = { content: noteForm.content.trim() };
+    }
+
+    const res = await uploadDocument({
+      file: noteForm.file,
+      patient_id: patientId,
+      title: noteForm.title.trim(),
+      category: noteForm.category,
+      details: details as Parameters<typeof uploadDocument>[0]['details'],
+      status: noteForm.category === 'lab_order' ? noteForm.lab_status : undefined,
+    });
+
+    if (res.success) {
+      showToast(`Medical record added to ${patient.name}'s file successfully!`);
+      setIsAddNoteOpen(false);
+      setNoteForm(EMPTY_NOTE);
+      // Refresh both records lists
+      void fetchPatientMedicalRecords(patientId);
+    } else {
+      showToast(res.error || 'Upload failed. Please try again.', 'error');
+    }
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -233,6 +340,8 @@ export default function PatientDetailsPage() {
     setIsMessageOpen(false);
     setMessageText('');
   };
+
+  const [messageText, setMessageText] = useState('');
 
   const handlePrintRecord = () => {
     showToast('Printing medical document...');
@@ -633,82 +742,202 @@ export default function PatientDetailsPage() {
       {/* MODAL 1: Add Medical File/Note */}
       {isAddNoteOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-fadeIn">
-          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-normal text-slate-900">Add Medical File / Note</h3>
               <button
-                onClick={() => setIsAddNoteOpen(false)}
+                onClick={() => { setIsAddNoteOpen(false); setNoteForm(EMPTY_NOTE); }}
                 className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
+            {/* hidden real file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                setNoteForm((prev) => ({ ...prev, file: f }));
+              }}
+            />
+
             <form onSubmit={handleSaveNote} className="space-y-4">
+              {/* Title */}
               <div>
-                <label className="block text-xs font-normal text-slate-600 mb-1">
-                  Title
-                </label>
+                <label className="block text-xs font-normal text-slate-600 mb-1">Title *</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Follow-up Lab Evaluation"
+                  placeholder="e.g. Blood Work Request"
                   value={noteForm.title}
                   onChange={(e) => setNoteForm((prev) => ({ ...prev, title: e.target.value }))}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none font-normal"
                 />
               </div>
 
+              {/* Category */}
               <div>
-                <label className="block text-xs font-normal text-slate-600 mb-1">
-                  Category Type
-                </label>
+                <label className="block text-xs font-normal text-slate-600 mb-1">Category *</label>
                 <select
-                  value={noteForm.type}
-                  onChange={(e) => setNoteForm((prev) => ({ ...prev, type: e.target.value }))}
+                  value={noteForm.category}
+                  onChange={(e) =>
+                    setNoteForm((prev) => ({
+                      ...prev,
+                      category: e.target.value as MedicalDocumentCategory,
+                    }))
+                  }
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none bg-white font-normal"
                 >
-                  <option value="Lab Result">Lab Result</option>
-                  <option value="Prescription">Prescription</option>
-                  <option value="Clinical Progress Note">Clinical Progress Note</option>
-                  <option value="Imaging Report">Imaging Report</option>
+                  <option value="lab_order">Lab Order</option>
+                  <option value="prescription">Prescription</option>
+                  <option value="referral">Referral</option>
+                  <option value="clinical_note">Clinical Note</option>
                 </select>
               </div>
 
+              {/* Per-category detail fields */}
+              {noteForm.category === 'lab_order' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-normal text-slate-600 mb-1">Test Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Complete Blood Count (CBC)"
+                      value={noteForm.test_name}
+                      onChange={(e) => setNoteForm((prev) => ({ ...prev, test_name: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-normal text-slate-600 mb-1">Instructions</label>
+                    <textarea
+                      rows={2}
+                      placeholder="e.g. Fasting required for 8 hours"
+                      value={noteForm.instructions}
+                      onChange={(e) => setNoteForm((prev) => ({ ...prev, instructions: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-normal text-slate-600 mb-1">Status *</label>
+                    <select
+                      value={noteForm.lab_status}
+                      onChange={(e) =>
+                        setNoteForm((prev) => ({
+                          ...prev,
+                          lab_status: e.target.value as MedicalDocumentStatus,
+                        }))
+                      }
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none bg-white font-normal"
+                    >
+                      <option value="ordered">Ordered</option>
+                      <option value="result_uploaded">Result Uploaded</option>
+                      <option value="completed">Completed</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {noteForm.category === 'prescription' && (
+                <div>
+                  <label className="block text-xs font-normal text-slate-600 mb-1">
+                    Medications * <span className="text-slate-400 font-normal">(one per line)</span>
+                  </label>
+                  <textarea
+                    rows={4}
+                    placeholder={'Amoxicillin 500mg — twice daily for 7 days\nIbuprofen 400mg — as needed for pain'}
+                    value={noteForm.medications}
+                    onChange={(e) => setNoteForm((prev) => ({ ...prev, medications: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none font-normal"
+                  />
+                </div>
+              )}
+
+              {noteForm.category === 'referral' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-normal text-slate-600 mb-1">Referred To *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Dr. Akin — Cardiology"
+                      value={noteForm.referred_to}
+                      onChange={(e) => setNoteForm((prev) => ({ ...prev, referred_to: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none font-normal"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-normal text-slate-600 mb-1">Reason *</label>
+                    <textarea
+                      rows={3}
+                      placeholder="Reason for referral..."
+                      value={noteForm.referral_reason}
+                      onChange={(e) => setNoteForm((prev) => ({ ...prev, referral_reason: e.target.value }))}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none font-normal"
+                    />
+                  </div>
+                </>
+              )}
+
+              {noteForm.category === 'clinical_note' && (
+                <div>
+                  <label className="block text-xs font-normal text-slate-600 mb-1">Content *</label>
+                  <textarea
+                    rows={4}
+                    placeholder="Enter clinical observations, assessment, and plan..."
+                    value={noteForm.content}
+                    onChange={(e) => setNoteForm((prev) => ({ ...prev, content: e.target.value }))}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none font-normal"
+                  />
+                </div>
+              )}
+
+              {/* PDF upload area */}
               <div>
                 <label className="block text-xs font-normal text-slate-600 mb-1">
-                  Clinical Notes & Observation
+                  PDF Attachment *
                 </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Enter medical observations, treatment notes, or instructions..."
-                  value={noteForm.notes}
-                  onChange={(e) => setNoteForm((prev) => ({ ...prev, notes: e.target.value }))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:border-[#0149ff] focus:outline-none resize-none font-normal"
-                />
-              </div>
-
-              <div className="border-2 border-dashed border-slate-200 rounded-xl p-4 text-center cursor-pointer hover:bg-slate-50 transition-colors">
-                <Upload className="w-5 h-5 text-slate-400 mx-auto mb-1" />
-                <span className="text-xs text-slate-600 font-normal">
-                  Drag & drop medical PDF or document, or <span className="text-[#0149ff]">browse</span>
-                </span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full border-2 border-dashed rounded-xl p-4 text-center hover:bg-slate-50 transition-colors ${
+                    noteForm.file ? 'border-emerald-400 bg-emerald-50/30' : 'border-slate-200'
+                  }`}
+                >
+                  {noteForm.file ? (
+                    <div className="flex items-center justify-center gap-2 text-emerald-600 text-xs font-normal">
+                      <CheckCircle2 className="w-4 h-4" />
+                      {noteForm.file.name}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Upload className="w-5 h-5 text-slate-400" />
+                      <span className="text-xs text-slate-600 font-normal">
+                        Click to attach a PDF <span className="text-[#0149ff]">(max 10 MB)</span>
+                      </span>
+                    </div>
+                  )}
+                </button>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsAddNoteOpen(false)}
+                  onClick={() => { setIsAddNoteOpen(false); setNoteForm(EMPTY_NOTE); }}
                   className="px-4 py-2 text-xs font-normal text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-normal text-white bg-[#f80400] hover:bg-[#d80300] rounded-xl shadow-xs"
+                  disabled={isUploadingDoc}
+                  className="px-5 py-2 text-xs font-normal text-white bg-[#f80400] hover:bg-[#d80300] rounded-xl shadow-xs inline-flex items-center gap-1.5 disabled:opacity-70"
                 >
-                  Save Record
+                  {isUploadingDoc && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  {isUploadingDoc ? 'Uploading...' : 'Save Record'}
                 </button>
               </div>
             </form>

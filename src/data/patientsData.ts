@@ -1,7 +1,12 @@
 export interface MedicalRecordItem {
   id: string;
   title: string;
-  type: 'Lab Result' | 'Prescription' | 'Clinical Progress Note' | 'Imaging Report';
+  /** Display label derived from the DB category string.
+   *  lab_order → 'Lab Order'  |  prescription → 'Prescription'
+   *  referral  → 'Referral'   |  clinical_note → 'Clinical Note'
+   *  patient-uploaded file    → 'Patient Upload'
+   */
+  type: 'Lab Order' | 'Prescription' | 'Referral' | 'Clinical Note' | 'Patient Upload';
   date: string;
   details: string;
   author?: string;
@@ -106,7 +111,7 @@ export const mockPatientsList: PatientData[] = [
       {
         id: 'r1',
         title: 'Thyroid Panel',
-        type: 'Lab Result',
+        type: 'Lab Order',
         date: '2026-05-18',
         author: 'Emily Rodriguez',
         details: 'TSH 2.4 mIU/L — normalized. Free T4 within range.',
@@ -186,7 +191,7 @@ export const mockPatientsList: PatientData[] = [
       {
         id: 'r3',
         title: 'Lipid Profile & BP Log',
-        type: 'Lab Result',
+        type: 'Lab Order',
         date: '2026-05-20',
         author: 'Dr. Stephen Adeyemi',
         details: 'LDL 110 mg/dL, HDL 48 mg/dL. BP well controlled on Lisinopril 10mg.',
@@ -258,7 +263,7 @@ export const mockPatientsList: PatientData[] = [
       {
         id: 'r5',
         title: 'Spirometry Function Test',
-        type: 'Lab Result',
+        type: 'Lab Order',
         date: '2026-05-24',
         author: 'Dr. Stephen Adeyemi',
         details: 'FEV1 92% predicted. Mild reversible airway obstruction.',
@@ -324,7 +329,7 @@ export const mockPatientsList: PatientData[] = [
       {
         id: 'r7',
         title: 'HbA1c Glycated Hemoglobin',
-        type: 'Lab Result',
+        type: 'Lab Order',
         date: '2026-05-30',
         author: 'Dr. Stephen Adeyemi',
         details: 'HbA1c 6.2% (Target < 7.0%). Excellent glycemic control.',
@@ -561,7 +566,7 @@ export const mockPatientsList: PatientData[] = [
       {
         id: 'r12',
         title: 'Annual Physical Clearance Report',
-        type: 'Clinical Progress Note',
+        type: 'Clinical Note',
         date: '2026-06-18',
         author: 'Dr. Stephen Adeyemi',
         details: 'Patient in overall excellent health. Clearance granted for sport activities.',
