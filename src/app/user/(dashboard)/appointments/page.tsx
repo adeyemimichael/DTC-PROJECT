@@ -3,14 +3,32 @@
 import { useState } from 'react';
 import { Card, Badge, Button } from '@/components/ui';
 import { BookAppointmentButton } from '@/components/common/BookAppointmentButton';
-import { CalendarDays, Clock, Calendar, Video, Loader2 } from 'lucide-react';
+import {
+  CalendarDays,
+  Clock,
+  Calendar,
+  Video,
+  Loader2,
+  CreditCard,
+  RefreshCw,
+  AlertCircle,
+} from 'lucide-react';
 import { useAppointments } from '@/hooks';
+import type { Appointment } from '@/lib/types/appointment';
+import toast from 'react-hot-toast';
 
 type FilterTab = 'all' | 'upcoming' | 'past';
 
 export default function AppointmentsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const { appointments, isLoading, cancelAppointment } = useAppointments({
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const {
+    appointments,
+    isLoading,
+    cancelAppointment,
+    fetchAppointments,
+  } = useAppointments({
     autoFetch: true,
   });
 
@@ -34,6 +52,67 @@ export default function AppointmentsPage() {
 
     return true; // 'all'
   });
+
+  // Revalidate / Verify payment for an appointment
+  const handleVerifyPayment = async (app: Appointment) => {
+    // Get latest payment reference
+    const latestPayment = app.payments?.[app.payments.length - 1] || app.payments?.[0];
+    const reference = latestPayment?.paystack_reference;
+
+    if (!reference) {
+      toast.error('No payment reference found. Please click Pay Now to initiate payment.');
+      return;
+    }
+
+    setActionLoading(`verify-${app.id}`);
+    try {
+      const res = await fetch('/api/payments/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reference }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Payment not completed or verified yet.');
+      }
+
+      toast.success('Payment verified! Your appointment has been submitted for approval.');
+      await fetchAppointments();
+    } catch (err: any) {
+      toast.error(err.message || 'Payment not verified yet. Please click Pay Now to complete payment.');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  // Pay Now: reinitialize Paystack checkout and redirect
+  const handlePayNow = async (app: Appointment) => {
+    setActionLoading(`pay-${app.id}`);
+    try {
+      const res = await fetch('/api/payments/reinitialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ appointment_id: app.id }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to initialize payment.');
+      }
+
+      if (data.authorization_url) {
+        window.location.href = data.authorization_url;
+      } else {
+        throw new Error('No payment URL returned.');
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to initialize payment.');
+      setActionLoading(null);
+    }
+  };
 
   // Format date helper
   const formatDateBlock = (dateString: string) => {
@@ -136,6 +215,8 @@ export default function AppointmentsPage() {
               ? `${app.services.currency || 'NGN'} ${Number(app.services.price).toLocaleString()}`
               : 'Free';
 
+            const isPendingPayment = app.status === 'pending_payment';
+
             return (
               <Card
                 key={app.id}
@@ -177,7 +258,17 @@ export default function AppointmentsPage() {
                       {app.reason}
                     </p>
                   )}
-                  {app.meeting_link && (
+
+                  {/* Pending payment helper banner */}
+                  {isPendingPayment && (
+                    <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <span>Payment pending. Click Pay Now or Verify if already debited.</span>
+                    </div>
+                  )}
+
+                  {/* Telehealth Video Call link */}
+                  {app.meeting_link && !isPendingPayment && (
                     <div className="mt-2.5">
                       <a
                         href={app.meeting_link}
@@ -203,14 +294,49 @@ export default function AppointmentsPage() {
                     </span>
                   </div>
 
-                  {/* Actions Group (Only if not past/cancelled) */}
+                  {/* Actions Group */}
                   {!isPast && (
-                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                      {/* For Pending Payment: Show Pay Now & Verify Payment */}
+                      {isPendingPayment ? (
+                        <>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            disabled={actionLoading === `pay-${app.id}`}
+                            onClick={() => handlePayNow(app)}
+                            className="btn-primary py-1.5 px-3 text-xs font-bold inline-flex items-center gap-1.5 shadow-xs"
+                          >
+                            {actionLoading === `pay-${app.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CreditCard className="w-3.5 h-3.5" />
+                            )}
+                            Pay Now
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            disabled={actionLoading === `verify-${app.id}`}
+                            onClick={() => handleVerifyPayment(app)}
+                            className="bg-blue-50 text-primary-blue hover:bg-blue-100 border-0 py-1.5 px-3 text-xs font-semibold inline-flex items-center gap-1.5"
+                          >
+                            {actionLoading === `verify-${app.id}` ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-3.5 h-3.5" />
+                            )}
+                            Verify
+                          </Button>
+                        </>
+                      ) : null}
+
+                      {/* Cancel Button */}
                       <Button
                         variant="danger"
                         size="sm"
                         onClick={() => cancelAppointment(app.id)}
-                        className="bg-secondary-lightred text-primary-red w-full sm:w-auto border-0 hover:bg-red-100 font-semibold"
+                        className="bg-secondary-lightred text-primary-red py-1.5 px-3 text-xs border-0 hover:bg-red-100 font-semibold"
                       >
                         Cancel
                       </Button>

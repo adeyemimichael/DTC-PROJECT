@@ -22,7 +22,7 @@ export async function GET(
 
     const { data: appointment, error: aptError } = await supabase
       .from("appointments")
-      .select("*, services(*), profiles:clinician_id(id, full_name, avatar_url, phone)")
+      .select("*, services(*), profiles:clinician_id(id, full_name, avatar_url, phone), payments(id, paystack_reference, paystack_access_code, status, amount, created_at)")
       .eq("id", id)
       .single();
 

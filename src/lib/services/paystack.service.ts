@@ -65,19 +65,23 @@ export async function verifyPaystackTransaction(reference: string) {
     isSuccessful = true;
   }
 
+  let paymentRecord: any = null;
+
   if (isSuccessful) {
     const adminClient = createAdminClient();
 
     // 1. Update the payments table
-    const { data: paymentRecord, error: updatePaymentError } = await adminClient
+    const { data: updatedPayment, error: updatePaymentError } = await adminClient
       .from("payments")
       .update({
         status: "success",
         paid_at: new Date().toISOString(),
       })
       .eq("paystack_reference", reference)
-      .select("patient_id, purpose, related_appointment_id")
+      .select("patient_id, purpose, related_appointment_id, amount")
       .single();
+
+    paymentRecord = updatedPayment;
 
     if (updatePaymentError) {
       throw new Error(
@@ -122,5 +126,5 @@ export async function verifyPaystackTransaction(reference: string) {
     throw new Error("Payment verification failed or is not successful yet.");
   }
 
-  return true;
+  return { success: true, payment: paymentRecord };
 }

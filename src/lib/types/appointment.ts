@@ -45,6 +45,14 @@ export interface Appointment {
     avatar_url?: string;
     phone?: string;
   };
+  payments?: {
+    id: string;
+    paystack_reference: string;
+    paystack_access_code: string | null;
+    status: string;
+    amount: number;
+    created_at?: string;
+  }[];
 }
 
 export interface AvailableSlot {

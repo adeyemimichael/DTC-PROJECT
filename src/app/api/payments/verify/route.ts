@@ -13,11 +13,13 @@ export async function POST(request: Request) {
       );
     }
 
-    await verifyPaystackTransaction(reference);
+    const result = await verifyPaystackTransaction(reference);
 
     return NextResponse.json({
       success: true,
       message: "Payment verified successfully",
+      purpose: result.payment?.purpose,
+      payment: result.payment,
     });
   } catch (error: any) {
     console.error("Payment verification error:", error);
