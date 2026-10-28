@@ -12,6 +12,8 @@ import {
   CreditCard,
   RefreshCw,
   AlertCircle,
+  X,
+  CalendarX2,
 } from 'lucide-react';
 import { useAppointments } from '@/hooks';
 import type { Appointment } from '@/lib/types/appointment';
@@ -22,6 +24,28 @@ type FilterTab = 'all' | 'upcoming' | 'past';
 export default function AppointmentsPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Cancel confirmation modal state
+  const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+
+  const handleOpenCancelModal = (app: Appointment) => {
+    setCancelTarget(app);
+    setCancelReason('');
+  };
+
+  const handleCloseCancelModal = () => {
+    setCancelTarget(null);
+    setCancelReason('');
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTarget) return;
+    setActionLoading(`cancel-${cancelTarget.id}`);
+    await cancelAppointment(cancelTarget.id, cancelReason.trim() || undefined);
+    setActionLoading(null);
+    handleCloseCancelModal();
+  };
 
   const {
     appointments,
@@ -335,7 +359,7 @@ export default function AppointmentsPage() {
                       <Button
                         variant="danger"
                         size="sm"
-                        onClick={() => cancelAppointment(app.id)}
+                        onClick={() => handleOpenCancelModal(app)}
                         className="bg-secondary-lightred text-primary-red py-1.5 px-3 text-xs border-0 hover:bg-red-100 font-semibold"
                       >
                         Cancel
@@ -360,6 +384,124 @@ export default function AppointmentsPage() {
           </Card>
         )}
       </div>
+
+      {/* Cancel Appointment Confirmation Modal */}
+      {cancelTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+          {/* Backdrop */}
+          <div className="absolute inset-0" onClick={handleCloseCancelModal} />
+
+          <div className="relative bg-white rounded-2xl p-7 max-w-xl w-full shadow-lg border border-slate-100 z-10 animate-in slide-in-from-bottom-4 duration-200 mt-2">
+
+            {/* Header */}
+            <div className="flex items-start justify-between mb-5">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+                  <CalendarX2 className="w-5 h-5 text-primary-red" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900">
+                    Cancel Appointment
+                  </h3>
+                  <p className="text-xs text-slate-500 font-normal mt-0.5">
+                    This action cannot be undone
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleCloseCancelModal}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg transition-colors shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Appointment summary */}
+            <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 mb-5 space-y-1.5">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400 font-medium">Service</span>
+                <span className="text-slate-900 font-semibold">
+                  {cancelTarget.services?.name || 'Appointment'}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400 font-medium">Date</span>
+                <span className="text-slate-900 font-semibold">
+                  {new Date(cancelTarget.scheduled_at).toLocaleDateString('en-US', {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-400 font-medium">Time</span>
+                <span className="text-slate-900 font-semibold">
+                  {new Date(cancelTarget.scheduled_at).toLocaleTimeString('en-US', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+              {cancelTarget.profiles?.full_name && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-400 font-medium">Doctor</span>
+                  <span className="text-slate-900 font-semibold">
+                    {cancelTarget.profiles.full_name}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Reason textarea */}
+            <div className="mb-5">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Reason for cancellation{' '}
+                <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                rows={3}
+                placeholder="e.g. Schedule conflict, feeling better, need to reschedule..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                maxLength={300}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 placeholder:text-slate-400 focus:border-primary-red focus:ring-1 focus:ring-primary-red focus:outline-none resize-none transition-all font-normal"
+              />
+              <span className="text-[11px] text-slate-400 font-normal float-right mt-1">
+                {cancelReason.length}/300
+              </span>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 pt-1">
+              <Button
+                variant="secondary"
+                onClick={handleCloseCancelModal}
+                disabled={actionLoading === `cancel-${cancelTarget.id}`}
+                className="flex-1 bg-slate-100 text-slate-700 hover:bg-slate-200 border-0 font-semibold text-sm py-2.5"
+              >
+                Go Back
+              </Button>
+              <Button
+                variant="danger"
+                onClick={handleConfirmCancel}
+                disabled={actionLoading === `cancel-${cancelTarget.id}`}
+                className="flex-1 bg-primary-red hover:bg-[#d80300] text-white border-0 font-semibold text-sm py-2.5 inline-flex items-center justify-center gap-2 disabled:opacity-70"
+              >
+                {actionLoading === `cancel-${cancelTarget.id}` ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Cancelling...
+                  </>
+                ) : (
+                  'Yes, Cancel Appointment'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
