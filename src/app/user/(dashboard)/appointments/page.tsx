@@ -387,11 +387,11 @@ export default function AppointmentsPage() {
 
       {/* Cancel Appointment Confirmation Modal */}
       {cancelTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center px-4 pt-24 sm:pt-4 pb-4 bg-slate-900/20 backdrop-blur-[2px] animate-in fade-in duration-200">
           {/* Backdrop */}
           <div className="absolute inset-0" onClick={handleCloseCancelModal} />
 
-          <div className="relative bg-white rounded-2xl p-7 max-w-xl w-full shadow-lg border border-slate-100 z-10 animate-in slide-in-from-bottom-4 duration-200 mt-2">
+          <div className="relative bg-white rounded-2xl p-5 sm:p-7 max-w-xl w-full shadow-lg border border-slate-100 z-10 animate-in slide-in-from-bottom-4 duration-200">
 
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
