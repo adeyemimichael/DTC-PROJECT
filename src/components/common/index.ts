@@ -19,6 +19,10 @@ export { BookAppointmentModal } from './BookAppointmentModal';
 export { BookAppointmentButton } from './BookAppointmentButton';
 export { AppointmentDetailsModal } from './AppointmentDetailsModal';
 export type { AppointmentData } from './AppointmentDetailsModal';
+export { ApproveAppointmentModal } from './ApproveAppointmentModal';
+export { DeclineAppointmentModal } from './DeclineAppointmentModal';
+export { CompleteAppointmentModal } from './CompleteAppointmentModal';
+export { NoShowModal } from './NoShowModal';
 export { InitialVitalsModal } from './InitialVitalsModal';
 
 

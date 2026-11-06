@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { Calendar, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useBooking } from '@/context/BookingContext';
 import { useProfile } from '@/hooks';
@@ -13,6 +14,125 @@ interface PatientRecord {
   full_name?: string | null;
   email?: string | null;
 }
+
+// ── Mock data (shown when real data is empty) ─────────────────────────────────
+
+interface MockScheduleItem {
+  id: string;
+  name: string;
+  avatar: string;
+  service: string;
+  room: string;
+  time: string;
+  duration: string;
+  status: 'upcoming' | 'in_progress' | 'completed';
+  reason: string;
+}
+
+interface MockPendingRequest {
+  id: string;
+  name: string;
+  service: string;
+  time: string;
+  date: string;
+  reason: string;
+}
+
+const MOCK_SCHEDULE: MockScheduleItem[] = [
+  {
+    id: 'mock-s1',
+    name: 'Sarah Mitchell',
+    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
+    service: 'General Consultation',
+    room: 'Room 3',
+    time: '9:00 AM',
+    duration: '30 min',
+    status: 'upcoming',
+    reason: 'Annual health check-up and blood work review',
+  },
+  {
+    id: 'mock-s2',
+    name: 'Michael Chen',
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
+    service: 'Specialist Care',
+    room: 'Room 1',
+    time: '9:45 AM',
+    duration: '45 min',
+    status: 'upcoming',
+    reason: 'Persistent migraines and neurological assessment',
+  },
+  {
+    id: 'mock-s3',
+    name: 'Emily Rodriguez',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
+    service: 'General Consultation',
+    room: 'Room 2',
+    time: '11:30 AM',
+    duration: '30 min',
+    status: 'in_progress',
+    reason: 'Follow-up on thyroid panel results',
+  },
+  {
+    id: 'mock-s4',
+    name: 'David Thompson',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
+    service: 'Telemedicine',
+    room: 'Virtual',
+    time: '2:00 PM',
+    duration: '30 min',
+    status: 'in_progress',
+    reason: 'Blood pressure medication review',
+  },
+  {
+    id: 'mock-s5',
+    name: 'Aisha Okonkwo',
+    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+    service: 'Specialist Care',
+    room: 'Room 1',
+    time: '9:00 AM',
+    duration: '30 min',
+    status: 'completed',
+    reason: 'Lower back pain — possible disc issue',
+  },
+  {
+    id: 'mock-s6',
+    name: 'Robert Kim',
+    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
+    service: 'General Consultation',
+    room: 'Room 2',
+    time: '9:00 AM',
+    duration: '30 min',
+    status: 'completed',
+    reason: 'Seasonal allergy review',
+  },
+];
+
+const MOCK_PENDING: MockPendingRequest[] = [
+  {
+    id: 'mock-p1',
+    name: 'Marcus Wright',
+    service: 'General Consultation',
+    time: '9:00 AM',
+    date: 'Thu, Jun 4',
+    reason: 'New patient — comprehensive physical examination',
+  },
+  {
+    id: 'mock-p2',
+    name: 'Linda Thompson',
+    service: 'General Consultation',
+    time: '2:00 PM',
+    date: 'Fri, Jun 5',
+    reason: 'New patient — routine check-up and blood work',
+  },
+  {
+    id: 'mock-p3',
+    name: 'Sarah Mitchell',
+    service: 'Telemedicine',
+    time: '2:00 PM',
+    date: 'Mon, Jun 18',
+    reason: 'Follow-up on blood pressure medication adjustment',
+  },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -362,8 +482,71 @@ export default function DoctorsOverviewPage() {
               Loading schedule...
             </div>
           ) : todaySchedule.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-sm font-normal">
-              No appointments scheduled for today.
+            /* ── Mock schedule fallback ── */
+            <div className="space-y-4">
+              {MOCK_SCHEDULE.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#FCFCFC] hover:bg-[#f5f5f7] transition-colors border border-slate-100/60"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    {/* Time */}
+                    <div className="w-24 shrink-0">
+                      <div className="text-base font-bold text-gray-900">{item.time}</div>
+                      <div className="text-sm text-primary-gray font-normal mt-0.5">{item.duration}</div>
+                    </div>
+
+                    {/* Status dot */}
+                    <span className={`h-3 w-3 rounded-full shrink-0 ${
+                      item.status === 'completed' ? 'bg-emerald-500' :
+                      item.status === 'in_progress' ? 'bg-blue-500' :
+                      'bg-amber-500'
+                    }`} />
+
+                    {/* Avatar */}
+                    <div className="relative h-11 w-11 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
+                      <Image src={item.avatar} alt={item.name} fill className="object-cover" />
+                    </div>
+
+                    {/* Name + details */}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-bold text-gray-900 truncate">{item.name}</h3>
+                      <p className="text-[15px] text-primary-gray truncate mt-0.5 font-normal">
+                        {item.service} · {item.room} · {item.reason}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action buttons */}
+                  <div className="flex items-center gap-2.5 shrink-0">
+                    {item.status === 'upcoming' && (
+                      <>
+                        <button className="px-5 py-2.5 rounded-lg bg-[#fff8ee] text-amber-600 text-[15px] font-semibold hover:bg-amber-100 transition-colors cursor-pointer">
+                          Start
+                        </button>
+                        <button className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer">
+                          Details
+                        </button>
+                      </>
+                    )}
+                    {item.status === 'in_progress' && (
+                      <>
+                        <button className="px-5 py-2.5 rounded-lg bg-[#e6f4ea] text-[#1e8e3e] text-[15px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer">
+                          Complete
+                        </button>
+                        <button className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer">
+                          Details
+                        </button>
+                      </>
+                    )}
+                    {item.status === 'completed' && (
+                      <span className="text-[15px] font-semibold text-primary-gray px-3 py-1">
+                        Completed
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-4">
@@ -447,8 +630,38 @@ export default function DoctorsOverviewPage() {
               Loading requests...
             </div>
           ) : pendingRequests.length === 0 ? (
-            <div className="py-10 text-center text-slate-400 text-sm font-normal">
-              No pending requests right now.
+            /* ── Mock pending requests fallback ── */
+            <div className="space-y-4">
+              {MOCK_PENDING.map((req) => (
+                <div
+                  key={req.id}
+                  className="p-5 rounded-2xl border border-amber-400/40 bg-white space-y-3.5 shadow-2xs hover:border-amber-500 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-bold text-gray-900">{req.name}</h3>
+                      <p className="text-[15px] font-medium text-primary-gray mt-0.5">{req.service}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[15px] font-bold text-primary-blue block">{req.time}</span>
+                      <span className="text-sm font-semibold text-gray-400">{req.date}</span>
+                    </div>
+                  </div>
+                  <p className="text-[15px] text-primary-gray leading-relaxed font-normal">{req.reason}</p>
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-4">

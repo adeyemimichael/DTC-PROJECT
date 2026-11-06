@@ -1,4 +1,5 @@
 'use client';
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
@@ -7,13 +8,17 @@ import {
   Phone,
   Mail,
   Video,
-  UploadCloud,
   FileText,
   Printer,
   User,
   ExternalLink,
   CheckCircle2,
+  Link2,
+  Loader2,
+  Activity,
 } from 'lucide-react';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface AppointmentData {
   id: string;
@@ -29,7 +34,8 @@ export interface AppointmentData {
   isVirtual?: boolean;
   meetLink?: string;
   type: string;
-  patientId: string;
+  patientId: string;       // Truncated display ID shown in the UI
+  rawPatientId: string;    // Full UUID used for API calls (vitals, documents)
   reason: string;
   knownConditions?: string[];
   phone: string;
@@ -46,131 +52,113 @@ export interface AppointmentData {
   };
 }
 
+interface VitalRecord {
+  id: string;
+  recorded_at: string;
+  blood_pressure_systolic?: number;
+  blood_pressure_diastolic?: number;
+  heart_rate_bpm?: number;
+  temperature_c?: number;
+  weight_kg?: number;
+  blood_sugar_mmol?: number;
+}
+
+interface MedicalDocument {
+  id: string;
+  title: string;
+  category: string;
+  created_at: string;
+  pdf_storage_path: string;
+  clinician?: { full_name: string };
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
+
 interface AppointmentDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   appointment: AppointmentData | null;
   onUpdateAppointment?: (updated: AppointmentData) => void;
+  // Callbacks that open the separate action modals
+  onOpenApprove?: () => void;
+  onOpenDecline?: () => void;
+  onOpenComplete?: () => void;
+  onOpenNoShow?: () => void;
+  // Inline update link (no separate modal needed — small inline action)
+  onUpdateMeetingLink?: (id: string, link: string) => Promise<{ success: boolean }>;
+  onAppointmentUpdated?: () => void;
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function AppointmentDetailsModal({
   isOpen,
   onClose,
   appointment,
   onUpdateAppointment,
+  onOpenApprove,
+  onOpenDecline,
+  onOpenComplete,
+  onOpenNoShow,
+  onUpdateMeetingLink,
+  onAppointmentUpdated,
 }: AppointmentDetailsModalProps) {
-  const [currentModalStep, setCurrentModalStep] = useState<
-    'overview' | 'complete_form'
-  >('overview');
+  // Inline edit-link state (shown right beside the Join Meeting button)
+  const [isEditingLink, setIsEditingLink] = useState(false);
+  const [editLink, setEditLink] = useState('');
+  const [isSavingLink, setIsSavingLink] = useState(false);
 
-  const [notesText, setNotesText] = useState('');
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  // Vitals and medical documents — fetched when the modal opens
+  const [vitals, setVitals] = useState<VitalRecord[]>([]);
+  const [documents, setDocuments] = useState<MedicalDocument[]>([]);
+  const [isLoadingVitals, setIsLoadingVitals] = useState(false);
+  const [isLoadingDocs, setIsLoadingDocs] = useState(false);
 
-  // Sync state when modal opens or appointment changes
   useEffect(() => {
-    if (appointment) {
-      // Reset modal form state whenever a new appointment is opened.
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setCurrentModalStep('overview');
-      setNotesText(appointment.consultationNotes || '');
-      setUploadedFileName(appointment.medicalFile?.name || null);
+    if (appointment && isOpen) {
+      setIsEditingLink(false);
+      setEditLink(appointment.meetLink || '');
+
+      // Fetch vitals for this patient
+      setIsLoadingVitals(true);
+      fetch(`/api/patients/vitals?patient_id=${appointment.rawPatientId}`)
+        .then((r) => r.json())
+        .then((res) => setVitals(Array.isArray(res.data) ? res.data : []))
+        .catch(() => setVitals([]))
+        .finally(() => setIsLoadingVitals(false));
+
+      // Fetch medical documents for this patient
+      setIsLoadingDocs(true);
+      fetch(`/api/patients/medical-documents?patient_id=${appointment.rawPatientId}`)
+        .then((r) => r.json())
+        .then((res) => setDocuments(Array.isArray(res.data) ? res.data : []))
+        .catch(() => setDocuments([]))
+        .finally(() => setIsLoadingDocs(false));
     }
-  }, [appointment]);
+  }, [appointment?.rawPatientId, isOpen]);
 
   if (!isOpen || !appointment) return null;
 
-  const handleStartAppointment = () => {
-    const updated: AppointmentData = {
-      ...appointment,
-      status: 'in_progress',
-    };
-    if (onUpdateAppointment) onUpdateAppointment(updated);
-  };
-
-  const handleOpenCompleteForm = () => {
-    setCurrentModalStep('complete_form');
-  };
-
-  const handleSaveAndComplete = (e: React.FormEvent) => {
+  // ── Inline meeting link save ────────────────────────────────────────────────
+  async function handleSaveLink(e: React.FormEvent) {
     e.preventDefault();
-    const updated: AppointmentData = {
-      ...appointment,
-      status: 'completed',
-      consultationNotes:
-        notesText.trim() ||
-        'TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels.',
-      doctorName: appointment.doctorName || 'Dr. Stephen Adeyemi',
-      completedDate:
-        appointment.completedDate ||
-        new Date().toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        }),
-      medicalFile: uploadedFileName
-        ? {
-          name: uploadedFileName,
-          type: 'Lab Result',
-          date: new Date().toISOString().split('T')[0],
-          doctor: appointment.doctorName || 'Dr. Stephen Adeyemi',
-        }
-        : appointment.medicalFile,
-    };
-
-    if (onUpdateAppointment) onUpdateAppointment(updated);
-    setCurrentModalStep('overview');
-  };
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setUploadedFileName(e.target.files[0].name);
+    if (!editLink.trim() || !onUpdateMeetingLink) return;
+    setIsSavingLink(true);
+    const result = await onUpdateMeetingLink(appointment.id, editLink.trim());
+    setIsSavingLink(false);
+    if (result.success) {
+      setIsEditingLink(false);
+      onAppointmentUpdated?.();
     }
-  };
+  }
 
   const meetUrl = appointment.meetLink;
-
-  const mockVitalCards = [
-    { label: 'Blood Pressure', value: '118/76', unit: 'mmHg', state: 'Normal' },
-    { label: 'Heart Rate', value: '72', unit: 'bpm', state: 'Normal' },
-    { label: 'Weight', value: '68.5', unit: 'kg', state: 'Normal' },
-    { label: 'TSH', value: '2.4', unit: 'mIU/L', state: 'Normal' },
-  ];
-
-  const mockMedicalRecords = [
-    {
-      id: 'mr-1',
-      title: 'Annual Checkup',
-      type: 'Lab Result',
-      date: '2026-05-19',
-      detail: 'Updated cardiovascular risk screening',
-    },
-    {
-      id: 'mr-2',
-      title: 'Thyroid Panel',
-      type: 'Imaging Scan',
-      date: '2026-04-02',
-      detail: 'Follow-up review completed',
-    },
-    {
-      id: 'mr-3',
-      title: 'Medication Summary',
-      type: 'Clinical Note',
-      date: '2026-03-18',
-      detail: 'Dose adjustment noted by physician',
-    },
-  ];
-
-  const mockVitalHistory = [
-    { date: 'Jun 18', weight: '68.5 kg', temp: '36.8°C', hr: '72 bpm', bp: '118/76', fbs: '92 mg/dL' },
-    { date: 'May 21', weight: '69.1 kg', temp: '37.0°C', hr: '74 bpm', bp: '120/78', fbs: '94 mg/dL' },
-    { date: 'Apr 17', weight: '69.7 kg', temp: '36.9°C', hr: '76 bpm', bp: '121/79', fbs: '97 mg/dL' },
-    { date: 'Mar 08', weight: '70.2 kg', temp: '37.1°C', hr: '75 bpm', bp: '122/80', fbs: '96 mg/dL' },
-  ];
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center p-4 bg-slate-900/50 backdrop-blur-xs animate-fade-in overflow-y-auto">
       <div className="bg-white rounded-xl max-w-6xl w-full max-h-[90vh] overflow-y-auto p-6 lg:p-8 shadow-2xl relative border border-gray-100 my-6">
-        {/* Close Button */}
+
+        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors cursor-pointer z-10"
@@ -179,248 +167,227 @@ export function AppointmentDetailsModal({
           <X className="h-5 w-5" />
         </button>
 
-        {/* STEP 1: OVERVIEW MODAL  */}
-        {currentModalStep === 'overview' && (
-          <div className="space-y-6">
-            {/* Header Title */}
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Appointment Details
-              </h2>
-              <p className="text-sm font-medium text-gray-500 mt-1">
-                {appointment.date || 'Saturday, July 18, 2026'}
-              </p>
-            </div>
+        <div className="space-y-6">
 
-            {/* Patient Info Banner */}
-            <div className="bg-[#f4f4f5] rounded-2xl p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3.5 min-w-0">
-                <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-200">
-                  <Image
-                    src={appointment.avatar}
-                    alt={appointment.patientName}
-                    fill
-                    className="object-cover"
-                  />
+          {/* ── Header ── */}
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Appointment Details</h2>
+            <p className="text-sm font-medium text-gray-500 mt-1">
+              {appointment.date || 'Saturday, July 18, 2026'}
+            </p>
+          </div>
+
+          {/* ── Patient Info Banner ── */}
+          <div className="bg-[#f4f4f5] rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5 min-w-0">
+              <div className="relative h-12 w-12 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-200">
+                <Image src={appointment.avatar} alt={appointment.patientName} fill className="object-cover" />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-base font-bold text-gray-900 truncate">{appointment.patientName}</h3>
+                <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
+                  {appointment.age} years · {appointment.gender} · Blood: {appointment.bloodType}
+                </p>
+              </div>
+            </div>
+            <div className="shrink-0">
+              {appointment.status === 'upcoming' && (
+                <span className="bg-[#fee2e2] text-[#ef4444] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">Upcoming</span>
+              )}
+              {appointment.status === 'in_progress' && (
+                <span className="bg-[#e0e7ff] text-[#4f46e5] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">In Progress</span>
+              )}
+              {appointment.status === 'completed' && (
+                <span className="bg-[#e6f4ea] text-[#1e8e3e] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">Completed</span>
+              )}
+            </div>
+          </div>
+
+          {/* ── 2×2 Info Grid ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">TIME</span>
+              <p className="text-base font-bold text-gray-900">{appointment.time}</p>
+              <p className="text-xs font-medium text-gray-500">{appointment.duration}</p>
+            </div>
+            <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">ROOM</span>
+              <p className="text-base font-bold text-gray-900">{appointment.room}</p>
+              <p className="text-xs font-medium text-gray-500">{appointment.isVirtual ? 'Virtual' : 'In-person'}</p>
+            </div>
+            <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">TYPE</span>
+              <p className="text-base font-bold text-gray-900 truncate">{appointment.type}</p>
+            </div>
+            <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">PATIENT ID</span>
+              <p className="text-base font-bold text-gray-900">{appointment.patientId}</p>
+            </div>
+          </div>
+
+          {/* ── Reason for Visit ── */}
+          <div className="space-y-2">
+            <h4 className="text-base font-bold text-gray-900">Reason for Visit</h4>
+            <div className="bg-[#f4f4f5] rounded-2xl p-4 text-sm font-medium text-gray-700 leading-relaxed">
+              {appointment.reason}
+            </div>
+          </div>
+
+          {/* ── Vitals & Medical Records ── */}
+          <div className="space-y-5 pt-1 border-t border-gray-100">
+
+            {/* Latest Vital Signs */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-rose-500" />
+                <h4 className="text-base font-bold text-gray-900">Latest Vital Signs</h4>
+              </div>
+
+              {isLoadingVitals ? (
+                <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading vitals...
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-gray-900 truncate">
-                    {appointment.patientName}
-                  </h3>
-                  <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
-                    {appointment.age} years · {appointment.gender} Blood:{' '}
-                    {appointment.bloodType}
-                  </p>
-                </div>
-              </div>
+              ) : vitals.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">No vitals recorded yet.</p>
+              ) : (
+                <>
+                  {/* Latest reading cards */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {(() => {
+                      const latest = vitals[0];
+                      const cards = [
+                        {
+                          label: 'Blood Pressure',
+                          value: latest.blood_pressure_systolic && latest.blood_pressure_diastolic
+                            ? `${latest.blood_pressure_systolic}/${latest.blood_pressure_diastolic}`
+                            : '—',
+                          unit: 'mmHg',
+                        },
+                        { label: 'Heart Rate', value: latest.heart_rate_bpm ?? '—', unit: 'bpm' },
+                        { label: 'Weight',     value: latest.weight_kg ?? '—',      unit: 'kg'  },
+                        { label: 'Blood Sugar', value: latest.blood_sugar_mmol ?? '—', unit: 'mmol/L' },
+                      ];
+                      return cards.map((card) => (
+                        <div key={card.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                          <div className="mb-2 flex items-center gap-1.5">
+                            <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                            <span className="text-[11px] font-semibold text-emerald-600">Recorded</span>
+                          </div>
+                          <p className="text-lg font-bold text-gray-900">
+                            {String(card.value)}
+                            <span className="ml-1 text-xs font-medium text-gray-500">{card.unit}</span>
+                          </p>
+                          <p className="mt-1 text-xs font-medium text-gray-500">{card.label}</p>
+                        </div>
+                      ));
+                    })()}
+                  </div>
 
-              {/* Status Badge */}
-              <div className="shrink-0">
-                {appointment.status === 'upcoming' && (
-                  <span className="bg-[#fee2e2] text-[#ef4444] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
-                    Upcoming
-                  </span>
-                )}
-                {appointment.status === 'in_progress' && (
-                  <span className="bg-[#e0e7ff] text-[#4f46e5] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
-                    In Progress
-                  </span>
-                )}
-                {appointment.status === 'completed' && (
-                  <span className="bg-[#e6f4ea] text-[#1e8e3e] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
-                    Completed
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* 2x2 Grid Info Cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
-                  TIME
-                </span>
-                <p className="text-base font-bold text-gray-900">
-                  {appointment.time}
-                </p>
-                <p className="text-xs font-medium text-gray-500">
-                  {appointment.duration}
-                </p>
-              </div>
-
-              <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
-                  ROOM
-                </span>
-                <p className="text-base font-bold text-gray-900">
-                  {appointment.room}
-                </p>
-                <p className="text-xs font-medium text-gray-500">
-                  {appointment.isVirtual ? 'Virtual' : 'In-person'}
-                </p>
-              </div>
-
-              <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
-                  TYPE
-                </span>
-                <p className="text-base font-bold text-gray-900 truncate">
-                  {appointment.type}
-                </p>
-              </div>
-
-              <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
-                  PATIENT ID
-                </span>
-                <p className="text-base font-bold text-gray-900">
-                  {appointment.patientId}
-                </p>
-              </div>
-            </div>
-
-            {/* Reason for Visit */}
-            <div className="space-y-2">
-              <h4 className="text-base font-bold text-gray-900">
-                Reason for Visit
-              </h4>
-              <div className="bg-[#f4f4f5] rounded-2xl p-4 text-sm font-medium text-gray-700 leading-relaxed">
-                {appointment.reason}
-              </div>
-            </div>
-
-            {/* UI-only mock patient data blocks for design review */}
-            <div className="space-y-5 pt-1 border-t border-gray-100">
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
-                  <h4 className="text-base font-bold text-gray-900">
-                    Latest Vital Signs
-                  </h4>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  {mockVitalCards.map((vital) => (
-                    <div
-                      key={vital.label}
-                      className="rounded-2xl border border-slate-100 bg-slate-50 p-4"
-                    >
-                      <div className="mb-2 flex items-center gap-1.5">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500" />
-                        <span className="text-[11px] font-semibold text-emerald-600">
-                          {vital.state}
-                        </span>
-                      </div>
-
-                      <p className="text-lg font-bold text-gray-900">
-                        {vital.value}
-                        <span className="ml-1 text-xs font-medium text-gray-500">
-                          {vital.unit}
-                        </span>
-                      </p>
-                      <p className="mt-1 text-xs font-medium text-gray-500">
-                        {vital.label}
-                      </p>
+                  {/* Vitals history table */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle2 className="h-4 w-4 text-blue-600" />
+                      <h4 className="text-base font-bold text-gray-900">Vitals Tracking History</h4>
                     </div>
-                  ))}
-                </div>
-              </section>
+                    <div className="overflow-hidden rounded-2xl border border-slate-100">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-xs uppercase tracking-wide text-gray-500">
+                          <tr>
+                            <th className="px-3 py-2.5 font-semibold">Date</th>
+                            <th className="px-3 py-2.5 font-semibold">Weight</th>
+                            <th className="px-3 py-2.5 font-semibold">Temp</th>
+                            <th className="px-3 py-2.5 font-semibold">HR</th>
+                            <th className="px-3 py-2.5 font-semibold">BP</th>
+                            <th className="px-3 py-2.5 font-semibold">Sugar</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {vitals.map((v, i) => (
+                            <tr key={v.id} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}>
+                              <td className="px-3 py-2.5 font-medium text-gray-700">
+                                {new Date(v.recorded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                              </td>
+                              <td className="px-3 py-2.5 text-gray-700">{v.weight_kg ? `${v.weight_kg} kg` : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{v.temperature_c ? `${v.temperature_c}°C` : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">{v.heart_rate_bpm ? `${v.heart_rate_bpm} bpm` : '—'}</td>
+                              <td className="px-3 py-2.5 text-gray-700">
+                                {v.blood_pressure_systolic && v.blood_pressure_diastolic
+                                  ? `${v.blood_pressure_systolic}/${v.blood_pressure_diastolic}`
+                                  : '—'}
+                              </td>
+                              <td className="px-3 py-2.5 text-gray-700">{v.blood_sugar_mmol ? `${v.blood_sugar_mmol} mmol` : '—'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              )}
+            </section>
 
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                  <h4 className="text-base font-bold text-gray-900">
-                    Vitals Tracking History
-                  </h4>
-                </div>
+            {/* Medical Records */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-gray-600" />
+                <h4 className="text-base font-bold text-gray-900">Medical Records</h4>
+              </div>
 
-                <div className="overflow-hidden rounded-2xl border border-slate-100">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-xs uppercase tracking-wide text-gray-500">
-                      <tr>
-                        <th className="px-3 py-2.5 font-semibold">Date</th>
-                        <th className="px-3 py-2.5 font-semibold">Weight</th>
-                        <th className="px-3 py-2.5 font-semibold">Temp</th>
-                        <th className="px-3 py-2.5 font-semibold">HR</th>
-                        <th className="px-3 py-2.5 font-semibold">BP</th>
-                        <th className="px-3 py-2.5 font-semibold">FBS</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {mockVitalHistory.map((row, index) => (
-                        <tr
-                          key={row.date}
-                          className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'}
-                        >
-                          <td className="px-3 py-2.5 font-medium text-gray-700">{row.date}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{row.weight}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{row.temp}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{row.hr}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{row.bp}</td>
-                          <td className="px-3 py-2.5 text-gray-700">{row.fbs}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              {isLoadingDocs ? (
+                <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading records...
                 </div>
-              </section>
-
-              <section className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <FileText className="h-4 w-4 text-gray-600" />
-                  <h4 className="text-base font-bold text-gray-900">
-                    Medical Records
-                  </h4>
-                </div>
-
+              ) : documents.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">No medical documents uploaded yet.</p>
+              ) : (
                 <div className="space-y-3">
-                  {mockMedicalRecords.map((record) => (
-                    <div
-                      key={record.id}
-                      className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-4"
-                    >
+                  {documents.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-white p-4">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-slate-600 shrink-0">
                           <FileText className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-gray-900">
-                            {record.title}
-                            <span className="ml-1 text-xs font-medium text-blue-600">
-                              {record.type}
-                            </span>
+                            {doc.title}
+                            <span className="ml-1 text-xs font-medium text-blue-600 capitalize">{doc.category}</span>
                           </p>
                           <p className="mt-0.5 text-xs text-gray-500">
-                            {record.date} · {record.detail}
+                            {new Date(doc.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                            {doc.clinician?.full_name ? ` · ${doc.clinician.full_name}` : ''}
                           </p>
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        className="shrink-0 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 transition-colors hover:bg-blue-100"
+                      <a
+                        href={`/api/patients/medical-documents/${doc.id}/download`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-600 hover:bg-blue-100 transition-colors cursor-pointer"
                       >
                         View
-                      </button>
+                      </a>
                     </div>
                   ))}
                 </div>
-              </section>
-            </div>
+              )}
+            </section>
+          </div>
 
-            {/* Google Meet Link Section  */}
-            {(appointment.isVirtual ||
-              appointment.type.toLowerCase().includes('telemedicine') ||
-              appointment.status === 'in_progress') && (
-                <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-[#0149ff] text-white flex items-center justify-center shrink-0">
-                      <Video className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
-                        Google Meet Link
-                      </span>
+          {/* ── Google Meet Link + inline Update Link ── */}
+          {(appointment.isVirtual || appointment.type.toLowerCase().includes('telemedicine') || appointment.status === 'in_progress') && (
+            <div className="bg-[#eff6ff] border border-[#bfdbfe] rounded-2xl p-4 space-y-3">
+
+              {/* Link display row */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-xl bg-[#0149ff] text-white flex items-center justify-center shrink-0">
+                    <Video className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">Google Meet Link</span>
+                    {meetUrl ? (
                       <a
                         href={meetUrl}
                         target="_blank"
@@ -430,223 +397,189 @@ export function AppointmentDetailsModal({
                         <span className="truncate">{meetUrl}</span>
                         <ExternalLink className="h-3.5 w-3.5 shrink-0" />
                       </a>
-                    </div>
+                    ) : (
+                      <span className="text-sm text-gray-400 font-medium mt-0.5 block">No link added yet</span>
+                    )}
                   </div>
+                </div>
 
-                  <a
-                    href={meetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="px-4 py-2.5 text-primary-blue font-bold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center"
+                {/* Join + Update Link buttons side by side */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {meetUrl && (
+                    <a
+                      href={meetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-4 py-2.5 text-primary-blue font-bold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center whitespace-nowrap"
+                    >
+                      Join Meeting
+                    </a>
+                  )}
+                  {appointment.status !== 'completed' && (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditingLink((v) => !v)}
+                      className="px-4 py-2.5 bg-[#0149ff] text-white font-bold text-sm rounded-2xl hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      {meetUrl ? 'Update Link' : 'Add Link'}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Inline edit form — shown when Update Link is clicked */}
+              {isEditingLink && appointment.status !== 'completed' && (
+                <form onSubmit={handleSaveLink} className="flex items-center gap-2 pt-1">
+                  <input
+                    required
+                    type="url"
+                    value={editLink}
+                    onChange={(e) => setEditLink(e.target.value)}
+                    placeholder="https://meet.google.com/xxx-xxxx-xxx"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-[#bfdbfe] bg-white text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0149ff]/20 focus:border-[#0149ff] transition-all"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSavingLink || !editLink.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-[#0149ff] text-white font-bold text-sm hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 whitespace-nowrap"
                   >
-                    Join Meeting
-                  </a>
-                </div>
+                    {isSavingLink ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    {isSavingLink ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setIsEditingLink(false); setEditLink(appointment.meetLink || ''); }}
+                    className="px-3 py-2.5 rounded-xl bg-white border border-[#bfdbfe] text-gray-600 font-semibold text-sm hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </form>
               )}
+            </div>
+          )}
 
-            {/* Known Conditions (If not completed) */}
-            {appointment.status !== 'completed' &&
-              appointment.knownConditions &&
-              appointment.knownConditions.length > 0 && (
-                <div className="space-y-2">
-                  <h4 className="text-base font-bold text-gray-900">
-                    Known Conditions
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {appointment.knownConditions.map((cond, i) => (
-                      <span
-                        key={i}
-                        className="bg-[#e8f0fe] text-[#1a73e8] text-xs font-semibold px-4 py-2 rounded-full"
-                      >
-                        {cond}
-                      </span>
-                    ))}
-                  </div>
+          {/* ── Known Conditions ── */}
+          {appointment.status !== 'completed' && appointment.knownConditions && appointment.knownConditions.length > 0 && (
+            <div className="space-y-2">
+              <h4 className="text-base font-bold text-gray-900">Known Conditions</h4>
+              <div className="flex flex-wrap gap-2">
+                {appointment.knownConditions.map((cond, i) => (
+                  <span key={i} className="bg-[#e8f0fe] text-[#1a73e8] text-xs font-semibold px-4 py-2 rounded-full">
+                    {cond}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ── Contact Information ── */}
+          {appointment.status !== 'completed' && (
+            <div className="space-y-2.5 pt-1 border-t border-gray-100">
+              <h4 className="text-base font-bold text-gray-900">Contact Information</h4>
+              <div className="space-y-2 text-sm font-medium text-gray-700">
+                <div className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  <span>{appointment.phone}</span>
                 </div>
-              )}
+                <div className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 text-gray-400" />
+                  <span>{appointment.email}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
-            {/* Contact Information (If not completed) */}
-            {appointment.status !== 'completed' && (
-              <div className="space-y-2.5 pt-1 border-t border-gray-100">
-                <h4 className="text-base font-bold text-gray-900">
-                  Contact Information
-                </h4>
-                <div className="space-y-2 text-sm font-medium text-gray-700">
-                  <div className="flex items-center gap-3">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <span>{appointment.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Mail className="h-4 w-4 text-gray-400" />
-                    <span>{appointment.email}</span>
+          {/* ── Completed: Notes & Medical File ── */}
+          {appointment.status === 'completed' && (
+            <>
+              <div className="space-y-2">
+                <h4 className="text-base font-bold text-gray-900">Consultation Notes</h4>
+                <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-5 space-y-3">
+                  <p className="text-sm font-medium text-gray-800 leading-relaxed italic">
+                    &quot;{appointment.consultationNotes || 'TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels.'}&quot;
+                  </p>
+                  <div className="flex items-center gap-2 text-xs font-bold text-[#16a34a]">
+                    <User className="h-3.5 w-3.5" />
+                    <span>{appointment.doctorName || 'Dr. Stephen Adeyemi'} · {appointment.completedDate || 'May 30, 2026'}</span>
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Completed State: Consultation Notes & Medical File */}
-            {appointment.status === 'completed' && (
-              <>
-                {/* Consultation Notes Card */}
-                <div className="space-y-2">
-                  <h4 className="text-base font-bold text-gray-900">
-                    Consultation Notes
-                  </h4>
-                  <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-5 space-y-3">
-                    <p className="text-sm font-medium text-gray-800 leading-relaxed italic">
-                      &quot;
-                      {appointment.consultationNotes ||
-                        'TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels.'}
-                      &quot;
-                    </p>
-                    <div className="flex items-center gap-2 text-xs font-bold text-[#16a34a]">
-                      <User className="h-3.5 w-3.5" />
-                      <span>
-                        {appointment.doctorName || 'Dr. Stephen Adeyemi'} ·{' '}
-                        {appointment.completedDate || 'May 30, 2026'}
-                      </span>
+              <div className="space-y-2">
+                <h4 className="text-base font-bold text-gray-900">Medical File</h4>
+                <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-10 w-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
+                      <FileText className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="text-sm font-bold text-gray-900 truncate">{appointment.medicalFile?.name || 'Lipid Panel'}</h5>
+                      <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
+                        {appointment.medicalFile?.type || 'Lab Result'} · {appointment.medicalFile?.date || '2026-05-18'} · {appointment.medicalFile?.doctor || 'Dr. Stephen Adeyemi'}
+                      </p>
                     </div>
                   </div>
+                  <button
+                    onClick={() => alert('Downloading medical file...')}
+                    className="h-9 w-9 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
+                    title="Download/Print File"
+                  >
+                    <Printer className="h-4 w-4" />
+                  </button>
                 </div>
+              </div>
+            </>
+          )}
 
-                {/* Medical File Card */}
-                <div className="space-y-2">
-                  <h4 className="text-base font-bold text-gray-900">
-                    Medical File
-                  </h4>
-                  <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-2xs">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="h-10 w-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
-                        <FileText className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0">
-                        <h5 className="text-sm font-bold text-gray-900 truncate">
-                          {appointment.medicalFile?.name || 'Lipid Panel'}
-                        </h5>
-                        <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
-                          {appointment.medicalFile?.type || 'Lab Result'} ·{' '}
-                          {appointment.medicalFile?.date || '2026-05-18'} ·{' '}
-                          {appointment.medicalFile?.doctor ||
-                            'Dr. Stephen Adeyemi'}
-                        </p>
-                      </div>
-                    </div>
+          {/* ── Bottom Primary Action Buttons ── */}
+          <div className="pt-4 border-t border-gray-100 space-y-3">
 
-                    <button
-                      onClick={() => alert('Downloading medical file...')}
-                      className="h-9 w-9 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                      title="Download/Print File"
-                    >
-                      <Printer className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Bottom Primary Action Button */}
-            <div className="pt-4 border-t border-gray-100">
-              {appointment.status === 'upcoming' && (
+            {/* upcoming: Start Appointment → opens ApproveAppointmentModal */}
+            {appointment.status === 'upcoming' && (
+              <div className="flex gap-3">
                 <button
-                  onClick={handleStartAppointment}
-                  className="w-full py-4 rounded-2xl bg-[#f80400] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
+                  onClick={() => { onClose(); onOpenApprove?.(); }}
+                  className="flex-1 py-4 rounded-2xl bg-[#f80400] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
                 >
                   Start Appointment
                 </button>
-              )}
-
-              {appointment.status === 'in_progress' && (
                 <button
-                  onClick={handleOpenCompleteForm}
+                  onClick={() => { onClose(); onOpenDecline?.(); }}
+                  className="px-5 py-4 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                >
+                  Decline
+                </button>
+              </div>
+            )}
+
+            {/* in_progress: Complete + No-Show + Decline */}
+            {appointment.status === 'in_progress' && (
+              <>
+                <button
+                  onClick={() => { onClose(); onOpenComplete?.(); }}
                   className="w-full py-4 rounded-2xl bg-[#0149ff] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
                 >
                   Complete Appointment
                 </button>
-              )}
-            </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { onClose(); onOpenNoShow?.(); }}
+                    className="py-3 rounded-xl bg-[#e7eeff] text-[#0149ff] font-semibold text-sm hover:bg-secondary-blue transition-colors cursor-pointer text-center"
+                  >
+                    No-Show
+                  </button>
+                  <button
+                    onClick={() => { onClose(); onOpenDecline?.(); }}
+                    className="py-3 rounded-xl bg-rose-50 text-rose-600 font-semibold text-sm hover:bg-rose-100 transition-colors cursor-pointer text-center"
+                  >
+                    Decline
+                  </button>
+                </div>
+              </>
+            )}
           </div>
-        )}
 
-        {/* ----------------- STEP 2: COMPLETE APPOINTMENT FORM ----------------- */}
-        {currentModalStep === 'complete_form' && (
-          <form onSubmit={handleSaveAndComplete} className="space-y-6">
-            {/* Header */}
-            <div className="pb-3 border-b border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Complete Appointment
-              </h2>
-              <p className="text-sm font-medium text-gray-500 mt-1">
-                Add consultation notes before marking as completed.
-              </p>
-            </div>
-
-            {/* Consultation Notes Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-900">
-                Consultation Notes <span className="text-gray-400 font-normal">(required)</span>
-              </label>
-              <textarea
-                required
-                maxLength={500}
-                value={notesText}
-                onChange={(e) => setNotesText(e.target.value)}
-                placeholder="Enter diagnosis, treatment plan, prescriptions, and follow-up recommendations..."
-                className="w-full h-36 p-4 rounded-2xl border border-gray-200 text-sm font-medium text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0149ff]/20 focus:border-[#0149ff] transition-all resize-none"
-              />
-              <div className="text-right text-xs font-medium text-gray-400">
-                {notesText.length}/500
-              </div>
-            </div>
-
-            {/* Upload Medical Record Field */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-900">
-                Upload Medical Record <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <p className="text-xs text-gray-500 leading-relaxed font-medium">
-                Upload your medical documents — lab results, imaging scans, prescriptions, or clinical notes. Supported formats: PDF, JPG, PNG, DICOM (max 25 MB).
-              </p>
-
-              <label className="border-2 border-dashed border-gray-200 hover:border-[#0149ff] rounded-2xl p-6 flex flex-col items-center justify-center gap-2.5 bg-gray-50/50 hover:bg-blue-50/20 transition-all cursor-pointer group">
-                <input
-                  type="file"
-                  onChange={handleFileUpload}
-                  accept=".pdf,.jpg,.jpeg,.png,.dicom"
-                  className="hidden"
-                />
-                <div className="h-12 w-12 rounded-full bg-gray-100 group-hover:bg-blue-100/70 text-gray-500 group-hover:text-[#0149ff] flex items-center justify-center transition-colors">
-                  <UploadCloud className="h-6 w-6" />
-                </div>
-
-                <div className="text-center">
-                  <span className="text-sm font-bold text-gray-800 block">
-                    {uploadedFileName || 'Drag & drop your file here'}
-                  </span>
-                  <span className="text-xs font-semibold text-gray-400 block mt-0.5">
-                    or click to browse files
-                  </span>
-                </div>
-              </label>
-            </div>
-
-            {/* Bottom Action Buttons */}
-            <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-              <button
-                type="button"
-                onClick={() => setCurrentModalStep('overview')}
-                className="flex-1 py-3.5 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer text-center"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-3.5 rounded-2xl bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold text-sm transition-colors cursor-pointer text-center shadow-md"
-              >
-                Save & Complete
-              </button>
-            </div>
-          </form>
-        )}
+        </div>
       </div>
     </div>
   );
