@@ -16,7 +16,10 @@ import {
   Link2,
   Loader2,
   Activity,
+  AlertTriangle,
 } from "lucide-react";
+
+import type { AppointmentStatus } from "@/lib/types/appointment";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,7 +44,17 @@ export interface AppointmentData {
   knownConditions?: string[];
   phone: string;
   email: string;
-  status: "upcoming" | "in_progress" | "completed";
+  status:
+    | "pending"
+    | "upcoming"
+    | "in_progress"
+    | "completed"
+    | "cancelled"
+    | "declined";
+  rawStatus?: AppointmentStatus;
+  cancellationReason?: string;
+  cancelledBy?: string;
+  scheduledAt?: string;
   consultationNotes?: string;
   doctorName?: string;
   completedDate?: string;
@@ -83,6 +96,8 @@ interface AppointmentDetailsModalProps {
   // Callbacks that open the separate action modals
   onOpenApprove?: () => void;
   onOpenDecline?: () => void;
+  onOpenCancel?: () => void;
+  onOpenReschedule?: () => void;
   onOpenComplete?: () => void;
   onOpenNoShow?: () => void;
   // Inline update link (no separate modal needed — small inline action)
@@ -102,6 +117,8 @@ export function AppointmentDetailsModal({
   onUpdateAppointment,
   onOpenApprove,
   onOpenDecline,
+  onOpenCancel,
+  onOpenReschedule,
   onOpenComplete,
   onOpenNoShow,
   onUpdateMeetingLink,
@@ -149,7 +166,6 @@ export function AppointmentDetailsModal({
         fetch(`/api/patients/uploads?id=${appointment.patientUploadId}`)
           .then((r) => r.json())
           .then((res) => {
-            console.log(res.data);
             setPatientUpload(res.data);
           })
           .catch(() => setPatientUpload(null))
@@ -220,16 +236,41 @@ export function AppointmentDetailsModal({
               </div>
             </div>
             <div className="shrink-0">
-              {appointment.status === "upcoming" && (
-                <span className="bg-[#fee2e2] text-[#ef4444] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
-                  Upcoming
+              {(appointment.status === "pending" ||
+                appointment.rawStatus === "pending_approval" ||
+                appointment.rawStatus === "pending") && (
+                <span className="bg-[#fef3c7] text-[#d97706] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
+                  Pending Approval
                 </span>
               )}
-              {appointment.status === "in_progress" && (
+              {(appointment.status === "cancelled" ||
+                appointment.rawStatus === "cancelled") && (
+                <span className="bg-rose-100 text-rose-700 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
+                  Cancelled
+                </span>
+              )}
+              {(appointment.status === "declined" ||
+                appointment.rawStatus === "declined") && (
+                <span className="bg-gray-200 text-gray-700 text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
+                  Declined
+                </span>
+              )}
+              {(appointment.status === "in_progress" ||
+                appointment.rawStatus === "confirmed") && (
                 <span className="bg-[#e0e7ff] text-[#4f46e5] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
-                  In Progress
+                  Confirmed
                 </span>
               )}
+              {appointment.status === "upcoming" &&
+                appointment.rawStatus !== "pending_approval" &&
+                appointment.rawStatus !== "pending" &&
+                appointment.rawStatus !== "confirmed" &&
+                appointment.rawStatus !== "cancelled" &&
+                appointment.rawStatus !== "declined" && (
+                  <span className="bg-[#fee2e2] text-[#ef4444] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
+                    Upcoming
+                  </span>
+                )}
               {appointment.status === "completed" && (
                 <span className="bg-[#e6f4ea] text-[#1e8e3e] text-xs font-semibold px-3 py-1.5 rounded-lg inline-block">
                   Completed
@@ -237,6 +278,31 @@ export function AppointmentDetailsModal({
               )}
             </div>
           </div>
+
+          {/* ── Cancellation / Decline Reason Banner ── */}
+          {(appointment.status === "cancelled" ||
+            appointment.status === "declined" ||
+            appointment.rawStatus === "cancelled" ||
+            appointment.rawStatus === "declined" ||
+            appointment.cancellationReason) && (
+            <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 space-y-1">
+              <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <span>
+                  {appointment.status === "declined" ||
+                  appointment.rawStatus === "declined"
+                    ? "Appointment Declined"
+                    : "Appointment Cancelled"}
+                  {appointment.cancelledBy
+                    ? ` by ${appointment.cancelledBy}`
+                    : ""}
+                </span>
+              </div>
+              <p className="text-sm text-gray-700 font-normal pl-6 leading-relaxed">
+                {appointment.cancellationReason || "No reason specified."}
+              </p>
+            </div>
+          )}
 
           {/* ── 2×2 Info Grid ── */}
           <div className="grid grid-cols-2 gap-3">
@@ -695,120 +761,112 @@ export function AppointmentDetailsModal({
 
           {/* ── Completed: Notes & Medical File ── */}
           {appointment.status === "completed" && (
-            <>
-              <div className="space-y-2">
-                <h4 className="text-base font-bold text-gray-900">
-                  Consultation Notes
-                </h4>
-                <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-5 space-y-3">
-                  <p className="text-sm font-medium text-gray-800 leading-relaxed italic">
-                    &quot;
-                    {appointment.consultationNotes ||
-                      "TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels."}
-                    &quot;
-                  </p>
-                  <div className="flex items-center gap-2 text-xs font-bold text-[#16a34a]">
-                    <User className="h-3.5 w-3.5" />
-                    <span>
-                      {appointment.doctorName || "Dr. Stephen Adeyemi"} ·{" "}
-                      {appointment.completedDate || "May 30, 2026"}
-                    </span>
-                  </div>
+            <div className="space-y-2">
+              <h4 className="text-base font-bold text-gray-900">
+                Consultation Notes
+              </h4>
+              <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-5 space-y-3">
+                <p className="text-sm font-medium text-gray-800 leading-relaxed italic">
+                  &quot;
+                  {appointment.consultationNotes ||
+                    "TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels."}
+                  &quot;
+                </p>
+                <div className="flex items-center gap-2 text-xs font-bold text-[#16a34a]">
+                  <User className="h-3.5 w-3.5" />
+                  <span>
+                    {appointment.doctorName || "Dr. Stephen Adeyemi"} ·{" "}
+                    {appointment.completedDate || "May 30, 2026"}
+                  </span>
                 </div>
               </div>
-              <div className="space-y-2">
-                <h4 className="text-base font-bold text-gray-900">
-                  Medical File
-                </h4>
-                <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-2xs">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-gray-100 text-gray-600 flex items-center justify-center shrink-0">
-                      <FileText className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className="text-sm font-bold text-gray-900 truncate">
-                        {appointment.medicalFile?.name || "Lipid Panel"}
-                      </h5>
-                      <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
-                        {appointment.medicalFile?.type || "Lab Result"} ·{" "}
-                        {appointment.medicalFile?.date || "2026-05-18"} ·{" "}
-                        {appointment.medicalFile?.doctor ||
-                          "Dr. Stephen Adeyemi"}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => alert("Downloading medical file...")}
-                    className="h-9 w-9 rounded-xl bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center justify-center shrink-0 cursor-pointer"
-                    title="Download/Print File"
-                  >
-                    <Printer className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </>
+            </div>
           )}
 
           {/* ── Bottom Primary Action Buttons ── */}
           <div className="pt-4 border-t border-gray-100 space-y-3">
-            {/* upcoming: Start Appointment → opens ApproveAppointmentModal */}
-            {appointment.status === "upcoming" && (
-              <div className="flex gap-3">
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenApprove?.();
-                  }}
-                  className="flex-1 py-4 rounded-2xl bg-[#f80400] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
-                >
-                  Start Appointment
-                </button>
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenDecline?.();
-                  }}
-                  className="px-5 py-4 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
-                >
-                  Decline
-                </button>
-              </div>
+            {/* cancelled or declined: Reschedule Appointment */}
+            {(appointment.status === "cancelled" ||
+              appointment.status === "declined" ||
+              appointment.rawStatus === "cancelled" ||
+              appointment.rawStatus === "declined") && (
+              <button
+                onClick={() => {
+                  onClose();
+                  onOpenReschedule?.();
+                }}
+                className="w-full py-4 rounded-2xl bg-primary-blue text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center flex items-center justify-center gap-2"
+              >
+                Reschedule Appointment
+              </button>
             )}
 
-            {/* in_progress: Complete + No-Show + Decline */}
-            {appointment.status === "in_progress" && (
-              <>
-                <button
-                  onClick={() => {
-                    onClose();
-                    onOpenComplete?.();
-                  }}
-                  className="w-full py-4 rounded-2xl bg-[#0149ff] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
-                >
-                  Complete Appointment
-                </button>
-                <div className="grid grid-cols-2 gap-2">
+            {/* pending: Approve Appointment + Decline */}
+            {(appointment.status === "pending" ||
+              appointment.rawStatus === "pending_approval" ||
+              appointment.rawStatus === "pending") &&
+              appointment.rawStatus !== "cancelled" &&
+              appointment.rawStatus !== "declined" && (
+                <div className="flex gap-3">
                   <button
                     onClick={() => {
                       onClose();
-                      onOpenNoShow?.();
+                      onOpenApprove?.();
                     }}
-                    className="py-3 rounded-xl bg-[#e7eeff] text-[#0149ff] font-semibold text-sm hover:bg-secondary-blue transition-colors cursor-pointer text-center"
+                    className="flex-1 py-4 rounded-2xl bg-primary-red text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
                   >
-                    No-Show
+                    Approve Appointment
                   </button>
                   <button
                     onClick={() => {
                       onClose();
                       onOpenDecline?.();
                     }}
-                    className="py-3 rounded-xl bg-rose-50 text-rose-600 font-semibold text-sm hover:bg-rose-100 transition-colors cursor-pointer text-center"
+                    className="px-5 py-4 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
                   >
                     Decline
                   </button>
                 </div>
-              </>
-            )}
+              )}
+
+            {/* in_progress / confirmed: Complete + No-Show + Cancel */}
+            {(appointment.status === "in_progress" ||
+              (appointment.status === "upcoming" &&
+                appointment.rawStatus === "confirmed")) &&
+              appointment.rawStatus !== "cancelled" &&
+              appointment.rawStatus !== "declined" && (
+                <>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenComplete?.();
+                    }}
+                    className="w-full py-4 rounded-2xl bg-[#0149ff] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
+                  >
+                    Complete Appointment
+                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenNoShow?.();
+                      }}
+                      className="py-3 rounded-xl bg-[#e7eeff] text-[#0149ff] font-semibold text-sm hover:bg-secondary-blue transition-colors cursor-pointer text-center"
+                    >
+                      No-Show
+                    </button>
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenCancel?.();
+                      }}
+                      className="py-3 rounded-xl bg-rose-50 text-rose-600 font-semibold text-sm hover:bg-rose-100 transition-colors cursor-pointer text-center"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </>
+              )}
           </div>
         </div>
       </div>

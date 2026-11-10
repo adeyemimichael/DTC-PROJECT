@@ -131,7 +131,7 @@ export function NextAppointmentCard() {
   }
 
   const serviceName  = next.services?.name || 'Consultation';
-  const doctorName   = next.profiles?.full_name || 'Assigned Clinician';
+  const doctorName   = next.clinician?.full_name || 'Assigned Clinician';
   const price        = Number(next.services?.price ?? 0);
   const currency     = next.services?.currency || 'NGN';
   const durationMins = next.services?.duration_minutes ?? next.services?.duration ?? 30;
@@ -253,10 +253,10 @@ export function NextAppointmentCard() {
                   })}
                 </span>
               </div>
-              {next.profiles?.full_name && (
+              {next.clinician?.full_name && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400 font-medium">Doctor</span>
-                  <span className="text-slate-900 font-semibold">{next.profiles.full_name}</span>
+                  <span className="text-slate-900 font-semibold">{next.clinician?.full_name}</span>
                 </div>
               )}
             </div>

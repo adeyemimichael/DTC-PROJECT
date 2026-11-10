@@ -52,6 +52,10 @@ export interface Appointment {
     passport_url?: string;
     passport_signed_url?: string | null;
     phone?: string;
+    date_of_birth?: string;
+    gender?: string;
+    blood_group?: string;
+    email?: string;
   };
   payments?: {
     id: string;

@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       (formData.get("category") as string | null) ?? "prescription";
     const title = formData.get("title") as string | null;
     const detailsString = formData.get("details") as string | null;
-    const status = (formData.get("status") as string | null) ?? "active";
+    const status = formData.get("status") as string | null;
 
     let details = {};
     if (detailsString) {
@@ -85,16 +85,6 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-    }
-
-    if (!file) {
-      return NextResponse.json(
-        {
-          error:
-            "No file provided. Send a multipart/form-data request with a 'file' field.",
-        },
-        { status: 400 },
-      );
     }
 
     if (!patient_id) {
@@ -110,41 +100,46 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    let storagePath: string | null = null;
 
-    // ── Validate mime type (medical-documents bucket: pdf only) ──────────────
-    if (file.type !== "application/pdf") {
-      return NextResponse.json(
-        { error: `Unsupported file type: ${file.type}. Only PDF is accepted.` },
-        { status: 400 },
-      );
-    }
+    if (file) {
+      // ── Validate mime type (medical-documents bucket: pdf only) ──────────────
+      if (file.type !== "application/pdf") {
+        return NextResponse.json(
+          {
+            error: `Unsupported file type: ${file.type}. Only PDF is accepted.`,
+          },
+          { status: 400 },
+        );
+      }
 
-    // ── Validate file size (bucket limit: 10 MB) ──────────────────────────────
-    const maxBytes = 10 * 1024 * 1024;
-    if (file.size > maxBytes) {
-      return NextResponse.json(
-        { error: "PDF must be smaller than 10 MB." },
-        { status: 400 },
-      );
-    }
+      // ── Validate file size (bucket limit: 10 MB) ──────────────────────────────
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        return NextResponse.json(
+          { error: "PDF must be smaller than 10 MB." },
+          { status: 400 },
+        );
+      }
 
-    // ── Build the storage path ────────────────────────────────────────────────
-    // First segment is patientId so the patient SELECT RLS policy passes.
-    // The admin INSERT policy uses is_admin(), not path-based.
-    const storagePath = `${patient_id}/${Date.now()}.pdf`;
+      // ── Build the storage path ────────────────────────────────────────────────
+      // First segment is patientId so the patient SELECT RLS policy passes.
+      // The admin INSERT policy uses is_admin(), not path-based.
+      storagePath = `${patient_id}/${Date.now()}.pdf`;
 
-    // ── 1. Upload file using admin client (bypasses user RLS for storage) ─────
-    const adminClient = createAdminClient();
-    const arrayBuffer = await file.arrayBuffer();
-    const { error: uploadError } = await adminClient.storage
-      .from("medical-documents")
-      .upload(storagePath, arrayBuffer, {
-        contentType: "application/pdf",
-        upsert: false,
-      });
+      // ── 1. Upload file using admin client (bypasses user RLS for storage) ─────
+      const adminClient = createAdminClient();
+      const arrayBuffer = await file.arrayBuffer();
+      const { error: uploadError } = await adminClient.storage
+        .from("medical-documents")
+        .upload(storagePath, arrayBuffer, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
 
-    if (uploadError) {
-      throw new Error(`Storage upload failed: ${uploadError.message}`);
+      if (uploadError) {
+        throw new Error(`Storage upload failed: ${uploadError.message}`);
+      }
     }
 
     // ── 2. Insert DB record ───────────────────────────────────────────────────

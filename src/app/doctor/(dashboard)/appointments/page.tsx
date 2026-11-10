@@ -8,6 +8,8 @@ import { useAppointments } from "@/hooks/useAppointments";
 import { AppointmentDetailsModal } from "@/components/common/AppointmentDetailsModal";
 import { ApproveAppointmentModal } from "@/components/common/ApproveAppointmentModal";
 import { DeclineAppointmentModal } from "@/components/common/DeclineAppointmentModal";
+import { CancelAppointmentModal } from "@/components/common/CancelAppointmentModal";
+import { RescheduleAppointmentModal } from "@/components/common/RescheduleAppointmentModal";
 import { CompleteAppointmentModal } from "@/components/common/CompleteAppointmentModal";
 import { NoShowModal } from "@/components/common/NoShowModal";
 import type { AppointmentData } from "@/components/common/AppointmentDetailsModal";
@@ -44,8 +46,8 @@ function formatDuration(minutes?: number): string {
 // Maps the API Appointment shape to the display shape consumed by the UI and modals.
 // patient_profile is the joined patient data returned by the API.
 function toDisplayData(apt: Appointment): AppointmentData {
-  const p = (apt as any).patient;
-  const patientName = p?.full_name;
+  const p = (apt as any).patient || (apt as any).profiles;
+  const patientName = p?.full_name ?? "Patient";
   const patientAge = p?.date_of_birth
     ? Math.floor(
         (new Date().getTime() - new Date(p.date_of_birth).getTime()) /
@@ -56,12 +58,21 @@ function toDisplayData(apt: Appointment): AppointmentData {
     p?.passport_signed_url ??
     `https://ui-avatars.com/api/?name=${encodeURIComponent(patientName)}&background=f4f4f5&color=374151&size=80`;
 
+  const isPending =
+    apt.status === "pending_approval" || apt.status === "pending";
+
   const displayStatus: AppointmentData["status"] =
     apt.status === "completed"
       ? "completed"
-      : apt.status === "confirmed"
-        ? "in_progress"
-        : "upcoming";
+      : apt.status === "cancelled"
+        ? "cancelled"
+        : apt.status === "declined"
+          ? "declined"
+          : isPending
+            ? "pending"
+            : apt.status === "confirmed"
+              ? "in_progress"
+              : "upcoming";
 
   return {
     id: apt.id,
@@ -78,12 +89,18 @@ function toDisplayData(apt: Appointment): AppointmentData {
     isVirtual: Boolean(apt.meeting_link),
     meetLink: apt.meeting_link ?? undefined,
     type: apt.services?.name ?? "Consultation",
-    patientId: apt.patient_id.slice(0, 8).toUpperCase(),
+    patientId: apt.patient_id
+      ? apt.patient_id.slice(0, 8).toUpperCase()
+      : "PATIENT",
     rawPatientId: apt.patient_id,
     reason: apt.reason ?? "—",
     phone: p?.phone ?? "—",
     email: p?.email ?? "—",
     status: displayStatus,
+    rawStatus: apt.status,
+    cancellationReason: apt.cancellation_reason ?? undefined,
+    cancelledBy: apt.cancelled_by ?? undefined,
+    scheduledAt: apt.scheduled_at,
     consultationNotes: apt.completion_note ?? undefined,
     doctorName: apt.clinician?.full_name ?? "Dr. Stephen Adeyemi",
     completedDate:
@@ -101,6 +118,8 @@ export default function DoctorAppointmentsPage() {
     fetchAppointments,
     approveAppointment,
     declineAppointment,
+    cancelAppointment,
+    rescheduleAppointment,
     completeAppointment,
     updateMeetingLink,
     markAsMissed,
@@ -108,7 +127,7 @@ export default function DoctorAppointmentsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState<
-    "all" | "pending" | "upcoming" | "completed"
+    "all" | "pending" | "upcoming" | "completed" | "cancelled"
   >("all");
 
   // Shared appointment selection — one piece of state drives all four modals
@@ -117,6 +136,8 @@ export default function DoctorAppointmentsPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [isDeclineOpen, setIsDeclineOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
   const [isCompleteOpen, setIsCompleteOpen] = useState(false);
   const [isNoShowOpen, setIsNoShowOpen] = useState(false);
 
@@ -141,6 +162,18 @@ export default function DoctorAppointmentsPage() {
     if (item) setSelectedDisplay(item);
     setIsDetailsOpen(false);
     setIsDeclineOpen(true);
+  }
+
+  function openCancel(item?: AppointmentData) {
+    if (item) setSelectedDisplay(item);
+    setIsDetailsOpen(false);
+    setIsCancelOpen(true);
+  }
+
+  function openReschedule(item?: AppointmentData) {
+    if (item) setSelectedDisplay(item);
+    setIsDetailsOpen(false);
+    setIsRescheduleOpen(true);
   }
 
   function openComplete(item?: AppointmentData) {
@@ -173,8 +206,26 @@ export default function DoctorAppointmentsPage() {
     return result;
   }
 
-  async function handleComplete(id: string, note: string) {
-    const result = await completeAppointment(id, note);
+  async function handleCancel(id: string, reason: string) {
+    const result = await cancelAppointment(id, reason);
+    if (result.success) {
+      await fetchAppointments();
+      setIsCancelOpen(false);
+    }
+    return result;
+  }
+
+  async function handleReschedule(id: string, scheduledAt: string) {
+    const result = await rescheduleAppointment(id, scheduledAt);
+    if (result.success) {
+      await fetchAppointments();
+      setIsRescheduleOpen(false);
+    }
+    return result;
+  }
+
+  async function handleComplete(id: string, note: string, noteId?: string) {
+    const result = await completeAppointment(id, note, noteId);
     if (result.success) {
       await fetchAppointments();
       setIsCompleteOpen(false);
@@ -198,28 +249,44 @@ export default function DoctorAppointmentsPage() {
   }
 
   const pendingCount = rawAppointments.filter(
-    (a) => a.status === "pending_approval",
+    (a) => a.status === "pending_approval" || a.status === "pending",
   ).length;
-  const upcomingCount = appointments.filter(
-    (a) => a.status === "upcoming",
+  const confirmedCount = rawAppointments.filter(
+    (a) => a.status === "confirmed",
   ).length;
-  const completedCount = appointments.filter(
+  const completedCount = rawAppointments.filter(
     (a) => a.status === "completed",
   ).length;
-  const inProgressCount = appointments.filter(
-    (a) => a.status === "in_progress",
+  const cancelledCount = rawAppointments.filter(
+    (a) => a.status === "cancelled" || a.status === "declined",
   ).length;
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((apt) => {
       let matchesTab = true;
-      if (activeTab === "pending")
+      if (activeTab === "pending") {
         matchesTab =
-          rawAppointments.find((r) => r.id === apt.id)?.status ===
-          "pending_approval";
-      if (activeTab === "upcoming")
-        matchesTab = apt.status === "upcoming" || apt.status === "in_progress";
-      if (activeTab === "completed") matchesTab = apt.status === "completed";
+          apt.status === "pending" ||
+          apt.rawStatus === "pending_approval" ||
+          apt.rawStatus === "pending";
+      } else if (activeTab === "upcoming") {
+        matchesTab =
+          (apt.status === "in_progress" ||
+            apt.status === "upcoming" ||
+            apt.rawStatus === "confirmed") &&
+          apt.rawStatus !== "cancelled" &&
+          apt.rawStatus !== "declined" &&
+          apt.rawStatus !== "pending_approval" &&
+          apt.rawStatus !== "pending";
+      } else if (activeTab === "completed") {
+        matchesTab = apt.status === "completed" || apt.rawStatus === "completed";
+      } else if (activeTab === "cancelled") {
+        matchesTab =
+          apt.status === "cancelled" ||
+          apt.status === "declined" ||
+          apt.rawStatus === "cancelled" ||
+          apt.rawStatus === "declined";
+      }
 
       const q = searchQuery.toLowerCase().trim();
       const matchesSearch =
@@ -231,7 +298,7 @@ export default function DoctorAppointmentsPage() {
 
       return matchesTab && matchesSearch;
     });
-  }, [appointments, rawAppointments, activeTab, searchQuery]);
+  }, [appointments, activeTab, searchQuery]);
 
   return (
     <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
@@ -276,16 +343,20 @@ export default function DoctorAppointmentsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 p-1.5 bg-gray-200/60 rounded-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-200/60 rounded-2xl w-fit">
         {(
           [
             { id: "all", label: "All" },
             { id: "pending", label: `Pending (${pendingCount})` },
             {
               id: "upcoming",
-              label: `Upcoming (${upcomingCount + inProgressCount})`,
+              label: `Confirmed (${confirmedCount})`,
             },
             { id: "completed", label: `Completed (${completedCount})` },
+            {
+              id: "cancelled",
+              label: `Cancelled / Declined (${cancelledCount})`,
+            },
           ] as const
         ).map((tab) => (
           <button
@@ -312,8 +383,8 @@ export default function DoctorAppointmentsPage() {
             </h2>
           </div>
           <span className="text-[15px] font-medium text-primary-gray">
-            {completedCount} completed · {upcomingCount} remaining ·{" "}
-            {inProgressCount} in progress
+            {completedCount} completed · {confirmedCount} confirmed ·{" "}
+            {pendingCount} pending · {cancelledCount} cancelled/declined
           </span>
         </div>
 
@@ -345,11 +416,23 @@ export default function DoctorAppointmentsPage() {
 
                   <span
                     className={`h-3 w-3 rounded-full shrink-0 ${
-                      item.status === "upcoming"
-                        ? "bg-amber-500"
-                        : item.status === "in_progress"
-                          ? "bg-blue-500"
-                          : "bg-emerald-500"
+                      item.status === "cancelled" ||
+                      item.rawStatus === "cancelled"
+                        ? "bg-rose-500"
+                        : item.status === "declined" ||
+                            item.rawStatus === "declined"
+                          ? "bg-gray-400"
+                          : item.status === "pending" ||
+                              item.rawStatus === "pending_approval" ||
+                              item.rawStatus === "pending"
+                            ? "bg-amber-500"
+                            : item.status === "in_progress" ||
+                                item.status === "upcoming" ||
+                                item.rawStatus === "confirmed"
+                              ? "bg-blue-500"
+                              : item.status === "completed"
+                                ? "bg-emerald-500"
+                                : "bg-gray-400"
                     }`}
                   />
 
@@ -373,43 +456,67 @@ export default function DoctorAppointmentsPage() {
                 </div>
 
                 <div className="flex items-center gap-2.5 shrink-0 sm:self-center">
-                  {item.status === "upcoming" && (
-                    <>
-                      <button
-                        onClick={() => openDetails(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#fff8ee] text-amber-600 text-[15px] font-semibold hover:bg-amber-100 transition-colors cursor-pointer"
-                      >
-                        Start
-                      </button>
-                      <button
-                        onClick={() => openDetails(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
-                      >
-                        Details
-                      </button>
-                    </>
-                  )}
+                  {/* Pending */}
+                  {(item.status === "pending" ||
+                    item.rawStatus === "pending_approval" ||
+                    item.rawStatus === "pending") &&
+                    item.rawStatus !== "cancelled" &&
+                    item.rawStatus !== "declined" && (
+                      <>
+                        <button
+                          onClick={() => openApprove(item)}
+                          className="px-5 py-2.5 rounded-lg bg-primary-red text-white text-[15px] font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => openDecline(item)}
+                          className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          onClick={() => openDetails(item)}
+                          className="px-4 py-2.5 rounded-lg text-primary-gray hover:text-gray-900 text-[15px] font-semibold hover:bg-gray-100 transition-colors cursor-pointer"
+                        >
+                          Details
+                        </button>
+                      </>
+                    )}
 
-                  {item.status === "in_progress" && (
-                    <>
-                      <button
-                        onClick={() => openComplete(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#e6f4ea] text-[#1e8e3e] text-[15px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer"
-                      >
-                        Complete
-                      </button>
-                      <button
-                        onClick={() => openDetails(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
-                      >
-                        Details
-                      </button>
-                    </>
-                  )}
+                  {/* Confirmed / In Progress */}
+                  {(item.status === "in_progress" ||
+                    (item.status === "upcoming" &&
+                      item.rawStatus === "confirmed")) &&
+                    item.rawStatus !== "cancelled" &&
+                    item.rawStatus !== "declined" &&
+                    item.rawStatus !== "pending_approval" &&
+                    item.rawStatus !== "pending" && (
+                      <>
+                        {item.meetLink && (
+                          <a
+                            href={item.meetLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-4 py-2.5 rounded-lg bg-blue-50 text-primary-blue text-[15px] font-semibold hover:bg-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                          >
+                            Join Call
+                          </a>
+                        )}
+                        <button
+                          onClick={() => openDetails(item)}
+                          className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                        >
+                          Details
+                        </button>
+                      </>
+                    )}
 
-                  {item.status === "completed" && (
+                  {/* Completed */}
+                  {(item.status === "completed" ||
+                    item.rawStatus === "completed") && (
                     <>
-                      <span className="text-[15px] font-semibold text-primary-gray px-3 py-1">
+                      <span className="text-[15px] font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
                         Completed
                       </span>
                       <button
@@ -418,6 +525,38 @@ export default function DoctorAppointmentsPage() {
                       >
                         <FileText className="h-4 w-4" />
                         View Notes
+                      </button>
+                    </>
+                  )}
+
+                  {/* Cancelled */}
+                  {(item.status === "cancelled" ||
+                    item.rawStatus === "cancelled") && (
+                    <>
+                      <span className="text-[15px] font-semibold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg">
+                        Cancelled
+                      </span>
+                      <button
+                        onClick={() => openDetails(item)}
+                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                      >
+                        Details
+                      </button>
+                    </>
+                  )}
+
+                  {/* Declined */}
+                  {(item.status === "declined" ||
+                    item.rawStatus === "declined") && (
+                    <>
+                      <span className="text-[15px] font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                        Declined
+                      </span>
+                      <button
+                        onClick={() => openDetails(item)}
+                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                      >
+                        Details
                       </button>
                     </>
                   )}
@@ -436,6 +575,8 @@ export default function DoctorAppointmentsPage() {
         onUpdateAppointment={setSelectedDisplay}
         onOpenApprove={() => openApprove()}
         onOpenDecline={() => openDecline()}
+        onOpenCancel={() => openCancel()}
+        onOpenReschedule={() => openReschedule()}
         onOpenComplete={() => openComplete()}
         onOpenNoShow={() => openNoShow()}
         onUpdateMeetingLink={handleUpdateMeetingLink}
@@ -455,6 +596,22 @@ export default function DoctorAppointmentsPage() {
         onClose={() => setIsDeclineOpen(false)}
         appointment={selectedDisplay}
         onDecline={handleDecline}
+        onAppointmentUpdated={fetchAppointments}
+      />
+
+      <CancelAppointmentModal
+        isOpen={isCancelOpen}
+        onClose={() => setIsCancelOpen(false)}
+        appointment={selectedDisplay}
+        onCancel={handleCancel}
+        onAppointmentUpdated={fetchAppointments}
+      />
+
+      <RescheduleAppointmentModal
+        isOpen={isRescheduleOpen}
+        onClose={() => setIsRescheduleOpen(false)}
+        appointment={selectedDisplay}
+        onReschedule={handleReschedule}
         onAppointmentUpdated={fetchAppointments}
       />
 

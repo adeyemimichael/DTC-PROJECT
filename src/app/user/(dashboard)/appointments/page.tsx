@@ -231,7 +231,7 @@ export default function AppointmentsPage() {
               new Date(app.scheduled_at).getTime() < Date.now();
 
             const serviceName = app.services?.name || 'General Consultation';
-            const doctorName = app.profiles?.full_name || 'Assigned Clinician';
+            const doctorName = app.clinician?.full_name || 'Assigned Clinician';
             const durationText = app.services?.duration_minutes
               ? `${app.services.duration_minutes} min`
               : '30 min';
@@ -444,11 +444,11 @@ export default function AppointmentsPage() {
                   })}
                 </span>
               </div>
-              {cancelTarget.profiles?.full_name && (
+              {cancelTarget.clinician?.full_name && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-400 font-medium">Doctor</span>
                   <span className="text-slate-900 font-semibold">
-                    {cancelTarget.profiles.full_name}
+                    {cancelTarget.clinician?.full_name}
                   </span>
                 </div>
               )}

@@ -47,8 +47,6 @@ export function useAppointments(options?: {
       const response = await fetch(url);
       const result = await response.json();
 
-      console.log("result", result);
-
       if (!response.ok)
         throw new Error(result.error || "Failed to fetch appointments");
 
@@ -73,8 +71,6 @@ export function useAppointments(options?: {
           };
         }),
       );
-
-      console.log("appointmentsWithSignedUrls", appointmentsWithSignedUrls);
 
       setAppointments(appointmentsWithSignedUrls);
     } catch (err: any) {
@@ -255,7 +251,10 @@ export function useAppointments(options?: {
 
   const rescheduleAppointment = useCallback(
     async (id: string, scheduledAt: string): Promise<DoctorPatchResult> => {
-      const result = await patchAppointment(id, { scheduled_at: scheduledAt });
+      const result = await patchAppointment(id, {
+        scheduled_at: scheduledAt,
+        status: "confirmed",
+      });
       if (result.success) toast.success("Appointment rescheduled.");
       else toast.error(result.error || "Failed to reschedule appointment");
       return result;

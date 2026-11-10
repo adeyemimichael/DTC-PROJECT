@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, UploadCloud, CheckCircle2, Loader2, FileText } from 'lucide-react';
 import type { AppointmentData } from './AppointmentDetailsModal';
+import { useMedicalDocuments } from '@/hooks/useMedicalDocuments';
 
 interface CompleteAppointmentModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export function CompleteAppointmentModal({
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { uploadDocument } = useMedicalDocuments();
 
   useEffect(() => {
     if (isOpen) {
@@ -36,13 +38,29 @@ export function CompleteAppointmentModal({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!notes.trim()) return;
+    if (!notes.trim() || !appointment) return;
     setIsSubmitting(true);
-    const result = await onComplete(appointment!.id, notes.trim());
-    setIsSubmitting(false);
-    if (result.success) {
-      onAppointmentUpdated?.();
-      onClose();
+
+    try {
+      // 1. Upload or create the clinical note as a medical document
+      const docRes = await uploadDocument({
+        patient_id: appointment.rawPatientId,
+        title: `Clinical Note - ${appointment.type}`,
+        category: 'clinical_note',
+        details: { content: notes.trim() },
+        file: uploadedFile,
+      });
+
+      const noteId = docRes.success && docRes.data ? docRes.data.id : undefined;
+
+      // 2. Complete appointment linking note & completion_note_id
+      const result = await onComplete(appointment.id, notes.trim(), noteId);
+      if (result.success) {
+        onAppointmentUpdated?.();
+        onClose();
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   }
 
@@ -115,7 +133,7 @@ export function CompleteAppointmentModal({
               <span className="text-gray-400 font-normal">(optional)</span>
             </label>
             <p className="text-xs text-gray-500 font-medium leading-relaxed">
-              Lab results, imaging scans, prescriptions or clinical notes. PDF, JPG, PNG — max 25 MB.
+              Lab results, imaging scans, prescriptions or clinical notes. PDF — max 10 MB.
             </p>
 
             <div
@@ -125,7 +143,7 @@ export function CompleteAppointmentModal({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
+                accept=".pdf"
                 className="hidden"
                 onChange={handleFileChange}
               />

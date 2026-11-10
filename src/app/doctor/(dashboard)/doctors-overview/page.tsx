@@ -19,6 +19,9 @@ import { useProfile, usePatients, useAppointments } from "@/hooks";
 import type { Appointment } from "@/lib/types/appointment";
 import { Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
+import { ApproveAppointmentModal } from "@/components/common/ApproveAppointmentModal";
+import { DeclineAppointmentModal } from "@/components/common/DeclineAppointmentModal";
+import type { AppointmentData } from "@/components/common/AppointmentDetailsModal";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -100,8 +103,18 @@ export default function DoctorsOverviewPage() {
     appointments,
     isLoading: isLoadingAppointments,
     fetchAppointments,
+    approveAppointment,
+    declineAppointment,
     patchAppointment,
   } = useAppointments({ autoFetch: true });
+
+  const [selectedAppointmentForApprove, setSelectedAppointmentForApprove] =
+    useState<AppointmentData | null>(null);
+  const [isApproveOpen, setIsApproveOpen] = useState(false);
+
+  const [selectedAppointmentForDecline, setSelectedAppointmentForDecline] =
+    useState<AppointmentData | null>(null);
+  const [isDeclineOpen, setIsDeclineOpen] = useState(false);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
@@ -130,12 +143,15 @@ export default function DoctorsOverviewPage() {
   ).length;
 
   const todayRemaining = todayAppointments.filter((a) =>
-    ["confirmed", "pending_approval"].includes(a.status),
+    ["confirmed", "pending_approval", "pending"].includes(a.status),
   ).length;
 
   // Pending approval
   const pendingRequests = useMemo(
-    () => appointments.filter((a) => a.status === "pending_approval"),
+    () =>
+      appointments.filter(
+        (a) => a.status === "pending_approval" || a.status === "pending",
+      ),
     [appointments],
   );
 
@@ -184,35 +200,80 @@ export default function DoctorsOverviewPage() {
     [],
   );
 
-  // ── Approve / Decline ──────────────────────────────────────────────────────
-  const handleDecision = async (
-    id: string,
-    decision: "confirmed" | "declined",
-  ) => {
-    setActionLoading(`${decision}-${id}`);
-    setActionFeedback(null);
-    try {
-      const result = await patchAppointment(id, { status: decision });
-      if (!result.success) throw new Error(result.error || "Request failed");
+  const toAppointmentData = useCallback(
+    (apt: Appointment): AppointmentData => {
+      const name = getPatientDisplayName(apt);
+      const avatar = getPatientAvatar(apt, name);
+      const pat = (apt.patient || patients.find((p) => p.id === apt.patient_id)) as any;
 
-      setActionFeedback({
-        id,
-        type: "success",
-        message:
-          decision === "confirmed"
-            ? "Appointment approved."
-            : "Appointment declined.",
-      });
+      const patientAge = pat?.date_of_birth
+        ? Math.floor(
+            (new Date().getTime() - new Date(pat.date_of_birth).getTime()) /
+              (1000 * 60 * 60 * 24 * 365.25),
+          )
+        : "—";
+
+      return {
+        id: apt.id,
+        patientName: name,
+        age: patientAge,
+        gender: pat?.gender || "—",
+        bloodType: pat?.blood_group || "—",
+        avatar,
+        date: formatDateShort(apt.scheduled_at),
+        time: formatTime(apt.scheduled_at),
+        duration: apt.services?.duration_minutes
+          ? `${apt.services.duration_minutes} min`
+          : "30 min",
+        room: "Virtual",
+        patientUploadId: apt.patient_upload_id ?? undefined,
+        isVirtual: Boolean(apt.meeting_link),
+        meetLink: apt.meeting_link ?? undefined,
+        type: apt.services?.name ?? "Consultation",
+        patientId: apt.patient_id
+          ? apt.patient_id.slice(0, 8).toUpperCase()
+          : "PATIENT",
+        rawPatientId: apt.patient_id,
+        reason: apt.reason ?? "—",
+        phone: pat?.phone ?? "—",
+        email: pat?.email ?? "—",
+        status: "pending",
+        rawStatus: apt.status,
+        cancellationReason: apt.cancellation_reason ?? undefined,
+        cancelledBy: apt.cancelled_by ?? undefined,
+        scheduledAt: apt.scheduled_at,
+      };
+    },
+    [getPatientDisplayName, getPatientAvatar, patients],
+  );
+
+  // ── Approve / Decline Modals ───────────────────────────────────────────────
+  const handleOpenApprove = (req: Appointment) => {
+    setSelectedAppointmentForApprove(toAppointmentData(req));
+    setIsApproveOpen(true);
+  };
+
+  const handleApproveConfirm = async (id: string, meetingLink: string) => {
+    const result = await approveAppointment(id, meetingLink);
+    if (result.success) {
+      setIsApproveOpen(false);
       await fetchAppointments();
-    } catch (err: unknown) {
-      setActionFeedback({
-        id,
-        type: "error",
-        message: err instanceof Error ? err.message : "Something went wrong.",
-      });
-    } finally {
-      setActionLoading(null);
     }
+    return result;
+  };
+
+  const handleOpenDecline = (req: Appointment) => {
+    setSelectedAppointmentForDecline(toAppointmentData(req));
+    setIsDeclineOpen(true);
+  };
+
+  const handleDeclineConfirm = async (id: string, reason: string) => {
+    const result = await declineAppointment(id, reason);
+    if (result.success) {
+      setIsDeclineOpen(false);
+      await fetchAppointments();
+    }
+    return result;
   };
 
   const isLoading = isLoadingAppointments || isLoadingPatients;
@@ -568,24 +629,16 @@ export default function DoctorsOverviewPage() {
                     {/* Actions */}
                     <div className="flex items-center gap-3 pt-1">
                       <button
-                        disabled={isBusy}
-                        onClick={() => handleDecision(req.id, "confirmed")}
-                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 disabled:opacity-60 shadow-xs"
+                        onClick={() => handleOpenApprove(req)}
+                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
-                        {isApproving && (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        )}
-                        {isApproving ? "Approving..." : "Approve"}
+                        Approve
                       </button>
                       <button
-                        disabled={isBusy}
-                        onClick={() => handleDecision(req.id, "declined")}
-                        className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                        onClick={() => handleOpenDecline(req)}
+                        className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5"
                       >
-                        {isDeclining && (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        )}
-                        {isDeclining ? "Declining..." : "Decline"}
+                        Decline
                       </button>
                     </div>
                   </div>
@@ -595,6 +648,23 @@ export default function DoctorsOverviewPage() {
           )}
         </div>
       </div>
+
+      {/* Modals */}
+      <ApproveAppointmentModal
+        isOpen={isApproveOpen}
+        onClose={() => setIsApproveOpen(false)}
+        appointment={selectedAppointmentForApprove}
+        onApprove={handleApproveConfirm}
+        onAppointmentUpdated={fetchAppointments}
+      />
+
+      <DeclineAppointmentModal
+        isOpen={isDeclineOpen}
+        onClose={() => setIsDeclineOpen(false)}
+        appointment={selectedAppointmentForDecline}
+        onDecline={handleDeclineConfirm}
+        onAppointmentUpdated={fetchAppointments}
+      />
     </div>
   );
 }

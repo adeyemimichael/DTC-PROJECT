@@ -24,10 +24,10 @@ export function ApproveAppointmentModal({
 
   useEffect(() => {
     if (isOpen) {
-      setMeetingLink('');
+      setMeetingLink(appointment?.meetLink || '');
       setIsSubmitting(false);
     }
-  }, [isOpen]);
+  }, [isOpen, appointment?.meetLink]);
 
   if (!isOpen || !appointment) return null;
 
@@ -84,9 +84,20 @@ export function ApproveAppointmentModal({
 
           {/* Meeting link input */}
           <div className="space-y-2">
-            <label className="block text-sm font-semibold text-gray-900">
-              Google Meet / Zoom Link <span className="text-[#f80400]">*</span>
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-semibold text-gray-900">
+                Google Meet / Zoom Link <span className="text-[#f80400]">*</span>
+              </label>
+              {!meetingLink && (
+                <button
+                  type="button"
+                  onClick={() => setMeetingLink('https://meet.google.com/dr-stephen-consult')}
+                  className="text-xs font-semibold text-[#0149ff] hover:underline cursor-pointer"
+                >
+                  Use default link
+                </button>
+              )}
+            </div>
             <div className="relative">
               <Video className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
               <input

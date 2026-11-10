@@ -130,9 +130,20 @@ export async function PUT(
     if (completion_note_id !== undefined) updatePayload.completion_note_id = completion_note_id;
     if (scheduled_at) updatePayload.scheduled_at = scheduled_at;
 
+    if (cancellation_reason !== undefined) {
+      updatePayload.cancellation_reason = cancellation_reason;
+    }
+
+    if (status === "declined") {
+      updatePayload.cancelled_by = "admin";
+      updatePayload.cancellation_reason =
+        cancellation_reason || "Declined by doctor";
+    }
+
     if (status === "cancelled") {
       updatePayload.cancelled_by = "admin";
-      updatePayload.cancellation_reason = cancellation_reason || "Cancelled by clinic";
+      updatePayload.cancellation_reason =
+        cancellation_reason || "Cancelled by clinic";
     }
 
     const { data: updatedAppointment, error: updateError } = await adminClient

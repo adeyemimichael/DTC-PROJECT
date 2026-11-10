@@ -22,6 +22,8 @@ export type { AppointmentData } from './AppointmentDetailsModal';
 export { ApproveAppointmentModal } from './ApproveAppointmentModal';
 export { DeclineAppointmentModal } from './DeclineAppointmentModal';
 export { CompleteAppointmentModal } from './CompleteAppointmentModal';
+export { CancelAppointmentModal } from './CancelAppointmentModal';
+export { RescheduleAppointmentModal } from './RescheduleAppointmentModal';
 export { NoShowModal } from './NoShowModal';
 export { InitialVitalsModal } from './InitialVitalsModal';
 

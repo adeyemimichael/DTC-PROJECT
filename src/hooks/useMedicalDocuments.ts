@@ -1,22 +1,19 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState } from "react";
 
 export type MedicalDocumentCategory =
-  | 'lab_order'
-  | 'prescription'
-  | 'referral'
-  | 'clinical_note';
+  | "lab_order"
+  | "prescription"
+  | "referral"
+  | "clinical_note";
 
-export type MedicalDocumentStatus =
-  | 'ordered'
-  | 'result_uploaded'
-  | 'completed';
+export type MedicalDocumentStatus = "ordered" | "result_uploaded" | "completed";
 
 /** Per-category details shapes  */
 export type MedicalDocumentDetails =
-  | { test_name: string; instructions?: string }          
-  | { medications: string[] }                             
-  | { referred_to: string; reason: string }              
-  | { content: string };                                  
+  | { test_name: string; instructions?: string }
+  | { medications: string[] }
+  | { referred_to: string; reason: string }
+  | { content: string };
 
 export interface MedicalDocument {
   id: string;
@@ -26,42 +23,55 @@ export interface MedicalDocument {
   title: string | null;
   details: MedicalDocumentDetails | Record<string, unknown>;
   pdf_storage_path: string | null;
-  status: MedicalDocumentStatus | null;
+  status: MedicalDocumentStatus;
   created_at: string;
   signedUrl?: string | null;
   clinician?: { full_name?: string | null } | null;
 }
 
 export interface UploadMedicalDocumentInput {
-  file: File;
+  file?: File | null;
   patient_id: string;
   title: string;
   category: MedicalDocumentCategory;
   details: MedicalDocumentDetails;
   /** Only required for lab_order  */
-  status?: MedicalDocumentStatus;
+  status?: MedicalDocumentStatus | null;
 }
 
-export type MedicalDocumentResult = { success: boolean; error?: string };
+export type MedicalDocumentResult = {
+  success: boolean;
+  data?: MedicalDocument;
+  error?: string;
+};
 
 /** Normalise category  */
 export function categoryLabel(category: string): string {
   switch (category) {
-    case 'lab_order':    return 'Lab Order';
-    case 'prescription': return 'Prescription';
-    case 'referral':     return 'Referral';
-    case 'clinical_note':return 'Clinical Note';
-    default:             return category;
+    case "lab_order":
+      return "Lab Order";
+    case "prescription":
+      return "Prescription";
+    case "referral":
+      return "Referral";
+    case "clinical_note":
+      return "Clinical Note";
+    default:
+      return category;
   }
 }
 
 /** Normalise  status  */
 export function statusLabel(status: string | null | undefined): string {
   switch (status) {
-    case 'ordered':         return 'Ordered';
-    case 'result_uploaded': return 'Result Uploaded';
-    case 'completed':       return 'Completed';
-    default:                return '—';
+    case "ordered":
+      return "Ordered";
+    case "result_uploaded":
+      return "Result Uploaded";
+    case "completed":
+      return "Completed";
+    default:
+      return "—";
   }
 }
 
@@ -81,23 +91,25 @@ export function useMedicalDocuments() {
     try {
       const url = patientId
         ? `/api/patients/medical-documents?patient_id=${encodeURIComponent(patientId)}`
-        : '/api/patients/medical-documents';
+        : "/api/patients/medical-documents";
 
       const response = await fetch(url, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
       });
 
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to fetch medical documents');
+        throw new Error(result.error || "Failed to fetch medical documents");
       }
 
       setDocuments(Array.isArray(result.data) ? result.data : []);
     } catch (err: unknown) {
       const message =
-        err instanceof Error ? err.message : 'Failed to fetch medical documents';
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch medical documents";
       setDocumentsError(message);
       setDocuments([]);
     } finally {
@@ -106,25 +118,29 @@ export function useMedicalDocuments() {
   }, []);
 
   const uploadDocument = useCallback(
-    async (input: UploadMedicalDocumentInput): Promise<MedicalDocumentResult> => {
+    async (
+      input: UploadMedicalDocumentInput,
+    ): Promise<MedicalDocumentResult> => {
       setIsUploading(true);
 
       try {
         const formData = new FormData();
-        formData.append('file', input.file);
-        formData.append('patient_id', input.patient_id);
-        formData.append('title', input.title);
-        formData.append('category', input.category);
+        if (input.file) {
+          formData.append("file", input.file);
+        }
+        formData.append("patient_id", input.patient_id);
+        formData.append("title", input.title);
+        formData.append("category", input.category);
         // details must be a JSON string — the route calls JSON.parse() on it
-        formData.append('details', JSON.stringify(input.details));
+        formData.append("details", JSON.stringify(input.details));
         // status only sent for lab_order; omitting it lets the DB store null
-        if (input.category === 'lab_order' && input.status) {
-          formData.append('status', input.status);
+        if (input.category === "lab_order" && input.status) {
+          formData.append("status", input.status);
         }
 
-        // Do NOT set Content-Type header 
-        const response = await fetch('/api/patients/medical-documents', {
-          method: 'POST',
+        // Do NOT set Content-Type header
+        const response = await fetch("/api/patients/medical-documents", {
+          method: "POST",
           body: formData,
         });
 
@@ -133,14 +149,16 @@ export function useMedicalDocuments() {
         if (!response.ok) {
           return {
             success: false,
-            error: result.error || 'Failed to upload medical document',
+            error: result.error || "Failed to upload medical document",
           };
         }
 
-        return { success: true };
+        return { success: true, data: result.data };
       } catch (err: unknown) {
         const message =
-          err instanceof Error ? err.message : 'Failed to upload medical document';
+          err instanceof Error
+            ? err.message
+            : "Failed to upload medical document";
         return { success: false, error: message };
       } finally {
         setIsUploading(false);
