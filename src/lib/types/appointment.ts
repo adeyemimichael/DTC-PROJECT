@@ -39,10 +39,18 @@ export interface Appointment {
     duration?: number;
     duration_minutes?: number;
   };
-  profiles?: {
+  clinician?: {
     id: string;
     full_name: string;
     avatar_url?: string;
+    phone?: string;
+  };
+
+  patient?: {
+    full_name?: string;
+    id?: string;
+    passport_url?: string;
+    passport_signed_url?: string | null;
     phone?: string;
   };
   payments?: {

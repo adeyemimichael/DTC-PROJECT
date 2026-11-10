@@ -20,12 +20,20 @@ import {
 } from "lucide-react";
 
 export default function PatientSettingsPage() {
-  const { profile, isLoading: isLoadingProfile, updateProfile, fetchProfile } = useProfile();
-  const { uploadPassport, isUploading: isUploadingPassport } = usePassportUpload();
-  
+  const {
+    profile,
+    isLoading: isLoadingProfile,
+    updateProfile,
+    fetchProfile,
+  } = useProfile();
+  const { uploadPassport, isUploading: isUploadingPassport } =
+    usePassportUpload();
+
   const [isSavingAccount, setIsSavingAccount] = useState(false);
   const [isSavingEmergency, setIsSavingEmergency] = useState(false);
-  const [passportSignedUrl, setPassportSignedUrl] = useState<string | null>(null);
+  const [passportSignedUrl, setPassportSignedUrl] = useState<string | null>(
+    null,
+  );
 
   const [accountInfo, setAccountInfo] = useState({
     firstName: "",
@@ -66,7 +74,11 @@ export default function PatientSettingsPage() {
         address: profile.address || prev.address,
       }));
 
-      if (profile.next_of_kin_name || profile.next_of_kin_phone || profile.next_of_kin_relationship) {
+      if (
+        profile.next_of_kin_name ||
+        profile.next_of_kin_phone ||
+        profile.next_of_kin_relationship
+      ) {
         setEmergencyContact((prev) => ({
           ...prev,
           fullName: profile.next_of_kin_name || prev.fullName,
@@ -80,7 +92,9 @@ export default function PatientSettingsPage() {
   // Generate signed URL
   useEffect(() => {
     if (profile?.passport_url) {
-      getSignedUrl('passports', profile.passport_url).then(setPassportSignedUrl);
+      getSignedUrl("passports", profile.passport_url).then(
+        setPassportSignedUrl,
+      );
     } else {
       setPassportSignedUrl(null);
     }
@@ -89,15 +103,15 @@ export default function PatientSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Upload passport photo
-  const handlePassportChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePassportChange = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-  
     const result = await uploadPassport(file);
 
     if (result.success && result.path) {
-     
       const updateResult = await updateProfile({
         passport_url: result.path,
       });
@@ -107,7 +121,7 @@ export default function PatientSettingsPage() {
         if (result.signedUrl) {
           setPassportSignedUrl(result.signedUrl);
         }
-        
+
         await fetchProfile();
       } else {
         toast.error("Passport uploaded but failed to update profile");
@@ -247,7 +261,9 @@ export default function PatientSettingsPage() {
                 ) : (
                   <div className="flex flex-col items-center gap-1 text-slate-400 p-2 text-center">
                     <Upload className="w-6 h-6" />
-                    <span className="text-[10px] font-medium leading-tight">No Passport</span>
+                    <span className="text-[10px] font-medium leading-tight">
+                      No Passport
+                    </span>
                   </div>
                 )}
               </div>
@@ -529,7 +545,7 @@ export default function PatientSettingsPage() {
             <button
               type="submit"
               disabled={isSavingEmergency}
-              className="bg-[#f85c59] hover:bg-[#e04b48] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99] flex items-center gap-2 disabled:opacity-70"
+              className="bg-primary-red hover:bg-[#d80300] text-white px-7 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-xs active:scale-[0.99] flex items-center gap-2 disabled:opacity-70"
             >
               {isSavingEmergency ? (
                 <>

@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState, useRef, useEffect } from 'react';
-import { Card, Button } from '@/components/ui';
+import { useState, useRef, useEffect } from "react";
+import { Card, Button } from "@/components/ui";
 import {
   FolderUp,
   Upload,
@@ -18,12 +18,12 @@ import {
   CloudUpload,
   Video,
   Music,
-} from 'lucide-react';
-import toast from 'react-hot-toast';
-import { useFileUpload } from '@/hooks';
+} from "lucide-react";
+import toast from "react-hot-toast";
+import { useFileUpload } from "@/hooks";
 
-type UploadCategory = 'Lab Results' | 'General';
-type ApiCategory = 'lab_result_scan' | 'general';
+type UploadCategory = "Lab Results" | "General";
+type ApiCategory = "lab_result_scan" | "general";
 
 interface DisplayFile {
   id: string;
@@ -36,77 +36,88 @@ interface DisplayFile {
   signedUrl?: string;
   displayCategory: UploadCategory;
   displayName: string;
-  displaySize: string;
   displayDate: string;
 }
 
 const filterCategories = [
-  { label: 'All Files', value: 'all' },
-  { label: 'Lab Results', value: 'lab_result_scan' },
-  { label: 'General', value: 'general' },
+  { label: "All Files", value: "all" },
+  { label: "Lab Results", value: "lab_result_scan" },
+  { label: "General", value: "general" },
 ];
 
 const uploadCategories: { label: UploadCategory; value: ApiCategory }[] = [
-  { label: 'Lab Results', value: 'lab_result_scan' },
-  { label: 'General', value: 'general' },
+  { label: "Lab Results", value: "lab_result_scan" },
+  { label: "General", value: "general" },
 ];
 
 const mapApiCategoryToDisplay = (apiCat: ApiCategory): UploadCategory => {
-  return apiCat === 'lab_result_scan' ? 'Lab Results' : 'General';
+  return apiCat === "lab_result_scan" ? "Lab Results" : "General";
 };
 
 const getCategoryTheme = (category: ApiCategory | string) => {
   switch (category) {
-    case 'lab_result_scan':
-    case 'Lab Results':
-      return { text: 'text-primary-blue', bg: 'bg-blue-50', dot: 'bg-primary-blue' };
-    case 'general':
-    case 'General':
-      return { text: 'text-slate-500', bg: 'bg-slate-100', dot: 'bg-slate-400' };
+    case "lab_result_scan":
+    case "Lab Results":
+      return {
+        text: "text-primary-blue",
+        bg: "bg-blue-50",
+        dot: "bg-primary-blue",
+      };
+    case "general":
+    case "General":
+      return {
+        text: "text-slate-500",
+        bg: "bg-slate-100",
+        dot: "bg-slate-400",
+      };
     default:
-      return { text: 'text-slate-500', bg: 'bg-slate-100', dot: 'bg-slate-400' };
+      return {
+        text: "text-slate-500",
+        bg: "bg-slate-100",
+        dot: "bg-slate-400",
+      };
   }
 };
 
 const getFileIcon = (fileType: string) => {
-  if (fileType === 'image') return ImageIcon;
-  if (fileType === 'document') return FileText;
-  if (fileType === 'video') return Video;
-  if (fileType === 'audio') return Music;
+  if (fileType === "image") return ImageIcon;
+  if (fileType === "document") return FileText;
+  if (fileType === "video") return Video;
+  if (fileType === "audio") return Music;
   return File;
 };
 
 export default function MyUploadsPage() {
-  const [activeCategory, setActiveCategory] = useState('all');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [isDragging, setIsDragging] = useState(false);
 
   // Upload flow state
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [description, setDescription] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<ApiCategory>('lab_result_scan');
+  const [description, setDescription] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState<ApiCategory>("lab_result_scan");
 
-
-  const { 
-    uploads, 
-    uploadDocument, 
-    fetchUploads, 
+  const {
+    uploads,
+    uploadDocument,
+    fetchUploads,
     removeUpload,
-    isUploading, 
-    isFetching 
+    isUploading,
+    isFetching,
   } = useFileUpload();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const ALLOWED_TYPES = [
-    'image/jpeg',
-    'image/png',
-    'audio/mpeg',
-    'audio/mp4',
-    'audio/wav',
-    'video/mp4',
-    'video/quicktime',
-    'application/pdf',
+    "image/jpeg",
+    "image/png",
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/wav",
+    "video/mp4",
+    "video/quicktime",
+    "application/pdf",
   ];
   const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -117,11 +128,13 @@ export default function MyUploadsPage() {
 
   const validateAndStage = (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      toast.error('Only PDF, images (JPEG, PNG), audio (MP3, WAV), and video (MP4, MOV) files are allowed');
+      toast.error(
+        "Only PDF, images (JPEG, PNG), audio (MP3, WAV), and video (MP4, MOV) files are allowed",
+      );
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast.error('File must be smaller than 50MB');
+      toast.error("File must be smaller than 50MB");
       return;
     }
     setPendingFile(file);
@@ -131,7 +144,7 @@ export default function MyUploadsPage() {
     const file = e.target.files?.[0];
     if (file) validateAndStage(file);
     // reset so same file can be re-selected after cancel
-    e.target.value = '';
+    e.target.value = "";
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -153,39 +166,42 @@ export default function MyUploadsPage() {
     if (result.success) {
       // Hook already added to uploads list
       setPendingFile(null);
-      setDescription('');
-      setSelectedCategory('lab_result_scan');
+      setDescription("");
+      setSelectedCategory("lab_result_scan");
     }
   };
 
   const handleDelete = async (id: string) => {
     // TODO: Implement delete API endpoint
     removeUpload(id);
-    toast.success('File removed');
+    toast.success("File removed");
   };
 
   // Transform uploads for display
   const displayUploads: DisplayFile[] = uploads.map((file) => {
-    const fileName = file.storage_path.split('/').pop() || 'unknown';
+    const fileName = file.storage_path.split("/").pop() || "unknown";
     const category = file.category as ApiCategory;
-    
+
     return {
       ...file,
       category,
       displayCategory: mapApiCategoryToDisplay(category),
       displayName: file.description || fileName,
-      displaySize: 'N/A',
-      displayDate: new Date(file.created_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+
+      displayDate: new Date(file.created_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
       }),
     };
   });
 
   const filtered = displayUploads.filter((u) => {
-    const matchesCategory = activeCategory === 'all' || u.category === activeCategory;
-    const matchesSearch = u.displayName.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      activeCategory === "all" || u.category === activeCategory;
+    const matchesSearch = u.displayName
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -194,7 +210,9 @@ export default function MyUploadsPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-medium text-black tracking-tight">My Uploads</h2>
+          <h2 className="text-2xl font-medium text-black tracking-tight">
+            My Uploads
+          </h2>
           <p className="text-sm text-primary-gray mt-1 font-semibold">
             Manage and upload your personal medical documents
           </p>
@@ -226,7 +244,9 @@ export default function MyUploadsPage() {
               <CloudUpload className="h-6 w-6 text-primary-blue" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">{pendingFile.name}</p>
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {pendingFile.name}
+              </p>
               <p className="text-xs text-slate-400 mt-0.5">
                 {pendingFile.size > 1024 * 1024
                   ? `${(pendingFile.size / (1024 * 1024)).toFixed(1)} MB`
@@ -263,7 +283,7 @@ export default function MyUploadsPage() {
                         className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-all cursor-pointer ${
                           selectedCategory === cat.value
                             ? `${theme.bg} ${theme.text} border-current`
-                            : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                            : "bg-white text-slate-500 border-slate-200 hover:border-slate-300"
                         }`}
                       >
                         {cat.label}
@@ -296,7 +316,7 @@ export default function MyUploadsPage() {
                   type="button"
                   onClick={() => {
                     setPendingFile(null);
-                    setDescription('');
+                    setDescription("");
                   }}
                   disabled={isUploading}
                   className="text-xs font-medium text-slate-500 hover:text-slate-700 flex items-center gap-1 disabled:opacity-50"
@@ -311,21 +331,29 @@ export default function MyUploadsPage() {
       ) : (
         /* Drag & Drop Zone */
         <div
-          onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setIsDragging(true);
+          }}
           onDragLeave={() => setIsDragging(false)}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
           className={`group relative border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-200 ${
             isDragging
-              ? 'border-primary-blue bg-blue-50 scale-[1.01]'
-              : 'border-slate-200 bg-white hover:border-primary-blue/50 hover:bg-blue-50/30'
+              ? "border-primary-blue bg-blue-50 scale-[1.01]"
+              : "border-slate-200 bg-white hover:border-primary-blue/50 hover:bg-blue-50/30"
           }`}
         >
-          <div className={`p-4 rounded-2xl mb-4 transition-colors ${isDragging ? 'bg-blue-100' : 'bg-slate-100 group-hover:bg-blue-100'}`}>
-            <CloudUpload className={`h-8 w-8 transition-colors ${isDragging ? 'text-primary-blue' : 'text-slate-400 group-hover:text-primary-blue'}`} />
+          <div
+            className={`p-4 rounded-2xl mb-4 transition-colors ${isDragging ? "bg-blue-100" : "bg-slate-100 group-hover:bg-blue-100"}`}
+          >
+            <CloudUpload
+              className={`h-8 w-8 transition-colors ${isDragging ? "text-primary-blue" : "text-slate-400 group-hover:text-primary-blue"}`}
+            />
           </div>
           <p className="text-sm font-semibold text-slate-700">
-            Drag & drop a file here, or <span className="text-primary-blue">browse</span>
+            Drag & drop a file here, or{" "}
+            <span className="text-primary-blue">browse</span>
           </p>
           <p className="text-xs text-slate-400 mt-1.5">
             Supported: PDF, images, audio, video · Max 50MB
@@ -340,7 +368,7 @@ export default function MyUploadsPage() {
           <div className="flex items-center gap-2 font-medium text-black text-base">
             <FolderUp className="h-5 w-5 text-primary-blue" />
             <h3>
-              Uploaded Files{' '}
+              Uploaded Files{" "}
               {isFetching ? (
                 <Loader2 className="inline h-4 w-4 animate-spin text-slate-400" />
               ) : (
@@ -371,8 +399,8 @@ export default function MyUploadsPage() {
               onClick={() => setActiveCategory(cat.value)}
               className={`px-4 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
                 activeCategory === cat.value
-                  ? 'bg-primary-blue text-white shadow-sm'
-                  : 'bg-slate-100 text-primary-gray hover:bg-slate-200'
+                  ? "bg-primary-blue text-white shadow-sm"
+                  : "bg-slate-100 text-primary-gray hover:bg-slate-200"
               }`}
             >
               {cat.label}
@@ -402,15 +430,19 @@ export default function MyUploadsPage() {
                         <FileIcon className="h-5 w-5 text-slate-400" />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-sm font-semibold text-slate-900 truncate">{file.displayName}</p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">
+                          {file.displayName}
+                        </p>
                         <p className="text-xs text-slate-400 mt-0.5">
-                          {file.displaySize} · Uploaded {file.displayDate}
+                          Uploaded {file.displayDate}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-4 w-full sm:w-auto border-t sm:border-0 border-slate-50 pt-4 sm:pt-0 shrink-0">
-                      <span className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}>
+                      <span
+                        className={`flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider ${theme.text}`}
+                      >
                         <span className={`h-2 w-2 rounded-full ${theme.dot}`} />
                         {file.displayCategory}
                       </span>
@@ -444,13 +476,15 @@ export default function MyUploadsPage() {
                 <div className="h-16 w-16 bg-slate-100 text-slate-300 rounded-2xl flex items-center justify-center mb-5">
                   <FolderUp className="h-8 w-8" />
                 </div>
-                <h3 className="text-base font-bold text-primary-deepblue">No files found</h3>
+                <h3 className="text-base font-bold text-primary-deepblue">
+                  No files found
+                </h3>
                 <p className="text-sm text-primary-gray mt-1.5 max-w-xs font-medium">
-                  {searchQuery || activeCategory !== 'all'
-                    ? 'Try adjusting your search or category filter.'
-                    : 'Upload your first medical document to get started.'}
+                  {searchQuery || activeCategory !== "all"
+                    ? "Try adjusting your search or category filter."
+                    : "Upload your first medical document to get started."}
                 </p>
-                {!searchQuery && activeCategory === 'all' && (
+                {!searchQuery && activeCategory === "all" && (
                   <Button
                     onClick={() => fileInputRef.current?.click()}
                     className="mt-5 bg-primary-blue hover:bg-[#003be6] text-white text-xs px-5 py-2 rounded-xl flex items-center gap-2 font-semibold border-0"

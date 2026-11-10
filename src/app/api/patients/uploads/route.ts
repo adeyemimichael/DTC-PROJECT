@@ -15,9 +15,28 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
+    const uploadId = searchParams.get("id"); // Get the specific row ID
     const patientId = searchParams.get("patient_id") || user.id;
 
-    // RLS handles visibility (patient sees own, admin sees all)
+    // 1. If a specific upload ID is provided, fetch just that row
+    if (uploadId) {
+      const { data: upload, error: uploadError } = await supabase
+        .from("patient_uploads")
+        .select("*")
+        .eq("id", uploadId)
+        .maybeSingle(); // Safely returns a single object or null if not found
+
+      if (uploadError) {
+        return NextResponse.json(
+          { error: uploadError.message },
+          { status: 500 },
+        );
+      }
+
+      return NextResponse.json({ data: upload }, { status: 200 });
+    }
+
+    // 2. Otherwise, fall back to fetching all uploads for the patient
     const { data: uploads, error: uploadsError } = await supabase
       .from("patient_uploads")
       .select("*")
@@ -32,8 +51,11 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({ data: uploads }, { status: 200 });
-  } catch (err) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json(
+      { error: err.message || "Invalid request" },
+      { status: 400 },
+    );
   }
 }
 

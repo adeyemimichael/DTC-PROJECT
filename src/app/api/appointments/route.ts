@@ -24,7 +24,9 @@ export async function GET(request: Request) {
     // Start a base query
     let query = supabase
       .from("appointments")
-      .select("*, services(*), profiles:clinician_id(id, full_name, avatar_url, phone), payments(id, paystack_reference, paystack_access_code, status, amount, created_at)")
+      .select(
+        "*, services(*), patient:patient_id(id, full_name, passport_url, phone, date_of_birth, gender, blood_group), clinician:clinician_id(id, full_name, avatar_url, phone), payments(id, paystack_reference, paystack_access_code, status, amount, created_at)",
+      )
       .order("scheduled_at", { ascending: true });
 
     // If a specific patient is requested, filter by it.

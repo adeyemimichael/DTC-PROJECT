@@ -53,6 +53,8 @@ export async function registerPatient(data: RegisterPatientDto) {
     gender: data.gender.toLowerCase(),
     address: fullAddress,
     status: "pending_payment",
+    full_name: fullName,
+    phone: data.phoneNumber,
   });
 
   if (patientError) {

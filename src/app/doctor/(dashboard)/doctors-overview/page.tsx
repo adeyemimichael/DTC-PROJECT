@@ -1,138 +1,24 @@
-'use client';
+"use client";
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import Image from 'next/image';
-import { Calendar, Clock, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
-import { useBooking } from '@/context/BookingContext';
-import { useProfile } from '@/hooks';
-import type { Appointment } from '@/lib/types/appointment';
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface PatientRecord {
-  id: string;
-  full_name?: string | null;
-  email?: string | null;
-}
-
-// ── Mock data (shown when real data is empty) ─────────────────────────────────
-
-interface MockScheduleItem {
-  id: string;
-  name: string;
-  avatar: string;
-  service: string;
-  room: string;
-  time: string;
-  duration: string;
-  status: 'upcoming' | 'in_progress' | 'completed';
-  reason: string;
-}
-
-interface MockPendingRequest {
-  id: string;
-  name: string;
-  service: string;
-  time: string;
-  date: string;
-  reason: string;
-}
-
-const MOCK_SCHEDULE: MockScheduleItem[] = [
-  {
-    id: 'mock-s1',
-    name: 'Sarah Mitchell',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80',
-    service: 'General Consultation',
-    room: 'Room 3',
-    time: '9:00 AM',
-    duration: '30 min',
-    status: 'upcoming',
-    reason: 'Annual health check-up and blood work review',
-  },
-  {
-    id: 'mock-s2',
-    name: 'Michael Chen',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-    service: 'Specialist Care',
-    room: 'Room 1',
-    time: '9:45 AM',
-    duration: '45 min',
-    status: 'upcoming',
-    reason: 'Persistent migraines and neurological assessment',
-  },
-  {
-    id: 'mock-s3',
-    name: 'Emily Rodriguez',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80',
-    service: 'General Consultation',
-    room: 'Room 2',
-    time: '11:30 AM',
-    duration: '30 min',
-    status: 'in_progress',
-    reason: 'Follow-up on thyroid panel results',
-  },
-  {
-    id: 'mock-s4',
-    name: 'David Thompson',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80',
-    service: 'Telemedicine',
-    room: 'Virtual',
-    time: '2:00 PM',
-    duration: '30 min',
-    status: 'in_progress',
-    reason: 'Blood pressure medication review',
-  },
-  {
-    id: 'mock-s5',
-    name: 'Aisha Okonkwo',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
-    service: 'Specialist Care',
-    room: 'Room 1',
-    time: '9:00 AM',
-    duration: '30 min',
-    status: 'completed',
-    reason: 'Lower back pain — possible disc issue',
-  },
-  {
-    id: 'mock-s6',
-    name: 'Robert Kim',
-    avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=150&auto=format&fit=crop&q=80',
-    service: 'General Consultation',
-    room: 'Room 2',
-    time: '9:00 AM',
-    duration: '30 min',
-    status: 'completed',
-    reason: 'Seasonal allergy review',
-  },
-];
-
-const MOCK_PENDING: MockPendingRequest[] = [
-  {
-    id: 'mock-p1',
-    name: 'Marcus Wright',
-    service: 'General Consultation',
-    time: '9:00 AM',
-    date: 'Thu, Jun 4',
-    reason: 'New patient — comprehensive physical examination',
-  },
-  {
-    id: 'mock-p2',
-    name: 'Linda Thompson',
-    service: 'General Consultation',
-    time: '2:00 PM',
-    date: 'Fri, Jun 5',
-    reason: 'New patient — routine check-up and blood work',
-  },
-  {
-    id: 'mock-p3',
-    name: 'Sarah Mitchell',
-    service: 'Telemedicine',
-    time: '2:00 PM',
-    date: 'Mon, Jun 18',
-    reason: 'Follow-up on blood pressure medication adjustment',
-  },
-];
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Calendar,
+  Clock,
+  Loader2,
+  CheckCircle2,
+  AlertCircle,
+  Video,
+  ChevronRight,
+  ArrowRight,
+  CalendarDays,
+  Inbox,
+} from "lucide-react";
+import { useProfile, usePatients, useAppointments } from "@/hooks";
+import type { Appointment } from "@/lib/types/appointment";
+import { Button } from "@/components/ui";
+import { useRouter } from "next/navigation";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -149,29 +35,31 @@ function isToday(isoString: string): boolean {
 function isThisMonth(isoString: string): boolean {
   const d = new Date(isoString);
   const now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  return (
+    d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth()
+  );
 }
 
 function formatTime(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
     hour12: true,
   });
 }
 
 function formatDateShort(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
+  return new Date(isoString).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
   });
 }
 
-function formatCurrency(amount: number, currency = 'NGN'): string {
+function formatCurrency(amount: number, currency = "NGN"): string {
   try {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
       currency,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -182,64 +70,52 @@ function formatCurrency(amount: number, currency = 'NGN'): string {
 
 function getGreeting(): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 17) return 'Good afternoon';
-  return 'Good evening';
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 }
 
 function statusDot(status: string): string {
   switch (status) {
-    case 'confirmed':    return 'bg-amber-500';
-    case 'completed':    return 'bg-emerald-500';
-    default:             return 'bg-slate-400';
+    case "confirmed":
+      return "bg-amber-500";
+    case "completed":
+      return "bg-emerald-500";
+    default:
+      return "bg-slate-400";
   }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function DoctorsOverviewPage() {
-  const openBooking = useBooking();
   const { profile } = useProfile();
+  const {
+    patients,
+    isLoadingPatients,
+    fetchPatients,
+  } = usePatients();
 
-  // ── State ──────────────────────────────────────────────────────────────────
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [patients, setPatients] = useState<PatientRecord[]>([]);
-  const [isLoadingAppointments, setIsLoadingAppointments] = useState(true);
-  const [isLoadingPatients, setIsLoadingPatients] = useState(true);
+  const {
+    appointments,
+    isLoading: isLoadingAppointments,
+    fetchAppointments,
+    patchAppointment,
+  } = useAppointments({ autoFetch: true });
+
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{
     id: string;
-    type: 'success' | 'error';
+    type: "success" | "error";
     message: string;
   } | null>(null);
 
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchAppointments = useCallback(async () => {
-    setIsLoadingAppointments(true);
-    try {
-      const res = await fetch('/api/appointments');
-      const result = await res.json();
-      if (res.ok) setAppointments(Array.isArray(result.data) ? result.data : []);
-    } finally {
-      setIsLoadingAppointments(false);
-    }
-  }, []);
+  const router = useRouter();
 
-  const fetchPatients = useCallback(async () => {
-    setIsLoadingPatients(true);
-    try {
-      const res = await fetch('/api/patients');
-      const result = await res.json();
-      if (res.ok) setPatients(Array.isArray(result.data) ? result.data : []);
-    } finally {
-      setIsLoadingPatients(false);
-    }
-  }, []);
-
+  // Load patients list on mount
   useEffect(() => {
-    void fetchAppointments();
     void fetchPatients();
-  }, [fetchAppointments, fetchPatients]);
+  }, [fetchPatients]);
 
   // ── Derived stats ──────────────────────────────────────────────────────────
 
@@ -250,16 +126,16 @@ export default function DoctorsOverviewPage() {
   );
 
   const todayCompleted = todayAppointments.filter(
-    (a) => a.status === 'completed',
+    (a) => a.status === "completed",
   ).length;
 
   const todayRemaining = todayAppointments.filter((a) =>
-    ['confirmed', 'pending_approval'].includes(a.status),
+    ["confirmed", "pending_approval"].includes(a.status),
   ).length;
 
   // Pending approval
   const pendingRequests = useMemo(
-    () => appointments.filter((a) => a.status === 'pending_approval'),
+    () => appointments.filter((a) => a.status === "pending_approval"),
     [appointments],
   );
 
@@ -270,7 +146,7 @@ export default function DoctorsOverviewPage() {
       if (!isThisMonth(apt.scheduled_at)) continue;
       if (!apt.payments) continue;
       for (const p of apt.payments) {
-        if (p.status === 'success') total += p.amount;
+        if (p.status === "success") total += Number(p.amount) || 0;
       }
     }
     return total;
@@ -280,7 +156,7 @@ export default function DoctorsOverviewPage() {
   const todaySchedule = useMemo(
     () =>
       todayAppointments
-        .filter((a) => ['confirmed', 'completed'].includes(a.status))
+        .filter((a) => ["confirmed", "completed"].includes(a.status))
         .sort(
           (a, b) =>
             new Date(a.scheduled_at).getTime() -
@@ -290,42 +166,49 @@ export default function DoctorsOverviewPage() {
   );
 
   // ── Patient name lookup ────────────────────────────────────────────────────
-  const patientName = useCallback(
-    (patientId: string): string => {
-      return (
-        patients.find((p) => p.id === patientId)?.full_name ?? 'Patient'
-      );
+  const getPatientDisplayName = useCallback(
+    (apt: Appointment): string => {
+      if (apt.patient?.full_name) return apt.patient.full_name;
+      const found = patients.find((p) => p.id === apt.patient_id);
+      return found?.full_name ?? "Patient";
     },
     [patients],
+  );
+
+  const getPatientAvatar = useCallback(
+    (apt: Appointment, name: string): string => {
+      const p = apt.patient;
+      if (p?.passport_signed_url) return p.passport_signed_url;
+      return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=f4f4f5&color=374151&size=80`;
+    },
+    [],
   );
 
   // ── Approve / Decline ──────────────────────────────────────────────────────
   const handleDecision = async (
     id: string,
-    decision: 'confirmed' | 'declined',
+    decision: "confirmed" | "declined",
   ) => {
     setActionLoading(`${decision}-${id}`);
     setActionFeedback(null);
     try {
-      const res = await fetch(`/api/appointments/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: decision }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Request failed');
+      const result = await patchAppointment(id, { status: decision });
+      if (!result.success) throw new Error(result.error || "Request failed");
 
       setActionFeedback({
         id,
-        type: 'success',
-        message: decision === 'confirmed' ? 'Appointment approved.' : 'Appointment declined.',
+        type: "success",
+        message:
+          decision === "confirmed"
+            ? "Appointment approved."
+            : "Appointment declined.",
       });
       await fetchAppointments();
     } catch (err: unknown) {
       setActionFeedback({
         id,
-        type: 'error',
-        message: err instanceof Error ? err.message : 'Something went wrong.',
+        type: "error",
+        message: err instanceof Error ? err.message : "Something went wrong.",
       });
     } finally {
       setActionLoading(null);
@@ -336,8 +219,7 @@ export default function DoctorsOverviewPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8 max-w-[1400px] mx-auto pb-12">
-
+    <div className="space-y-8 max-w-[1400px] mx-auto pb-12 animate-page-fade">
       {/* Header Greeting */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -347,11 +229,11 @@ export default function DoctorsOverviewPage() {
                 {getGreeting()}, {profile.full_name}
               </h1>
               <p className="text-base font-medium text-primary-gray mt-1.5">
-                {new Date().toLocaleDateString('en-US', {
-                  weekday: 'long',
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric',
+                {new Date().toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
                 })}
               </p>
             </>
@@ -362,18 +244,17 @@ export default function DoctorsOverviewPage() {
             </>
           )}
         </div>
-        <button
-          onClick={openBooking}
+        <Button
+          onClick={() => router.push("/doctor/appointments")}
           className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary-red text-white font-semibold text-base hover:opacity-90 transition-all shadow-sm shrink-0 cursor-pointer"
         >
           <Calendar className="h-5 w-5" />
           Manage Appointments
-        </button>
+        </Button>
       </div>
 
       {/* 4 Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
-
         {/* Today's Appointments */}
         <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-xs flex flex-col justify-between">
           <span className="text-base font-medium text-gray-600">
@@ -461,7 +342,6 @@ export default function DoctorsOverviewPage() {
 
       {/* Main Two-Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 items-start">
-
         {/* Left: Today's Schedule */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 lg:p-7 border border-gray-100 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-3 border-b border-gray-100">
@@ -477,86 +357,39 @@ export default function DoctorsOverviewPage() {
           </div>
 
           {isLoadingAppointments ? (
-            <div className="py-12 flex items-center justify-center gap-2 text-slate-400 text-sm">
+            <div className="py-16 flex items-center justify-center gap-2 text-slate-400 text-sm">
               <Loader2 className="h-5 w-5 animate-spin text-primary-blue" />
               Loading schedule...
             </div>
           ) : todaySchedule.length === 0 ? (
-            /* ── Mock schedule fallback ── */
-            <div className="space-y-4">
-              {MOCK_SCHEDULE.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-[#FCFCFC] hover:bg-[#f5f5f7] transition-colors border border-slate-100/60"
-                >
-                  <div className="flex items-center gap-4 min-w-0">
-                    {/* Time */}
-                    <div className="w-24 shrink-0">
-                      <div className="text-base font-bold text-gray-900">{item.time}</div>
-                      <div className="text-sm text-primary-gray font-normal mt-0.5">{item.duration}</div>
-                    </div>
-
-                    {/* Status dot */}
-                    <span className={`h-3 w-3 rounded-full shrink-0 ${
-                      item.status === 'completed' ? 'bg-emerald-500' :
-                      item.status === 'in_progress' ? 'bg-blue-500' :
-                      'bg-amber-500'
-                    }`} />
-
-                    {/* Avatar */}
-                    <div className="relative h-11 w-11 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
-                      <Image src={item.avatar} alt={item.name} fill className="object-cover" />
-                    </div>
-
-                    {/* Name + details */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-bold text-gray-900 truncate">{item.name}</h3>
-                      <p className="text-[15px] text-primary-gray truncate mt-0.5 font-normal">
-                        {item.service} · {item.room} · {item.reason}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    {item.status === 'upcoming' && (
-                      <>
-                        <button className="px-5 py-2.5 rounded-lg bg-[#fff8ee] text-amber-600 text-[15px] font-semibold hover:bg-amber-100 transition-colors cursor-pointer">
-                          Start
-                        </button>
-                        <button className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer">
-                          Details
-                        </button>
-                      </>
-                    )}
-                    {item.status === 'in_progress' && (
-                      <>
-                        <button className="px-5 py-2.5 rounded-lg bg-[#e6f4ea] text-[#1e8e3e] text-[15px] font-semibold hover:bg-emerald-100 transition-colors cursor-pointer">
-                          Complete
-                        </button>
-                        <button className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer">
-                          Details
-                        </button>
-                      </>
-                    )}
-                    {item.status === 'completed' && (
-                      <span className="text-[15px] font-semibold text-primary-gray px-3 py-1">
-                        Completed
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="py-16 px-6 text-center flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+              <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-400 mb-3.5">
+                <CalendarDays className="w-7 h-7" />
+              </div>
+              <h3 className="text-base font-bold text-slate-900">
+                No appointments scheduled for today
+              </h3>
+              <p className="text-sm text-slate-500 max-w-sm mt-1">
+                You have no confirmed consultations for today. Check upcoming
+                bookings or view pending requests on the right.
+              </p>
+              <Link
+                href="/doctor/appointments"
+                className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-red hover:underline"
+              >
+                View all appointments <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
               {todaySchedule.map((apt) => {
-                const name = patientName(apt.patient_id);
-                const serviceName = apt.services?.name ?? 'Consultation';
+                const name = getPatientDisplayName(apt);
+                const avatar = getPatientAvatar(apt, name);
+                const serviceName = apt.services?.name ?? "Consultation";
                 const duration = apt.services?.duration_minutes
                   ? `${apt.services.duration_minutes} min`
-                  : '—';
-                const isCompleted = apt.status === 'completed';
+                  : "—";
+                const isCompleted = apt.status === "completed";
 
                 return (
                   <div
@@ -575,7 +408,19 @@ export default function DoctorsOverviewPage() {
                       </div>
 
                       {/* Dot */}
-                      <span className={`h-3 w-3 rounded-full shrink-0 ${statusDot(apt.status)}`} />
+                      <span
+                        className={`h-3 w-3 rounded-full shrink-0 ${statusDot(apt.status)}`}
+                      />
+
+                      {/* Avatar */}
+                      <div className="relative h-11 w-11 rounded-full overflow-hidden shrink-0 border border-gray-200 bg-gray-100">
+                        <Image
+                          src={avatar}
+                          alt={name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
 
                       {/* Info */}
                       <div className="min-w-0 flex-1">
@@ -584,13 +429,23 @@ export default function DoctorsOverviewPage() {
                         </h3>
                         <p className="text-[15px] text-primary-gray truncate mt-0.5 font-normal">
                           {serviceName}
-                          {apt.reason ? ` · ${apt.reason}` : ''}
+                          {apt.reason ? ` · ${apt.reason}` : ""}
                         </p>
+                        {apt.meeting_link && (
+                          <a
+                            href={apt.meeting_link}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-blue hover:underline mt-1"
+                          >
+                            <Video className="w-3.5 h-3.5" /> Join Video Call
+                          </a>
+                        )}
                       </div>
                     </div>
 
-                    {/* Status badge */}
-                    <div className="shrink-0">
+                    {/* Status badge & link */}
+                    <div className="flex items-center gap-3 shrink-0 justify-end">
                       {isCompleted ? (
                         <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
                           Completed
@@ -600,6 +455,13 @@ export default function DoctorsOverviewPage() {
                           Confirmed
                         </span>
                       )}
+                      <Link
+                        href="/doctor/appointments"
+                        className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+                        title="View in Appointments"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </Link>
                     </div>
                   </div>
                 );
@@ -625,49 +487,28 @@ export default function DoctorsOverviewPage() {
           </div>
 
           {isLoadingAppointments ? (
-            <div className="py-10 flex items-center justify-center gap-2 text-slate-400 text-sm">
+            <div className="py-12 flex items-center justify-center gap-2 text-slate-400 text-sm">
               <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
               Loading requests...
             </div>
           ) : pendingRequests.length === 0 ? (
-            /* ── Mock pending requests fallback ── */
-            <div className="space-y-4">
-              {MOCK_PENDING.map((req) => (
-                <div
-                  key={req.id}
-                  className="p-5 rounded-2xl border border-amber-400/40 bg-white space-y-3.5 shadow-2xs hover:border-amber-500 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <h3 className="text-base font-bold text-gray-900">{req.name}</h3>
-                      <p className="text-[15px] font-medium text-primary-gray mt-0.5">{req.service}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-[15px] font-bold text-primary-blue block">{req.time}</span>
-                      <span className="text-sm font-semibold text-gray-400">{req.date}</span>
-                    </div>
-                  </div>
-                  <p className="text-[15px] text-primary-gray leading-relaxed font-normal">{req.reason}</p>
-                  <div className="flex items-center gap-3 pt-1">
-                    <button
-                      className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center"
-                    >
-                      Decline
-                    </button>
-                  </div>
-                </div>
-              ))}
+            <div className="py-14 px-4 text-center flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+              <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-400 mb-3">
+                <Inbox className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-bold text-slate-900">
+                No pending requests
+              </h3>
+              <p className="text-xs text-slate-500 max-w-xs mt-1">
+                All patient appointment bookings have been reviewed and
+                approved.
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
               {pendingRequests.map((req) => {
-                const name = patientName(req.patient_id);
-                const serviceName = req.services?.name ?? 'Consultation';
+                const name = getPatientDisplayName(req);
+                const serviceName = req.services?.name ?? "Consultation";
                 const feedback =
                   actionFeedback?.id === req.id ? actionFeedback : null;
                 const isApproving = actionLoading === `confirmed-${req.id}`;
@@ -682,7 +523,9 @@ export default function DoctorsOverviewPage() {
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-base font-bold text-gray-900">{name}</h3>
+                        <h3 className="text-base font-bold text-gray-900">
+                          {name}
+                        </h3>
                         <p className="text-[15px] font-medium text-primary-gray mt-0.5">
                           {serviceName}
                         </p>
@@ -708,12 +551,12 @@ export default function DoctorsOverviewPage() {
                     {feedback && (
                       <div
                         className={`flex items-center gap-2 text-xs font-semibold px-3 py-2 rounded-lg ${
-                          feedback.type === 'success'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : 'bg-red-50 text-red-600'
+                          feedback.type === "success"
+                            ? "bg-emerald-50 text-emerald-700"
+                            : "bg-red-50 text-red-600"
                         }`}
                       >
-                        {feedback.type === 'success' ? (
+                        {feedback.type === "success" ? (
                           <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                         ) : (
                           <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -726,23 +569,23 @@ export default function DoctorsOverviewPage() {
                     <div className="flex items-center gap-3 pt-1">
                       <button
                         disabled={isBusy}
-                        onClick={() => handleDecision(req.id, 'confirmed')}
-                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                        onClick={() => handleDecision(req.id, "confirmed")}
+                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 disabled:opacity-60 shadow-xs"
                       >
                         {isApproving && (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         )}
-                        {isApproving ? 'Approving...' : 'Approve'}
+                        {isApproving ? "Approving..." : "Approve"}
                       </button>
                       <button
                         disabled={isBusy}
-                        onClick={() => handleDecision(req.id, 'declined')}
+                        onClick={() => handleDecision(req.id, "declined")}
                         className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
                       >
                         {isDeclining && (
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                         )}
-                        {isDeclining ? 'Declining...' : 'Decline'}
+                        {isDeclining ? "Declining..." : "Decline"}
                       </button>
                     </div>
                   </div>
