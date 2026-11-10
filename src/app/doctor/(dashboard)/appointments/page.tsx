@@ -307,7 +307,7 @@ export default function DoctorAppointmentsPage() {
         <div>
           {profile?.full_name ? (
             <>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-3xl lg:text-4xl font-semibold text-gray-900 tracking-tight">
                 {getGreeting()}, {profile.full_name}
               </h1>
               <p className="text-base font-medium text-primary-gray mt-1.5">
@@ -343,7 +343,7 @@ export default function DoctorAppointmentsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-200/60 rounded-2xl w-fit">
+      <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-gray-200/40 rounded-2xl w-fit">
         {(
           [
             { id: "all", label: "All" },
@@ -362,7 +362,7 @@ export default function DoctorAppointmentsPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
+            className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               activeTab === tab.id
                 ? "bg-white text-gray-900 shadow-xs"
                 : "text-gray-600 hover:text-gray-900"
@@ -378,7 +378,7 @@ export default function DoctorAppointmentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
           <div className="flex items-center gap-3">
             <Calendar className="h-6 w-6 text-primary-red" />
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+            <h2 className="text-xl lg:text-2xl font-semibold text-gray-900">
               All Appointments
             </h2>
           </div>
@@ -406,7 +406,7 @@ export default function DoctorAppointmentsPage() {
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <div className="w-24 shrink-0 text-left">
-                    <div className="text-base font-bold text-gray-900">
+                    <div className="text-base font-semibold text-gray-900">
                       {item.time}
                     </div>
                     <div className="text-sm text-primary-gray font-normal mt-0.5">
@@ -446,7 +446,7 @@ export default function DoctorAppointmentsPage() {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-base font-bold text-gray-900 truncate">
+                    <h3 className="text-base font-semibold text-gray-900 truncate">
                       {item.patientName}
                     </h3>
                     <p className="text-[15px] text-primary-gray truncate mt-1 font-normal">
@@ -498,14 +498,14 @@ export default function DoctorAppointmentsPage() {
                             href={item.meetLink}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-4 py-2.5 rounded-lg bg-blue-50 text-primary-blue text-[15px] font-semibold hover:bg-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                            className="px-4 py-2.5 rounded-lg bg-blue-50 text-primary-blue text-[15px] font-normal hover:bg-blue-100 transition-colors cursor-pointer inline-flex items-center gap-1.5"
                           >
                             Join Call
                           </a>
                         )}
                         <button
                           onClick={() => openDetails(item)}
-                          className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                          className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-normal hover:bg-gray-200 transition-colors cursor-pointer"
                         >
                           Details
                         </button>
@@ -516,12 +516,12 @@ export default function DoctorAppointmentsPage() {
                   {(item.status === "completed" ||
                     item.rawStatus === "completed") && (
                     <>
-                      <span className="text-[15px] font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                      <span className="text-[15px] font-normal  text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
                         Completed
                       </span>
                       <button
                         onClick={() => openDetails(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#e8f0fe] text-primary-blue text-[15px] font-semibold hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1.5"
+                        className="px-5 py-2.5 rounded-lg bg-[#e8f0fe] text-primary-blue text-[15px] font-normal  hover:bg-blue-100 transition-colors cursor-pointer flex items-center gap-1.5"
                       >
                         <FileText className="h-4 w-4" />
                         View Notes
@@ -533,12 +533,12 @@ export default function DoctorAppointmentsPage() {
                   {(item.status === "cancelled" ||
                     item.rawStatus === "cancelled") && (
                     <>
-                      <span className="text-[15px] font-semibold text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg">
+                      <span className="text-[15px] font-normal  text-rose-600 bg-rose-50 px-3 py-1.5 rounded-lg">
                         Cancelled
                       </span>
                       <button
                         onClick={() => openDetails(item)}
-                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
+                        className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-normal hover:bg-gray-200 transition-colors cursor-pointer"
                       >
                         Details
                       </button>
@@ -549,7 +549,7 @@ export default function DoctorAppointmentsPage() {
                   {(item.status === "declined" ||
                     item.rawStatus === "declined") && (
                     <>
-                      <span className="text-[15px] font-semibold text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
+                      <span className="text-[15px] font-normal  text-gray-600 bg-gray-100 px-3 py-1.5 rounded-lg">
                         Declined
                       </span>
                       <button

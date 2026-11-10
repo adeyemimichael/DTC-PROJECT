@@ -44,12 +44,12 @@ export function CancelAppointmentModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
-      <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-gray-100 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-500/50 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-gray-100">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Cancel Appointment</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Cancel Appointment</h2>
             <p className="text-sm font-medium text-gray-500 mt-0.5">
               {appointment.patientName} · {appointment.date}
             </p>
@@ -113,14 +113,14 @@ export function CancelAppointmentModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="flex-1 py-3.5 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer text-center disabled:opacity-60"
+              className="flex-1 py-3.5 rounded-2xl bg-[#f3f4f6] text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors cursor-pointer text-center disabled:opacity-60"
             >
               Back
             </button>
             <button
               type="submit"
               disabled={isSubmitting || !reason.trim()}
-              className="flex-1 py-3.5 rounded-2xl bg-rose-600 text-white font-bold text-sm hover:bg-rose-700 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shadow-md"
+              className="flex-1 py-3.5 rounded-2xl bg-rose-600 text-white font-semibold text-sm hover:bg-rose-700 transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-60 shadow-md"
             >
               {isSubmitting
                 ? <Loader2 className="h-4 w-4 animate-spin" />

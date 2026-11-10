@@ -286,7 +286,7 @@ export default function DoctorsOverviewPage() {
         <div>
           {profile?.full_name ? (
             <>
-              <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
+              <h1 className="text-3xl lg:text-4xl font-semibold text-gray-900 tracking-tight">
                 {getGreeting()}, {profile.full_name}
               </h1>
               <p className="text-base font-medium text-primary-gray mt-1.5">
@@ -326,7 +326,7 @@ export default function DoctorsOverviewPage() {
               <div className="h-9 w-16 rounded bg-slate-200 animate-pulse" />
             ) : (
               <>
-                <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                <span className="text-3xl font-semibold text-gray-900 tracking-tight">
                   {todayCompleted}/{todayAppointments.length}
                 </span>
                 <p className="text-sm font-semibold text-amber-500 mt-1.5">
@@ -347,7 +347,7 @@ export default function DoctorsOverviewPage() {
               <div className="h-9 w-16 rounded bg-slate-200 animate-pulse" />
             ) : (
               <>
-                <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                <span className="text-3xl font-semibold text-gray-900 tracking-tight">
                   {patients.length.toLocaleString()}
                 </span>
                 <p className="text-sm font-semibold text-primary-red mt-1.5">
@@ -368,7 +368,7 @@ export default function DoctorsOverviewPage() {
               <div className="h-9 w-16 rounded bg-slate-200 animate-pulse" />
             ) : (
               <>
-                <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                <span className="text-3xl font-semibold text-gray-900 tracking-tight">
                   {pendingRequests.length}
                 </span>
                 <p className="text-sm font-semibold text-amber-500 mt-1.5">
@@ -389,7 +389,7 @@ export default function DoctorsOverviewPage() {
               <div className="h-9 w-24 rounded bg-slate-200 animate-pulse" />
             ) : (
               <>
-                <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                <span className="text-3xl font-semibold text-gray-900 tracking-tight">
                   {formatCurrency(revenueThisMonth)}
                 </span>
                 <p className="text-sm font-semibold text-emerald-500 mt-1.5">
@@ -408,11 +408,11 @@ export default function DoctorsOverviewPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-3">
               <Calendar className="h-6 w-6 text-primary-red" />
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900">
                 Today&apos;s Schedule
               </h2>
             </div>
-            <span className="text-[15px] font-medium text-primary-gray">
+            <span className="text-[15px] font-normal text-primary-gray">
               {todayCompleted} completed · {todayRemaining} remaining
             </span>
           </div>
@@ -427,7 +427,7 @@ export default function DoctorsOverviewPage() {
               <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-400 mb-3.5">
                 <CalendarDays className="w-7 h-7" />
               </div>
-              <h3 className="text-base font-bold text-slate-900">
+              <h3 className="text-base font-semibold text-slate-900">
                 No appointments scheduled for today
               </h3>
               <p className="text-sm text-slate-500 max-w-sm mt-1">
@@ -460,7 +460,7 @@ export default function DoctorsOverviewPage() {
                     <div className="flex items-center gap-4 min-w-0">
                       {/* Time */}
                       <div className="w-24 shrink-0">
-                        <div className="text-base font-bold text-gray-900">
+                        <div className="text-base font-semibold text-gray-900">
                           {formatTime(apt.scheduled_at)}
                         </div>
                         <div className="text-sm text-primary-gray font-normal mt-0.5">
@@ -485,7 +485,7 @@ export default function DoctorsOverviewPage() {
 
                       {/* Info */}
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-base font-bold text-gray-900 truncate">
+                        <h3 className="text-base font-semibold text-gray-900 truncate">
                           {name}
                         </h3>
                         <p className="text-[15px] text-primary-gray truncate mt-0.5 font-normal">
@@ -497,7 +497,7 @@ export default function DoctorsOverviewPage() {
                             href={apt.meeting_link}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-primary-blue hover:underline mt-1"
+                            className="inline-flex items-center gap-1 text-xs font-normal text-primary-blue hover:underline mt-1"
                           >
                             <Video className="w-3.5 h-3.5" /> Join Video Call
                           </a>
@@ -508,11 +508,11 @@ export default function DoctorsOverviewPage() {
                     {/* Status badge & link */}
                     <div className="flex items-center gap-3 shrink-0 justify-end">
                       {isCompleted ? (
-                        <span className="text-sm font-semibold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
+                        <span className="text-sm font-normal text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
                           Completed
                         </span>
                       ) : (
-                        <span className="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg">
+                        <span className="text-sm font-normal text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg">
                           Confirmed
                         </span>
                       )}
@@ -535,13 +535,13 @@ export default function DoctorsOverviewPage() {
         <div className="bg-white rounded-2xl p-6 lg:p-7 border border-gray-100 shadow-xs">
           <div className="flex items-center justify-between mb-6 pb-3 border-b border-gray-100">
             <div className="flex items-center gap-2.5">
-              <Clock className="h-6 w-6 text-amber-500" />
-              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+              <Clock className="h-6 w-6 text-[#FF8D28]" />
+              <h2 className="text-xl lg:text-2xl font-semibold text-gray-900">
                 Pending Requests
               </h2>
             </div>
             {!isLoadingAppointments && (
-              <span className="text-xs font-bold text-amber-500 bg-amber-50 px-2.5 py-1 rounded-full">
+              <span className="text-sm font-semibold text-[#FF8D28]  px-2.5 py-1 rounded-full">
                 {pendingRequests.length}
               </span>
             )}
@@ -549,21 +549,18 @@ export default function DoctorsOverviewPage() {
 
           {isLoadingAppointments ? (
             <div className="py-12 flex items-center justify-center gap-2 text-slate-400 text-sm">
-              <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+              <Loader2 className="h-4 w-4 animate-spin text-[#FF8D28]" />
               Loading requests...
             </div>
           ) : pendingRequests.length === 0 ? (
-            <div className="py-14 px-4 text-center flex flex-col items-center justify-center border border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+            <div className="py-14 px-4 text-center flex flex-col items-center justify-center  ">
               <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200/80 shadow-xs flex items-center justify-center text-slate-400 mb-3">
                 <Inbox className="w-6 h-6" />
               </div>
-              <h3 className="text-sm font-bold text-slate-900">
-                No pending requests
+              <h3 className="text-sm font-semibold text-slate-900">
+               No Activity yet
               </h3>
-              <p className="text-xs text-slate-500 max-w-xs mt-1">
-                All patient appointment bookings have been reviewed and
-                approved.
-              </p>
+             
             </div>
           ) : (
             <div className="space-y-4">
@@ -584,18 +581,18 @@ export default function DoctorsOverviewPage() {
                     {/* Header */}
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h3 className="text-base font-bold text-gray-900">
+                        <h3 className="text-base font-semibold text-gray-900">
                           {name}
                         </h3>
-                        <p className="text-[15px] font-medium text-primary-gray mt-0.5">
+                        <p className="text-[15px] font-normal text-primary-gray mt-0.5">
                           {serviceName}
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <span className="text-[15px] font-bold text-primary-blue block">
+                        <span className="text-[15px] font-normal text-primary-blue block">
                           {formatTime(req.scheduled_at)}
                         </span>
-                        <span className="text-sm font-semibold text-gray-400">
+                        <span className="text-sm font-normal text-gray-400">
                           {formatDateShort(req.scheduled_at)}
                         </span>
                       </div>
@@ -630,13 +627,13 @@ export default function DoctorsOverviewPage() {
                     <div className="flex items-center gap-3 pt-1">
                       <button
                         onClick={() => handleOpenApprove(req)}
-                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-bold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 shadow-xs"
+                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         Approve
                       </button>
                       <button
                         onClick={() => handleOpenDecline(req)}
-                        className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-bold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5"
+                        className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5"
                       >
                         Decline
                       </button>

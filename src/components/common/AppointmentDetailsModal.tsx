@@ -206,7 +206,7 @@ export function AppointmentDetailsModal({
         <div className="space-y-6">
           {/* ── Header ── */}
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-semibold text-gray-900">
               Appointment Details
             </h2>
             <p className="text-sm font-medium text-gray-500 mt-1">
@@ -226,7 +226,7 @@ export function AppointmentDetailsModal({
                 />
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-bold text-gray-900 truncate">
+                <h3 className="text-base font-semibold text-gray-900 truncate">
                   {appointment.patientName}
                 </h3>
                 <p className="text-xs font-medium text-gray-500 truncate mt-0.5">
@@ -286,7 +286,7 @@ export function AppointmentDetailsModal({
             appointment.rawStatus === "declined" ||
             appointment.cancellationReason) && (
             <div className="bg-rose-50 border border-rose-200/80 rounded-2xl p-4 space-y-1">
-              <div className="flex items-center gap-2 text-rose-700 font-bold text-sm">
+              <div className="flex items-center gap-2 text-rose-700 font-semibold text-sm">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
                 <span>
                   {appointment.status === "declined" ||
@@ -307,10 +307,10 @@ export function AppointmentDetailsModal({
           {/* ── 2×2 Info Grid ── */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block">
                 TIME
               </span>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-base font-semibold text-gray-900">
                 {appointment.time}
               </p>
               <p className="text-xs font-medium text-gray-500">
@@ -318,10 +318,10 @@ export function AppointmentDetailsModal({
               </p>
             </div>
             <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block">
                 ROOM
               </span>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-base font-semibold text-gray-900">
                 {appointment.room}
               </p>
               <p className="text-xs font-medium text-gray-500">
@@ -329,18 +329,18 @@ export function AppointmentDetailsModal({
               </p>
             </div>
             <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block">
                 TYPE
               </span>
-              <p className="text-base font-bold text-gray-900 truncate">
+              <p className="text-base font-semibold text-gray-900 truncate">
                 {appointment.type}
               </p>
             </div>
             <div className="bg-[#f4f4f5] rounded-2xl p-4 space-y-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-gray-400 block">
                 PATIENT ID
               </span>
-              <p className="text-base font-bold text-gray-900">
+              <p className="text-base font-semibold text-gray-900">
                 {appointment.patientId}
               </p>
             </div>
@@ -348,7 +348,7 @@ export function AppointmentDetailsModal({
 
           {/* ── Reason for Visit ── */}
           <div className="space-y-2">
-            <h4 className="text-base font-bold text-gray-900">
+            <h4 className="text-base font-semibold text-gray-900">
               Reason for Visit
             </h4>
             <div className="bg-[#f4f4f5] rounded-2xl p-4 text-sm font-medium text-gray-700 leading-relaxed">
@@ -362,7 +362,7 @@ export function AppointmentDetailsModal({
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <Activity className="h-4 w-4 text-rose-500" />
-                <h4 className="text-base font-bold text-gray-900">
+                <h4 className="text-base font-semibold text-gray-900">
                   Latest Vital Signs
                 </h4>
               </div>
@@ -419,7 +419,7 @@ export function AppointmentDetailsModal({
                               Recorded
                             </span>
                           </div>
-                          <p className="text-lg font-bold text-gray-900">
+                          <p className="text-lg font-semibold text-gray-900">
                             {String(card.value)}
                             <span className="ml-1 text-xs font-medium text-gray-500">
                               {card.unit}
@@ -437,7 +437,7 @@ export function AppointmentDetailsModal({
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <CheckCircle2 className="h-4 w-4 text-blue-600" />
-                      <h4 className="text-base font-bold text-gray-900">
+                      <h4 className="text-base font-semiold text-gray-900">
                         Vitals Tracking History
                       </h4>
                     </div>
@@ -505,7 +505,7 @@ export function AppointmentDetailsModal({
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-gray-600" />
-                <h4 className="text-base font-bold text-gray-900">
+                <h4 className="text-base font-semibold text-gray-900">
                   Medical Records
                 </h4>
               </div>
@@ -570,7 +570,7 @@ export function AppointmentDetailsModal({
             <section className="space-y-4">
               <div className="flex items-center gap-2">
                 <FileText className="h-4 w-4 text-gray-600" />
-                <h4 className="text-base font-bold text-gray-900">
+                <h4 className="text-base font-semibold text-gray-900">
                   Patient Upload
                 </h4>
               </div>
@@ -634,7 +634,7 @@ export function AppointmentDetailsModal({
                     <Video className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block">
+                    <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">
                       Google Meet Link
                     </span>
                     {meetUrl ? (
@@ -662,7 +662,7 @@ export function AppointmentDetailsModal({
                       href={meetUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-4 py-2.5 text-primary-blue font-bold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center whitespace-nowrap"
+                      className="px-4 py-2.5 text-primary-blue font-semibold text-sm rounded-2xl border border-primary-blue hover:bg-primary-blue/10 transition-colors text-center whitespace-nowrap"
                     >
                       Join Meeting
                     </a>
@@ -671,7 +671,7 @@ export function AppointmentDetailsModal({
                     <button
                       type="button"
                       onClick={() => setIsEditingLink((v) => !v)}
-                      className="px-4 py-2.5 bg-[#0149ff] text-white font-bold text-sm rounded-2xl hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
+                      className="px-4 py-2.5 bg-[#0149ff] text-white font-semibold text-sm rounded-2xl hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap"
                     >
                       <Link2 className="h-4 w-4" />
                       {meetUrl ? "Update Link" : "Add Link"}
@@ -697,7 +697,7 @@ export function AppointmentDetailsModal({
                   <button
                     type="submit"
                     disabled={isSavingLink || !editLink.trim()}
-                    className="px-4 py-2.5 rounded-xl bg-[#0149ff] text-white font-bold text-sm hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 whitespace-nowrap"
+                    className="px-4 py-2.5 rounded-xl bg-[#0149ff] text-white font-semibold text-sm hover:opacity-90 transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-60 whitespace-nowrap"
                   >
                     {isSavingLink ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -724,7 +724,7 @@ export function AppointmentDetailsModal({
             appointment.knownConditions &&
             appointment.knownConditions.length > 0 && (
               <div className="space-y-2">
-                <h4 className="text-base font-bold text-gray-900">
+                <h4 className="text-base font-semibold text-gray-900">
                   Known Conditions
                 </h4>
                 <div className="flex flex-wrap gap-2">
@@ -743,7 +743,7 @@ export function AppointmentDetailsModal({
           {/* ── Contact Information ── */}
           {appointment.status !== "completed" && (
             <div className="space-y-2.5 pt-1 border-t border-gray-100">
-              <h4 className="text-base font-bold text-gray-900">
+              <h4 className="text-base font-semibold text-gray-900">
                 Contact Information
               </h4>
               <div className="space-y-2 text-sm font-medium text-gray-700">
@@ -762,7 +762,7 @@ export function AppointmentDetailsModal({
           {/* ── Completed: Notes & Medical File ── */}
           {appointment.status === "completed" && (
             <div className="space-y-2">
-              <h4 className="text-base font-bold text-gray-900">
+              <h4 className="text-base font-semibold text-gray-900">
                 Consultation Notes
               </h4>
               <div className="bg-[#f0fdf4] border border-[#bbf7d0] rounded-2xl p-5 space-y-3">
@@ -772,7 +772,7 @@ export function AppointmentDetailsModal({
                     "TSH levels normalized. Continue current levothyroxine dosage. Patient reports improved energy levels."}
                   &quot;
                 </p>
-                <div className="flex items-center gap-2 text-xs font-bold text-[#16a34a]">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[#16a34a]">
                   <User className="h-3.5 w-3.5" />
                   <span>
                     {appointment.doctorName || "Dr. Stephen Adeyemi"} ·{" "}
@@ -795,7 +795,7 @@ export function AppointmentDetailsModal({
                   onClose();
                   onOpenReschedule?.();
                 }}
-                className="w-full py-4 rounded-2xl bg-primary-blue text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-2xl bg-primary-blue text-white font-semibold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center flex items-center justify-center gap-2"
               >
                 Reschedule Appointment
               </button>
@@ -813,7 +813,7 @@ export function AppointmentDetailsModal({
                       onClose();
                       onOpenApprove?.();
                     }}
-                    className="flex-1 py-4 rounded-2xl bg-primary-red text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
+                    className="flex-1 py-4 rounded-2xl bg-primary-red text-white font-semibold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
                   >
                     Approve Appointment
                   </button>
@@ -822,7 +822,7 @@ export function AppointmentDetailsModal({
                       onClose();
                       onOpenDecline?.();
                     }}
-                    className="px-5 py-4 rounded-2xl bg-[#f3f4f6] text-gray-700 font-bold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
+                    className="px-5 py-4 rounded-2xl bg-[#f3f4f6] text-gray-700 font-semibold text-sm hover:bg-gray-200 transition-colors cursor-pointer"
                   >
                     Decline
                   </button>
@@ -841,7 +841,7 @@ export function AppointmentDetailsModal({
                       onClose();
                       onOpenComplete?.();
                     }}
-                    className="w-full py-4 rounded-2xl bg-[#0149ff] text-white font-bold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
+                    className="w-full py-4 rounded-2xl bg-[#0149ff] text-white font-semibold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
                   >
                     Complete Appointment
                   </button>
