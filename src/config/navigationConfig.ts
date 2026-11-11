@@ -7,6 +7,7 @@ import {
   HelpCircle,
   Settings,
   Folder,
+  WalletCards,
 } from "lucide-react";
 import { NavigationConfig, UserProfile } from "@/components/navigation/types";
 
@@ -33,6 +34,12 @@ export const doctorNavigationConfig: NavigationConfig = {
           label: "Patients",
           href: "/doctor/patients",
           icon: Users,
+        },
+        {
+          id: "payments",
+          label: "Payments & Revenue",
+          href: "/doctor/payments",
+          icon: WalletCards,
         },
         // { id: "messages", label: "Messages", href: "/doctor/messages", icon: MessageSquare, badge: 2 },
       ],
@@ -82,6 +89,12 @@ export const patientNavigationConfig: NavigationConfig = {
           label: "My Uploads",
           href: "/user/my-uploads",
           icon: Folder,
+        },
+        {
+          id: "payments",
+          label: "Payments",
+          href: "/user/payments",
+          icon: WalletCards,
         },
       ],
     },
