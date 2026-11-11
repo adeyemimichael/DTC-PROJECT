@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
   Clock3,
@@ -9,10 +9,25 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
-import { useAppointments } from "@/hooks/useAppointments";
 
 type PaymentStatus = "all" | "success" | "pending" | "failed";
 type DateRange = "all" | "this-month" | "last-30-days";
+
+interface PaymentRecord {
+  id: string;
+  purpose: string;
+  related_appointment_id: string | null;
+  amount: number;
+  currency: string;
+  paystack_reference: string;
+  status: string;
+  paid_at: string | null;
+  created_at: string;
+  patient?: { profiles?: { full_name?: string } | null } | null;
+  appointment?: {
+    services?: { name?: string } | null;
+  } | null;
+}
 
 interface Transaction {
   id: string;
@@ -21,16 +36,30 @@ interface Transaction {
   patientName: string;
   serviceName: string;
   amount: number;
+  currency: string;
   status: string;
   createdAt: string;
 }
 
-function formatCurrency(amount: number): string {
+function formatCurrency(amount: number, currency: string): string {
   return new Intl.NumberFormat("en-NG", {
     style: "currency",
-    currency: "NGN",
+    currency,
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+function getPurposeLabel(purpose: string): string {
+  switch (purpose) {
+    case "registration":
+      return "Registration";
+    case "appointment":
+      return "Appointment";
+    case "follow_up":
+      return "Follow-up";
+    default:
+      return "Other payment";
+  }
 }
 
 function formatDate(value: string): string {
@@ -98,35 +127,69 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 export default function DoctorPaymentsPage() {
-  const { appointments, isLoading, error, fetchAppointments } =
-    useAppointments({ autoFetch: true });
+  const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus>("all");
   const [dateRange, setDateRange] = useState<DateRange>("all");
 
-  const transactions = useMemo(() => {
-    const result: Transaction[] = [];
+  useEffect(() => {
+    let isCurrent = true;
 
-    for (const appointment of appointments) {
-      for (const payment of appointment.payments ?? []) {
-        result.push({
-          id: payment.id,
-          reference: payment.paystack_reference,
-          appointmentId: appointment.id,
-          patientName: appointment.patient?.full_name || "Patient",
-          serviceName: appointment.services?.name || "Appointment",
-          amount: Number(payment.amount) || 0,
-          status: payment.status,
-          createdAt: payment.created_at || appointment.created_at,
-        });
+    async function loadPayments() {
+      try {
+        const response = await fetch("/api/payments");
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result.error || "Failed to fetch payments.");
+        }
+        if (!Array.isArray(result.data)) {
+          throw new Error(
+            "The payments response was not in the expected format.",
+          );
+        }
+
+        if (isCurrent) {
+          setError(null);
+          setPayments(result.data);
+        }
+      } catch (fetchError: unknown) {
+        if (isCurrent) {
+          setError(
+            fetchError instanceof Error
+              ? fetchError.message
+              : "Failed to fetch payments.",
+          );
+        }
+      } finally {
+        if (isCurrent) setIsLoading(false);
       }
     }
 
-    return result.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-    );
-  }, [appointments]);
+    void loadPayments();
+    return () => {
+      isCurrent = false;
+    };
+  }, [refreshVersion]);
+
+  const transactions = useMemo(() => {
+    return payments.map((payment): Transaction => ({
+      id: payment.id,
+      reference: payment.paystack_reference,
+      appointmentId: payment.related_appointment_id || "",
+      patientName: payment.patient?.profiles?.full_name || "Patient",
+      serviceName:
+        payment.appointment?.services?.name ||
+        getPurposeLabel(payment.purpose),
+      amount: Number(payment.amount) || 0,
+      currency: payment.currency || "NGN",
+      status: payment.status,
+      createdAt: payment.paid_at || payment.created_at,
+    }));
+  }, [payments]);
 
   const summary = useMemo(() => {
     const successful = transactions.filter(
@@ -179,7 +242,7 @@ export default function DoctorPaymentsPage() {
   const summaryCards = [
     {
       label: "Revenue this month",
-      value: formatCurrency(summary.monthRevenue),
+      value: formatCurrency(summary.monthRevenue, "NGN"),
       detail: "From successful payments",
       icon: Wallet,
       iconStyle: "text-blue-700",
@@ -223,13 +286,17 @@ export default function DoctorPaymentsPage() {
             Payments &amp; Revenue
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Track appointment payments, find a transaction, and review its
-            current status.
+            Track patient payments, find a transaction, and review its current
+            status.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => void fetchAppointments()}
+          onClick={() => {
+            setIsLoading(true);
+            setError(null);
+            setRefreshVersion((version) => version + 1);
+          }}
           disabled={isLoading}
           className="inline-flex items-center justify-center gap-2 self-start rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 disabled:cursor-wait disabled:opacity-60 sm:self-auto"
         >
@@ -344,7 +411,11 @@ export default function DoctorPaymentsPage() {
             <p className="mt-1">{error}</p>
             <button
               type="button"
-              onClick={() => void fetchAppointments()}
+              onClick={() => {
+                setIsLoading(true);
+                setError(null);
+                setRefreshVersion((version) => version + 1);
+              }}
               className="mt-3 font-semibold underline underline-offset-2"
             >
               Try again
@@ -428,15 +499,17 @@ export default function DoctorPaymentsPage() {
                       <p className="font-mono text-xs font-semibold text-slate-700">
                         {transaction.reference}
                       </p>
-                      <p className="mt-1 text-xs text-slate-500">
-                        Appt. {transaction.appointmentId.slice(0, 8)}
-                      </p>
+                      {transaction.appointmentId && (
+                        <p className="mt-1 text-xs text-slate-500">
+                          Appt. {transaction.appointmentId.slice(0, 8)}
+                        </p>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {formatDate(transaction.createdAt)}
                     </td>
                     <td className="px-6 py-4 text-right text-sm font-bold text-slate-900">
-                      {formatCurrency(transaction.amount)}
+                      {formatCurrency(transaction.amount, transaction.currency)}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={transaction.status} />
