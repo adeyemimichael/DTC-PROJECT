@@ -138,6 +138,7 @@ export default function PatientPaymentsPage() {
   const [payments, setPayments] = useState<PatientPayment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState<string | null>(null);
+  const [isVerifying, setIsVerifying] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [search, setSearch] = useState("");
@@ -285,34 +286,62 @@ export default function PatientPaymentsPage() {
     }
   };
 
+  const handleVerifyPayment = async (payment: PatientPayment) => {
+    setIsVerifying(payment.id);
+    setError(null);
+    try {
+      const response = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reference: payment.paystack_reference }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to verify payment.");
+      }
+
+      setIsLoading(true);
+      setRefreshVersion((version) => version + 1);
+    } catch (verificationError: unknown) {
+      setError(
+        verificationError instanceof Error
+          ? verificationError.message
+          : "Failed to verify payment.",
+      );
+    } finally {
+      setIsVerifying(null);
+    }
+  };
+
   const summaryCards = [
     {
       label: "Total paid",
       value: summary.totalPaid,
       detail: "Across all successful payments",
       icon: Wallet,
-      iconStyle: "bg-blue-50 text-blue-700",
+      iconStyle: " text-blue-700",
     },
     {
       label: "Paid this month",
       value: summary.paidThisMonth,
       detail: "Successful payments this month",
       icon: CheckCircle2,
-      iconStyle: "bg-emerald-50 text-emerald-700",
+      iconStyle: " text-emerald-700",
     },
     {
       label: "Awaiting payment",
       value: summary.pendingCount.toLocaleString(),
       detail: "Pending transactions",
       icon: Clock3,
-      iconStyle: "bg-amber-50 text-amber-700",
+      iconStyle: "text-amber-700",
     },
     {
       label: "Unsuccessful",
       value: summary.unsuccessfulCount.toLocaleString(),
       detail: "Failed or abandoned",
       icon: XCircle,
-      iconStyle: "bg-rose-50 text-rose-700",
+      iconStyle: " text-rose-700",
     },
   ];
 
@@ -327,10 +356,8 @@ export default function PatientPaymentsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-primary-red">
-            Your account
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+          
+          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             Payments
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
@@ -368,7 +395,7 @@ export default function PatientPaymentsPage() {
                   <p className="text-sm font-medium text-slate-500">
                     {card.label}
                   </p>
-                  <p className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
+                  <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
                     {card.value}
                   </p>
                 </div>
@@ -386,7 +413,7 @@ export default function PatientPaymentsPage() {
         <div className="border-b border-slate-100 p-5 sm:p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-lg font-bold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900">
                 Payment history
               </h2>
               <p className="mt-1 text-sm text-slate-500">
@@ -439,7 +466,7 @@ export default function PatientPaymentsPage() {
                 className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
                   statusFilter === tab.value
                     ? "bg-slate-900 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-100"
                 }`}
               >
                 {tab.label}
@@ -543,7 +570,7 @@ export default function PatientPaymentsPage() {
                     <td className="px-6 py-4 text-sm text-slate-600">
                       {formatDate(payment.paid_at || payment.created_at)}
                     </td>
-                    <td className="px-6 py-4 text-right text-sm font-bold text-slate-900">
+                    <td className="px-6 py-4 text-right text-sm font-semibold text-slate-900">
                       {formatCurrency(
                         Number(payment.amount) || 0,
                         payment.currency || "NGN",
@@ -553,28 +580,66 @@ export default function PatientPaymentsPage() {
                       <StatusBadge status={payment.status} />
                     </td>
                     <td className="px-6 py-4">
-                      {payment.status !== "success" &&
-                        payment.purpose !== "registration" && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        {payment.status === "success" ? (
                           <button
                             type="button"
-                            onClick={() => void handleRetryPayment(payment)}
-                            disabled={isRetrying !== null}
-                            className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline disabled:cursor-wait disabled:opacity-60"
-                          >
-                            {isRetrying === payment.id
-                              ? "Opening checkout..."
-                              : "Continue payment"}
-                          </button>
-                        )}
-                      {payment.status !== "success" &&
-                        payment.purpose === "registration" && (
-                          <a
-                            href="/user/payment-recovery"
+                            onClick={() =>
+                              router.push(
+                                payment.related_appointment_id
+                                  ? "/user/appointments"
+                                  : "/user/overview",
+                              )
+                            }
                             className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline"
                           >
-                            Continue payment
-                          </a>
+                            {payment.related_appointment_id
+                              ? "View appointments"
+                              : "View account"}
+                          </button>
+                        ) : (
+                          <>
+                            {payment.status === "pending" && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  void handleVerifyPayment(payment)
+                                }
+                                disabled={
+                                  isRetrying !== null || isVerifying !== null
+                                }
+                                className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline disabled:cursor-wait disabled:opacity-60"
+                              >
+                                {isVerifying === payment.id
+                                  ? "Checking..."
+                                  : "Check status"}
+                              </button>
+                            )}
+                            {payment.purpose !== "registration" && (
+                              <button
+                                type="button"
+                                onClick={() => void handleRetryPayment(payment)}
+                                disabled={
+                                  isRetrying !== null || isVerifying !== null
+                                }
+                                className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline disabled:cursor-wait disabled:opacity-60"
+                              >
+                                {isRetrying === payment.id
+                                  ? "Opening checkout..."
+                                  : "Continue payment"}
+                              </button>
+                            )}
+                            {payment.purpose === "registration" && (
+                              <a
+                                href="/user/payment-recovery"
+                                className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline"
+                              >
+                                Continue payment
+                              </a>
+                            )}
+                          </>
                         )}
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -182,28 +182,28 @@ export default function DoctorPaymentsPage() {
       value: formatCurrency(summary.monthRevenue),
       detail: "From successful payments",
       icon: Wallet,
-      iconStyle: "bg-blue-50 text-blue-700",
+      iconStyle: "text-blue-700",
     },
     {
       label: "Successful payments",
       value: summary.successfulCount.toLocaleString(),
       detail: "All time",
       icon: CheckCircle2,
-      iconStyle: "bg-emerald-50 text-emerald-700",
+      iconStyle: " text-emerald-700",
     },
     {
       label: "Awaiting payment",
       value: summary.pendingCount.toLocaleString(),
       detail: "Pending transactions",
       icon: Clock3,
-      iconStyle: "bg-amber-50 text-amber-700",
+      iconStyle: " text-amber-700",
     },
     {
       label: "Failed payments",
       value: summary.failedCount.toLocaleString(),
       detail: "Failed or abandoned",
       icon: XCircle,
-      iconStyle: "bg-rose-50 text-rose-700",
+      iconStyle: " text-rose-700",
     },
   ];
 
@@ -218,9 +218,7 @@ export default function DoctorPaymentsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-semibold text-primary-red">
-            Practice finances
-          </p>
+          
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Payments &amp; Revenue
           </h1>
