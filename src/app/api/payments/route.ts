@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
     // Admin gets a richer join; patients get their own records only
     const selectFields = isAdmin
-      ? `*, appointments(id, scheduled_at, services(name)), profiles!patient_id(full_name, email)`
+      ? `*, appointments(id, scheduled_at, services(name)), patients!patient_id(full_name)`
       : `*`;
 
     let query = supabase
