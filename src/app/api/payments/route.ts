@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// GET /api/payments?purpose=registration
+// GET /api/payments
+// - Admin: returns all payments with appointment + service + patient info
+// - Patient: returns only their own payments
 export async function GET(request: Request) {
   try {
     const supabase = await createClient();
@@ -15,14 +17,32 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Determine role
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isAdmin = profile?.role === "admin";
+
     const { searchParams } = new URL(request.url);
     const purpose = searchParams.get("purpose");
 
+    // Admin gets a richer join; patients get their own records only
+    const selectFields = isAdmin
+      ? `*, appointments(id, scheduled_at, services(name)), profiles!patient_id(full_name, email)`
+      : `*`;
+
     let query = supabase
       .from("payments")
-      .select("*")
-      .eq("patient_id", user.id)
+      .select(selectFields)
       .order("created_at", { ascending: false });
+
+    // Restrict non-admins to their own payments
+    if (!isAdmin) {
+      query = query.eq("patient_id", user.id);
+    }
 
     if (purpose) {
       query = query.eq("purpose", purpose);
