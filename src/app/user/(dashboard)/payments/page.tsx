@@ -236,7 +236,7 @@ export default function PatientPaymentsPage() {
       return (
         matchesSearch &&
         matchesStatus &&
-        isInDateRange(date, dateRange)
+        isInDateRange(date, dateRange) 
       );
     });
   }, [dateRange, payments, search, statusFilter]);
@@ -591,7 +591,7 @@ export default function PatientPaymentsPage() {
                                   : "/user/overview",
                               )
                             }
-                            className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline"
+                            className="inline-flex items-center whitespace-nowrap rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-primary-blue transition hover:bg-blue-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-blue/30"
                           >
                             {payment.related_appointment_id
                               ? "View appointments"
@@ -608,11 +608,11 @@ export default function PatientPaymentsPage() {
                                 disabled={
                                   isRetrying !== null || isVerifying !== null
                                 }
-                                className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline disabled:cursor-wait disabled:opacity-60"
+                                className="inline-flex items-center whitespace-nowrap rounded-full border border-amber-600/20 bg-amber-50 px-3 py-1.5 text-xs items-center font-semibold text-amber-700 transition hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-600/20 disabled:cursor-wait disabled:opacity-60"
                               >
                                 {isVerifying === payment.id
                                   ? "Checking..."
-                                  : "Check status"}
+                                  : "Verify"}
                               </button>
                             )}
                             {payment.purpose !== "registration" && (
@@ -622,11 +622,11 @@ export default function PatientPaymentsPage() {
                                 disabled={
                                   isRetrying !== null || isVerifying !== null
                                 }
-                                className="whitespace-nowrap text-sm font-semibold text-primary-blue hover:underline disabled:cursor-wait disabled:opacity-60"
+                                className="inline-flex items-center whitespace-nowrap rounded-full border border-red-100 bg-primary-red px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-600/20 disabled:cursor-wait disabled:opacity-60"
                               >
                                 {isRetrying === payment.id
                                   ? "Opening checkout..."
-                                  : "Continue payment"}
+                                  : "Retry payment"}
                               </button>
                             )}
                             {payment.purpose === "registration" && (
