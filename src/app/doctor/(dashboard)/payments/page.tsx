@@ -23,7 +23,7 @@ interface PaymentRecord {
   status: string;
   paid_at: string | null;
   created_at: string;
-  patient?: { profiles?: { full_name?: string } | null } | null;
+  patients?: { full_name?: string } | null;
   appointment?: {
     services?: { name?: string } | null;
   } | null;
@@ -176,19 +176,21 @@ export default function DoctorPaymentsPage() {
   }, [refreshVersion]);
 
   const transactions = useMemo(() => {
-    return payments.map((payment): Transaction => ({
-      id: payment.id,
-      reference: payment.paystack_reference,
-      appointmentId: payment.related_appointment_id || "",
-      patientName: payment.patient?.profiles?.full_name || "Patient",
-      serviceName:
-        payment.appointment?.services?.name ||
-        getPurposeLabel(payment.purpose),
-      amount: Number(payment.amount) || 0,
-      currency: payment.currency || "NGN",
-      status: payment.status,
-      createdAt: payment.paid_at || payment.created_at,
-    }));
+    return payments.map(
+      (payment): Transaction => ({
+        id: payment.id,
+        reference: payment.paystack_reference,
+        appointmentId: payment.related_appointment_id || "",
+        patientName: payment.patients?.full_name || "Patient",
+        serviceName:
+          payment.appointment?.services?.name ||
+          getPurposeLabel(payment.purpose),
+        amount: Number(payment.amount) || 0,
+        currency: payment.currency || "NGN",
+        status: payment.status,
+        createdAt: payment.paid_at || payment.created_at,
+      }),
+    );
   }, [payments]);
 
   const summary = useMemo(() => {
@@ -281,7 +283,6 @@ export default function DoctorPaymentsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
             Payments &amp; Revenue
           </h1>
