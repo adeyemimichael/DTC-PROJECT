@@ -202,9 +202,10 @@ export default function DoctorPaymentsPage() {
     monthStart.setHours(0, 0, 0, 0);
 
     return {
-      monthRevenue: successful
-        .filter((transaction) => new Date(transaction.createdAt) >= monthStart)
-        .reduce((total, transaction) => total + transaction.amount, 0),
+      totalRevenue: successful.reduce(
+        (total, transaction) => total + transaction.amount,
+        0,
+      ),
       successfulCount: successful.length,
       pendingCount: transactions.filter(
         (transaction) => transaction.status === "pending",
@@ -243,8 +244,8 @@ export default function DoctorPaymentsPage() {
 
   const summaryCards = [
     {
-      label: "Revenue this month",
-      value: formatCurrency(summary.monthRevenue, "NGN"),
+      label: "Total Revenue",
+      value: formatCurrency(summary.totalRevenue, "NGN"),
       detail: "From successful payments",
       icon: Wallet,
       iconStyle: "text-blue-700",
