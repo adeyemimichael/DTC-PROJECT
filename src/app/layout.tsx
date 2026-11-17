@@ -60,7 +60,7 @@ export default function RootLayout({
         <Toaster
           position="bottom-right"
           toastOptions={{
-            duration: 4000,
+            duration: 5000,
             style: {
               width: "min(500px, 90vw)",
             },

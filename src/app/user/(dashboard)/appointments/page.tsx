@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, Badge, Button } from '@/components/ui';
-import { BookAppointmentButton } from '@/components/common/BookAppointmentButton';
+import { useState } from "react";
+import { Card, Badge, Button } from "@/components/ui";
+import { BookAppointmentButton } from "@/components/common/BookAppointmentButton";
 import {
   CalendarDays,
   Clock,
@@ -14,29 +14,29 @@ import {
   AlertCircle,
   X,
   CalendarX2,
-} from 'lucide-react';
-import { useAppointments } from '@/hooks';
-import type { Appointment } from '@/lib/types/appointment';
-import toast from 'react-hot-toast';
+} from "lucide-react";
+import { useAppointments } from "@/hooks";
+import type { Appointment } from "@/lib/types/appointment";
+import toast from "react-hot-toast";
 
-type FilterTab = 'all' | 'upcoming' | 'past';
+type FilterTab = "all" | "upcoming" | "past";
 
 export default function AppointmentsPage() {
-  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   // Cancel confirmation modal state
   const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
-  const [cancelReason, setCancelReason] = useState('');
+  const [cancelReason, setCancelReason] = useState("");
 
   const handleOpenCancelModal = (app: Appointment) => {
     setCancelTarget(app);
-    setCancelReason('');
+    setCancelReason("");
   };
 
   const handleCloseCancelModal = () => {
     setCancelTarget(null);
-    setCancelReason('');
+    setCancelReason("");
   };
 
   const handleConfirmCancel = async () => {
@@ -47,30 +47,27 @@ export default function AppointmentsPage() {
     handleCloseCancelModal();
   };
 
-  const {
-    appointments,
-    isLoading,
-    cancelAppointment,
-    fetchAppointments,
-  } = useAppointments({
-    autoFetch: true,
-  });
+  const { appointments, isLoading, cancelAppointment, fetchAppointments } =
+    useAppointments({
+      autoFetch: true,
+    });
 
   // Filtering appointments
   const filteredAppointments = appointments.filter((appointment) => {
     const appDate = new Date(appointment.scheduled_at);
     const now = new Date();
 
-    if (activeTab === 'upcoming') {
+    if (activeTab === "upcoming") {
       return (
         appDate >= now &&
-        !['cancelled', 'declined', 'completed'].includes(appointment.status)
+        !["cancelled", "declined", "completed"].includes(appointment.status)
       );
     }
 
-    if (activeTab === 'past') {
+    if (activeTab === "past") {
       return (
-        appDate < now || ['completed', 'cancelled', 'declined'].includes(appointment.status)
+        appDate < now ||
+        ["completed", "cancelled", "declined"].includes(appointment.status)
       );
     }
 
@@ -80,32 +77,40 @@ export default function AppointmentsPage() {
   // Revalidate / Verify payment for an appointment
   const handleVerifyPayment = async (app: Appointment) => {
     // Get latest payment reference
-    const latestPayment = app.payments?.[app.payments.length - 1] || app.payments?.[0];
+    const latestPayment =
+      app.payments?.[app.payments.length - 1] || app.payments?.[0];
     const reference = latestPayment?.paystack_reference;
 
     if (!reference) {
-      toast.error('No payment reference found. Please click Pay Now to initiate payment.');
+      toast.error(
+        "No payment reference found. Please click Pay Now to initiate payment.",
+      );
       return;
     }
 
     setActionLoading(`verify-${app.id}`);
     try {
-      const res = await fetch('/api/payments/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/payments/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reference }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Payment not completed or verified yet.');
+        throw new Error(data.error || "Payment not completed or verified yet.");
       }
 
-      toast.success('Payment verified! Your appointment has been submitted for approval.');
+      toast.success(
+        "Payment verified! Your appointment has been submitted for approval.",
+      );
       await fetchAppointments();
     } catch (err: any) {
-      toast.error(err.message || 'Payment not verified yet. Please click Pay Now to complete payment.');
+      toast.error(
+        err.message ||
+          "Payment not verified yet. Please click Pay Now to complete payment.",
+      );
     } finally {
       setActionLoading(null);
     }
@@ -115,25 +120,25 @@ export default function AppointmentsPage() {
   const handlePayNow = async (app: Appointment) => {
     setActionLoading(`pay-${app.id}`);
     try {
-      const res = await fetch('/api/payments/reinitialize', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/payments/reinitialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ appointment_id: app.id }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to initialize payment.');
+        throw new Error(data.error || "Failed to initialize payment.");
       }
 
       if (data.authorization_url) {
         window.location.href = data.authorization_url;
       } else {
-        throw new Error('No payment URL returned.');
+        throw new Error("No payment URL returned.");
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to initialize payment.');
+      toast.error(err.message || "Failed to initialize payment.");
       setActionLoading(null);
     }
   };
@@ -143,36 +148,41 @@ export default function AppointmentsPage() {
     const date = new Date(dateString);
 
     return {
-      month: date.toLocaleDateString('en-US', { month: 'short' }),
+      month: date.toLocaleDateString("en-US", { month: "short" }),
       day: date.getDate(),
-      time: date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      time: date.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
     };
   };
 
-  const getBadgeVariant = (status: string): 'success' | 'warning' | 'danger' | 'subtle' => {
+  const getBadgeVariant = (
+    status: string,
+  ): "success" | "warning" | "danger" | "subtle" => {
     switch (status) {
-      case 'confirmed':
-        return 'success';
-      case 'pending':
-      case 'pending_payment':
-      case 'pending_approval':
-        return 'warning';
-      case 'cancelled':
-      case 'declined':
-      case 'missed':
-        return 'danger';
-      case 'completed':
+      case "confirmed":
+        return "success";
+      case "pending":
+      case "pending_payment":
+      case "pending_approval":
+        return "warning";
+      case "cancelled":
+      case "declined":
+      case "missed":
+        return "danger";
+      case "completed":
       default:
-        return 'subtle';
+        return "subtle";
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'pending_payment':
-        return 'Pending Payment';
-      case 'pending_approval':
-        return 'Awaiting Approval';
+      case "pending_payment":
+        return "Pending Payment";
+      case "pending_approval":
+        return "Awaiting Approval";
       default:
         return status.charAt(0).toUpperCase() + status.slice(1);
     }
@@ -198,7 +208,7 @@ export default function AppointmentsPage() {
 
       {/* Segmented Filter Control */}
       <div className="bg-slate-100 p-1 rounded-full flex gap-1 w-full sm:w-fit select-none overflow-x-auto">
-        {(['all', 'upcoming', 'past'] as const).map((tab) => {
+        {(["all", "upcoming", "past"] as const).map((tab) => {
           const isActive = activeTab === tab;
           return (
             <button
@@ -206,8 +216,8 @@ export default function AppointmentsPage() {
               onClick={() => setActiveTab(tab)}
               className={`px-5 lg:px-6 py-2 text-sm font-bold rounded-full transition-all duration-300 capitalize cursor-pointer whitespace-nowrap ${
                 isActive
-                  ? 'bg-white text-primary-deepblue shadow-sm'
-                  : 'text-primary-gray hover:text-primary-deepblue'
+                  ? "bg-white text-primary-deepblue shadow-sm"
+                  : "text-primary-gray hover:text-primary-deepblue"
               }`}
             >
               {tab}
@@ -221,25 +231,28 @@ export default function AppointmentsPage() {
         {isLoading ? (
           <Card className="flex flex-col items-center justify-center py-16 text-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary-blue mb-3" />
-            <p className="text-sm text-slate-500 font-medium">Loading appointments...</p>
+            <p className="text-sm text-slate-500 font-medium">
+              Loading appointments...
+            </p>
           </Card>
         ) : filteredAppointments.length > 0 ? (
           filteredAppointments.map((app) => {
+            console.log("Rendering appointment:", app);
             const { month, day, time } = formatDateBlock(app.scheduled_at);
             const isPast =
-              ['completed', 'cancelled', 'declined'].includes(app.status) ||
+              ["completed", "cancelled", "declined"].includes(app.status) ||
               new Date(app.scheduled_at).getTime() < Date.now();
 
-            const serviceName = app.services?.name || 'General Consultation';
-            const doctorName = app.clinician?.full_name || 'Assigned Clinician';
+            const serviceName = app.services?.name || "General Consultation";
+            const doctorName = app.clinician?.full_name || "Assigned Clinician";
             const durationText = app.services?.duration_minutes
               ? `${app.services.duration_minutes} min`
-              : '30 min';
+              : "30 min";
             const priceText = app.services?.price
-              ? `${app.services.currency || 'NGN'} ${Number(app.services.price).toLocaleString()}`
-              : 'Free';
+              ? `${app.services.currency || "NGN"} ${Number(app.services.price).toLocaleString()}`
+              : "Free";
 
-            const isPendingPayment = app.status === 'pending_payment';
+            const isPendingPayment = app.status === "pending_payment";
 
             return (
               <Card
@@ -287,7 +300,10 @@ export default function AppointmentsPage() {
                   {isPendingPayment && (
                     <div className="mt-2.5 inline-flex items-center gap-1.5 text-xs text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200/60 font-medium">
                       <AlertCircle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                      <span>Payment pending. Click Pay Now or Verify if already debited.</span>
+                      <span>
+                        Payment pending. Click Pay Now or Verify if already
+                        debited.
+                      </span>
                     </div>
                   )}
 
@@ -379,7 +395,8 @@ export default function AppointmentsPage() {
               No appointments found
             </h3>
             <p className="text-sm text-primary-gray mt-2 max-w-sm font-medium">
-              There are no appointments listed under the &quot;{activeTab}&quot; tab filter.
+              There are no appointments listed under the &quot;{activeTab}&quot;
+              tab filter.
             </p>
           </Card>
         )}
@@ -392,7 +409,6 @@ export default function AppointmentsPage() {
           <div className="absolute inset-0" onClick={handleCloseCancelModal} />
 
           <div className="relative bg-white rounded-2xl p-5 sm:p-7 max-w-xl w-full shadow-lg border border-slate-100 z-10 animate-in slide-in-from-bottom-4 duration-200">
-
             {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-center gap-3">
@@ -421,27 +437,33 @@ export default function AppointmentsPage() {
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400 font-medium">Service</span>
                 <span className="text-slate-900 font-semibold">
-                  {cancelTarget.services?.name || 'Appointment'}
+                  {cancelTarget.services?.name || "Appointment"}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400 font-medium">Date</span>
                 <span className="text-slate-900 font-semibold">
-                  {new Date(cancelTarget.scheduled_at).toLocaleDateString('en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  })}
+                  {new Date(cancelTarget.scheduled_at).toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "short",
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    },
+                  )}
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-400 font-medium">Time</span>
                 <span className="text-slate-900 font-semibold">
-                  {new Date(cancelTarget.scheduled_at).toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  {new Date(cancelTarget.scheduled_at).toLocaleTimeString(
+                    "en-US",
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
                 </span>
               </div>
               {cancelTarget.clinician?.full_name && (
@@ -457,7 +479,7 @@ export default function AppointmentsPage() {
             {/* Reason textarea */}
             <div className="mb-5">
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Reason for cancellation{' '}
+                Reason for cancellation{" "}
                 <span className="text-slate-400 font-normal">(optional)</span>
               </label>
               <textarea
@@ -495,7 +517,7 @@ export default function AppointmentsPage() {
                     Cancelling...
                   </>
                 ) : (
-                  'Yes, Cancel Appointment'
+                  "Yes, Cancel Appointment"
                 )}
               </Button>
             </div>

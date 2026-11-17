@@ -103,6 +103,9 @@ create policy "profiles_update_own_or_admin"
 create table if not exists patients (
   id                 uuid primary key references profiles(id) on delete cascade,
   date_of_birth      date,
+  full_name          text,
+  phone              text,
+  email              text,
   gender             text check (gender in ('male', 'female', 'other')),
   blood_group        text,
   address            text,

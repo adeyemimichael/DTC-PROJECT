@@ -12,6 +12,7 @@ import {
   Wallet,
   XCircle,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
 type PaymentStatus = "all" | "success" | "pending" | "failed";
 type DateRange = "all" | "this-month" | "last-30-days";
@@ -51,9 +52,11 @@ function formatCurrencyTotals(payments: PatientPayment[]): string {
     );
   }
 
-  return [...totals.entries()]
-    .map(([currency, amount]) => formatCurrency(amount, currency))
-    .join(" · ") || formatCurrency(0, "NGN");
+  return (
+    [...totals.entries()]
+      .map(([currency, amount]) => formatCurrency(amount, currency))
+      .join(" · ") || formatCurrency(0, "NGN")
+  );
 }
 
 function formatDate(value: string): string {
@@ -139,7 +142,6 @@ export default function PatientPaymentsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRetrying, setIsRetrying] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [refreshVersion, setRefreshVersion] = useState(0);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<PaymentStatus>("all");
@@ -168,12 +170,11 @@ export default function PatientPaymentsPage() {
         }
 
         if (isCurrent) {
-          setError(null);
           setPayments(result.data);
         }
       } catch (fetchError: unknown) {
         if (isCurrent) {
-          setError(
+          toast.error(
             fetchError instanceof Error
               ? fetchError.message
               : "Failed to fetch your payments.",
@@ -206,9 +207,8 @@ export default function PatientPaymentsPage() {
     return {
       totalPaid: formatCurrencyTotals(successful),
       paidThisMonth: formatCurrencyTotals(paidThisMonth),
-      pendingCount: payments.filter(
-        (payment) => payment.status === "pending",
-      ).length,
+      pendingCount: payments.filter((payment) => payment.status === "pending")
+        .length,
       unsuccessfulCount: payments.filter((payment) =>
         ["failed", "abandoned"].includes(payment.status),
       ).length,
@@ -233,11 +233,7 @@ export default function PatientPaymentsPage() {
           : payment.status === statusFilter);
       const date = payment.paid_at || payment.created_at;
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        isInDateRange(date, dateRange) 
-      );
+      return matchesSearch && matchesStatus && isInDateRange(date, dateRange);
     });
   }, [dateRange, payments, search, statusFilter]);
 
@@ -250,14 +246,13 @@ export default function PatientPaymentsPage() {
     }
 
     if (!payment.related_appointment_id) {
-      setError(
+      toast.error(
         "This payment cannot be restarted from here. Please contact the clinic for help.",
       );
       return;
     }
 
     setIsRetrying(payment.id);
-    setError(null);
     try {
       const response = await fetch("/api/payments/reinitialize", {
         method: "POST",
@@ -277,7 +272,7 @@ export default function PatientPaymentsPage() {
 
       window.location.assign(result.authorization_url);
     } catch (retryError: unknown) {
-      setError(
+      toast.error(
         retryError instanceof Error
           ? retryError.message
           : "Failed to restart payment.",
@@ -288,7 +283,6 @@ export default function PatientPaymentsPage() {
 
   const handleVerifyPayment = async (payment: PatientPayment) => {
     setIsVerifying(payment.id);
-    setError(null);
     try {
       const response = await fetch("/api/payments/verify", {
         method: "POST",
@@ -301,10 +295,14 @@ export default function PatientPaymentsPage() {
         throw new Error(result.error || "Failed to verify payment.");
       }
 
+      toast.success(
+        "Payment verified! Your appointment has been submitted for approval.",
+      );
+
       setIsLoading(true);
       setRefreshVersion((version) => version + 1);
     } catch (verificationError: unknown) {
-      setError(
+      toast.error(
         verificationError instanceof Error
           ? verificationError.message
           : "Failed to verify payment.",
@@ -356,7 +354,6 @@ export default function PatientPaymentsPage() {
     <div className="mx-auto max-w-7xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             Payments
           </h1>
@@ -474,16 +471,6 @@ export default function PatientPaymentsPage() {
             ))}
           </div>
         </div>
-
-        {error && (
-          <div
-            className="m-5 flex items-start gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"
-            role="alert"
-          >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
 
         {isLoading && payments.length === 0 ? (
           <div className="space-y-3 p-5" aria-label="Loading payments">

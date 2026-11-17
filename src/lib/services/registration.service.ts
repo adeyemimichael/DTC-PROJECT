@@ -55,6 +55,7 @@ export async function registerPatient(data: RegisterPatientDto) {
     status: "pending_payment",
     full_name: fullName,
     phone: data.phoneNumber,
+    email: data.email,
   });
 
   if (patientError) {

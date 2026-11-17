@@ -181,24 +181,54 @@ export default function PatientSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
 
-  const handleSavePassword = (e: React.FormEvent) => {
+  const handleSavePassword = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!passwordForm.currentPassword || !passwordForm.newPassword) {
       toast.error("Please fill in all required password fields");
       return;
     }
+
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       toast.error("New passwords do not match");
       return;
     }
-    toast.success("Password changed successfully!");
-    setIsPasswordModalOpen(false);
-    setPasswordForm({
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: "",
-    });
+
+    setIsUpdatingPassword(true);
+
+    try {
+      const response = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          current_password: passwordForm.currentPassword,
+          password: passwordForm.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Failed to update password");
+        return;
+      }
+
+      toast.success("Password changed successfully!");
+      setIsPasswordModalOpen(false);
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+    } catch (error) {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setIsUpdatingPassword(false);
+    }
   };
 
   // 4. Delete Account Modal State
@@ -701,9 +731,17 @@ export default function PatientSettingsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-semibold text-white bg-[#0149ff] hover:bg-blue-700 rounded-xl shadow-xs"
+                  disabled={isUpdatingPassword}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2 text-xs font-semibold text-white bg-[#0149ff] hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-xs"
                 >
-                  Update Password
+                  {isUpdatingPassword ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Password"
+                  )}
                 </button>
               </div>
             </form>
