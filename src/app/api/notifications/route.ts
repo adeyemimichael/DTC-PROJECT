@@ -41,3 +41,36 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 }
+
+// PUT /api/notifications - Mark all notifications as read for current user
+export async function PUT(request: Request) {
+  const supabase = await createClient();
+
+  try {
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { error: updateError } = await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", user.id)
+      .eq("is_read", false);
+
+    if (updateError) {
+      return NextResponse.json(
+        { error: updateError.message },
+        { status: 500 },
+      );
+    }
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (err) {
+    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+}

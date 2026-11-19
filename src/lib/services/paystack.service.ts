@@ -1,4 +1,9 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  notifyPaymentSuccess,
+  notifyWelcome,
+  notifyAppointmentBooked,
+} from "@/lib/services/notification.service";
 
 export interface PaystackInitializeOptions {
   email: string;
@@ -78,7 +83,7 @@ export async function verifyPaystackTransaction(reference: string) {
         paid_at: new Date().toISOString(),
       })
       .eq("paystack_reference", reference)
-      .select("patient_id, purpose, related_appointment_id, amount")
+      .select("id, patient_id, purpose, related_appointment_id, amount, currency")
       .single();
 
     paymentRecord = updatedPayment;
@@ -89,7 +94,7 @@ export async function verifyPaystackTransaction(reference: string) {
       );
     }
 
-    // 2. Handle specific payment purposes
+    // 2. Handle specific payment purposes and in-app notifications
     if (paymentRecord) {
       if (paymentRecord.purpose === "registration") {
         // Activate the patient profile
@@ -103,6 +108,27 @@ export async function verifyPaystackTransaction(reference: string) {
             `Failed to activate patient: ${updatePatientError.message}`,
           );
         }
+
+        // Fetch patient name for personalized welcome notification
+        const { data: patientProfile } = await adminClient
+          .from("patients")
+          .select("full_name")
+          .eq("id", paymentRecord.patient_id)
+          .single();
+
+        // Send payment confirmation + welcome notification
+        await notifyPaymentSuccess({
+          userId: paymentRecord.patient_id,
+          amount: paymentRecord.amount,
+          currency: paymentRecord.currency,
+          purpose: "registration",
+          paymentId: paymentRecord.id,
+        });
+
+        await notifyWelcome({
+          userId: paymentRecord.patient_id,
+          patientName: patientProfile?.full_name,
+        });
       } else if (
         paymentRecord.purpose === "appointment" ||
         paymentRecord.purpose === "follow_up"
@@ -119,6 +145,31 @@ export async function verifyPaystackTransaction(reference: string) {
               `Failed to update appointment status: ${updateAppointmentError.message}`,
             );
           }
+
+          // Fetch appointment details (clinician, schedule, patient name)
+          const { data: aptData } = await adminClient
+            .from("appointments")
+            .select("id, scheduled_at, clinician_id, patient:patients(full_name)")
+            .eq("id", paymentRecord.related_appointment_id)
+            .single();
+
+          // Send payment confirmation notification
+          await notifyPaymentSuccess({
+            userId: paymentRecord.patient_id,
+            amount: paymentRecord.amount,
+            currency: paymentRecord.currency,
+            purpose: paymentRecord.purpose,
+            paymentId: paymentRecord.id,
+          });
+
+          // Send appointment booked notification (to patient and assigned doctor)
+          await notifyAppointmentBooked({
+            patientId: paymentRecord.patient_id,
+            clinicianId: aptData?.clinician_id,
+            appointmentId: paymentRecord.related_appointment_id,
+            scheduledAt: aptData?.scheduled_at,
+            patientName: (aptData?.patient as any)?.full_name,
+          });
         }
       }
     }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyNewDocument } from "@/lib/services/notification.service";
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -162,6 +163,13 @@ export async function POST(request: Request) {
     if (documentError) {
       throw new Error(`Database insert failed: ${documentError.message}`);
     }
+
+    // Notify patient of new medical record
+    await notifyNewDocument({
+      patientId: patient_id,
+      documentId: document.id,
+      category: document.category,
+    });
 
     return NextResponse.json({ data: document }, { status: 201 });
   } catch (err: any) {

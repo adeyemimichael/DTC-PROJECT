@@ -470,8 +470,9 @@ create table if not exists notifications (
   user_id        uuid not null references profiles(id) on delete cascade,
   type           text not null
                     check (type in
-                      ('appointment_upcoming', 'appointment_booked', 'new_upload',
-                       'payment_success', 'new_document')),
+                      ('welcome', 'payment_success', 'appointment_booked',
+                       'appointment_confirmed', 'appointment_cancelled',
+                       'appointment_declined', 'new_document', 'new_upload')),
   title          text not null,
   message        text,
   related_table  text,

@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  notifyAppointmentConfirmed,
+  notifyAppointmentDeclined,
+  notifyAppointmentCancelled,
+} from "@/lib/services/notification.service";
 
 // GET /api/appointments/[id]
 export async function GET(
@@ -84,7 +89,7 @@ export async function PUT(
     if (!isAdmin) {
       const { data: existingApt } = await adminClient
         .from("appointments")
-        .select("id, patient_id, status")
+        .select("id, patient_id, status, scheduled_at, clinician_id")
         .eq("id", id)
         .single();
 
@@ -116,6 +121,17 @@ export async function PUT(
           { error: cancelError.message },
           { status: 500 },
         );
+      }
+
+      // Notify clinician that the patient cancelled the appointment
+      if (existingApt.clinician_id) {
+        await notifyAppointmentCancelled({
+          userId: existingApt.clinician_id,
+          appointmentId: id,
+          scheduledAt: existingApt.scheduled_at,
+          reason: cancellation_reason || "Cancelled by patient",
+          cancelledBy: "patient",
+        });
       }
 
       return NextResponse.json({ data: updatedApt }, { status: 200 });
@@ -158,6 +174,32 @@ export async function PUT(
         { error: updateError.message },
         { status: 500 },
       );
+    }
+
+    // 3. Trigger contextual in-app notifications
+    if (status === "confirmed") {
+      await notifyAppointmentConfirmed({
+        patientId: updatedAppointment.patient_id,
+        appointmentId: id,
+        scheduledAt: updatedAppointment.scheduled_at,
+        meetingLink: updatedAppointment.meeting_link,
+        doctorName: (updatedAppointment.profiles as any)?.full_name,
+      });
+    } else if (status === "declined") {
+      await notifyAppointmentDeclined({
+        patientId: updatedAppointment.patient_id,
+        appointmentId: id,
+        scheduledAt: updatedAppointment.scheduled_at,
+        reason: updatedAppointment.cancellation_reason,
+      });
+    } else if (status === "cancelled") {
+      await notifyAppointmentCancelled({
+        userId: updatedAppointment.patient_id,
+        appointmentId: id,
+        scheduledAt: updatedAppointment.scheduled_at,
+        reason: updatedAppointment.cancellation_reason,
+        cancelledBy: "admin",
+      });
     }
 
     return NextResponse.json({ data: updatedAppointment }, { status: 200 });

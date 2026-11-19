@@ -25,3 +25,5 @@ export { useAppointments } from './useAppointments';
 export type { BookAppointmentPayload } from './useAppointments';
 export { useDoctorAvailability } from './useDoctorAvailability';
 export type { TimeSlot, DayAvailability } from './useDoctorAvailability';
+export { useNotifications } from './useNotifications';
+export type { NotificationItem } from './useNotifications';
