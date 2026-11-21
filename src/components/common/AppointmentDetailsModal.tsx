@@ -1,8 +1,8 @@
 "use client";
-"use client";
 
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
+import { Button } from "@/components/ui";
 import {
   X,
   Phone,
@@ -808,15 +808,15 @@ export function AppointmentDetailsModal({
               appointment.rawStatus !== "cancelled" &&
               appointment.rawStatus !== "declined" && (
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={() => {
                       onClose();
                       onOpenApprove?.();
                     }}
-                    className="flex-1 py-4 rounded-2xl bg-primary-red text-white font-semibold text-base hover:opacity-90 transition-all cursor-pointer shadow-md text-center"
+                    className="btn-primary flex-1 py-4 rounded-2xl font-semibold text-base cursor-pointer shadow-md text-center inline-flex items-center justify-center"
                   >
                     Approve Appointment
-                  </button>
+                  </Button>
                   <button
                     onClick={() => {
                       onClose();

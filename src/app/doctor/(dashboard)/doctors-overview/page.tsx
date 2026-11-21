@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+
 import {
   Calendar,
   Clock,
@@ -19,7 +20,7 @@ import { useProfile, usePatients, useAppointments } from "@/hooks";
 import type { Appointment } from "@/lib/types/appointment";
 import { Button } from "@/components/ui";
 import { useRouter } from "next/navigation";
-import { ApproveAppointmentModal } from "@/components/common/ApproveAppointmentModal";
+import { useApproveModal } from "@/context/ApproveModalContext";
 import { DeclineAppointmentModal } from "@/components/common/DeclineAppointmentModal";
 import type { AppointmentData } from "@/components/common/AppointmentDetailsModal";
 
@@ -93,6 +94,7 @@ function statusDot(status: string): string {
 
 export default function DoctorsOverviewPage() {
   const { profile } = useProfile();
+  const openApproveModal = useApproveModal();
   const {
     patients,
     isLoadingPatients,
@@ -107,10 +109,6 @@ export default function DoctorsOverviewPage() {
     declineAppointment,
     patchAppointment,
   } = useAppointments({ autoFetch: true });
-
-  const [selectedAppointmentForApprove, setSelectedAppointmentForApprove] =
-    useState<AppointmentData | null>(null);
-  const [isApproveOpen, setIsApproveOpen] = useState(false);
 
   const [selectedAppointmentForDecline, setSelectedAppointmentForDecline] =
     useState<AppointmentData | null>(null);
@@ -249,17 +247,16 @@ export default function DoctorsOverviewPage() {
 
   // ── Approve / Decline Modals ───────────────────────────────────────────────
   const handleOpenApprove = (req: Appointment) => {
-    setSelectedAppointmentForApprove(toAppointmentData(req));
-    setIsApproveOpen(true);
-  };
-
-  const handleApproveConfirm = async (id: string, meetingLink: string) => {
-    const result = await approveAppointment(id, meetingLink);
-    if (result.success) {
-      setIsApproveOpen(false);
-      await fetchAppointments();
-    }
-    return result;
+    const appointmentData = toAppointmentData(req);
+    openApproveModal(
+      appointmentData,
+      async (id: string, meetingLink: string) => {
+        const result = await approveAppointment(id, meetingLink);
+        if (result.success) await fetchAppointments();
+        return result;
+      },
+      fetchAppointments,
+    );
   };
 
   const handleOpenDecline = (req: Appointment) => {
@@ -307,7 +304,7 @@ export default function DoctorsOverviewPage() {
         </div>
         <Button
           onClick={() => router.push("/doctor/appointments")}
-          className="inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl bg-primary-red text-white font-semibold text-base hover:opacity-90 transition-all shadow-sm shrink-0 cursor-pointer"
+          className="btn-primary inline-flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-semibold text-base shadow-sm shrink-0 cursor-pointer"
         >
           <Calendar className="h-5 w-5" />
           Manage Appointments
@@ -625,12 +622,12 @@ export default function DoctorsOverviewPage() {
 
                     {/* Actions */}
                     <div className="flex items-center gap-3 pt-1">
-                      <button
+                      <Button
                         onClick={() => handleOpenApprove(req)}
-                        className="flex-1 py-3 rounded-xl bg-primary-red text-white text-sm font-semibold hover:opacity-90 transition-opacity cursor-pointer text-center inline-flex items-center justify-center gap-1.5 shadow-xs"
+                        className="btn-primary flex-1 py-3 rounded-xl text-sm font-semibold cursor-pointer text-center inline-flex items-center justify-center gap-1.5 shadow-xs"
                       >
                         Approve
-                      </button>
+                      </Button>
                       <button
                         onClick={() => handleOpenDecline(req)}
                         className="flex-1 py-3 rounded-xl bg-gray-100 text-gray-700 text-sm font-semibold hover:bg-gray-200 transition-colors cursor-pointer text-center inline-flex items-center justify-center gap-1.5"
@@ -647,14 +644,6 @@ export default function DoctorsOverviewPage() {
       </div>
 
       {/* Modals */}
-      <ApproveAppointmentModal
-        isOpen={isApproveOpen}
-        onClose={() => setIsApproveOpen(false)}
-        appointment={selectedAppointmentForApprove}
-        onApprove={handleApproveConfirm}
-        onAppointmentUpdated={fetchAppointments}
-      />
-
       <DeclineAppointmentModal
         isOpen={isDeclineOpen}
         onClose={() => setIsDeclineOpen(false)}

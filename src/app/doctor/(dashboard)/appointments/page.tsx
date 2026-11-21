@@ -3,10 +3,11 @@
 import React, { useMemo, useState } from "react";
 import Image from "next/image";
 import { Calendar, Search, X, FileText, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui";
 import { useProfile } from "@/hooks";
 import { useAppointments } from "@/hooks/useAppointments";
+import { useApproveModal } from "@/context/ApproveModalContext";
 import { AppointmentDetailsModal } from "@/components/common/AppointmentDetailsModal";
-import { ApproveAppointmentModal } from "@/components/common/ApproveAppointmentModal";
 import { DeclineAppointmentModal } from "@/components/common/DeclineAppointmentModal";
 import { CancelAppointmentModal } from "@/components/common/CancelAppointmentModal";
 import { RescheduleAppointmentModal } from "@/components/common/RescheduleAppointmentModal";
@@ -112,6 +113,7 @@ function toDisplayData(apt: Appointment): AppointmentData {
 
 export default function DoctorAppointmentsPage() {
   const { profile } = useProfile();
+  const openApproveModal = useApproveModal();
   const {
     appointments: rawAppointments,
     isLoading,
@@ -134,7 +136,6 @@ export default function DoctorAppointmentsPage() {
   const [selectedDisplay, setSelectedDisplay] =
     useState<AppointmentData | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  const [isApproveOpen, setIsApproveOpen] = useState(false);
   const [isDeclineOpen, setIsDeclineOpen] = useState(false);
   const [isCancelOpen, setIsCancelOpen] = useState(false);
   const [isRescheduleOpen, setIsRescheduleOpen] = useState(false);
@@ -153,9 +154,10 @@ export default function DoctorAppointmentsPage() {
 
   // These close the details modal first, then open the target modal
   function openApprove(item?: AppointmentData) {
-    if (item) setSelectedDisplay(item);
+    const target = item ?? selectedDisplay;
+    if (!target) return;
     setIsDetailsOpen(false);
-    setIsApproveOpen(true);
+    openApproveModal(target, handleApprove, fetchAppointments);
   }
 
   function openDecline(item?: AppointmentData) {
@@ -463,12 +465,12 @@ export default function DoctorAppointmentsPage() {
                     item.rawStatus !== "cancelled" &&
                     item.rawStatus !== "declined" && (
                       <>
-                        <button
+                        <Button
                           onClick={() => openApprove(item)}
-                          className="px-5 py-2.5 rounded-lg bg-primary-red text-white text-[15px] font-semibold hover:opacity-90 transition-opacity cursor-pointer shadow-xs"
+                          className="btn-primary px-5 py-2.5 rounded-lg text-[15px] font-semibold shadow-xs cursor-pointer inline-flex items-center justify-center"
                         >
                           Approve
-                        </button>
+                        </Button>
                         <button
                           onClick={() => openDecline(item)}
                           className="px-5 py-2.5 rounded-lg bg-[#f3f4f6] text-gray-700 text-[15px] font-semibold hover:bg-gray-200 transition-colors cursor-pointer"
@@ -580,14 +582,6 @@ export default function DoctorAppointmentsPage() {
         onOpenComplete={() => openComplete()}
         onOpenNoShow={() => openNoShow()}
         onUpdateMeetingLink={handleUpdateMeetingLink}
-        onAppointmentUpdated={fetchAppointments}
-      />
-
-      <ApproveAppointmentModal
-        isOpen={isApproveOpen}
-        onClose={() => setIsApproveOpen(false)}
-        appointment={selectedDisplay}
-        onApprove={handleApprove}
         onAppointmentUpdated={fetchAppointments}
       />
 

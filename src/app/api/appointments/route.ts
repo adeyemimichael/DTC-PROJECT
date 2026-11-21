@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     let query = supabase
       .from("appointments")
       .select(
-        "*, services(*), patient:patient_id(id, full_name, email, passport_url, phone, date_of_birth, gender, blood_group), clinician:clinician_id(id, full_name, avatar_url, phone), payments(id, paystack_reference, paystack_access_code, status, amount, created_at)",
+        "*, services(*), patient:patient_id(id, full_name, email, passport_url, phone, date_of_birth, gender, blood_group), clinician:clinician_id(id, full_name, passport_url, phone), payments(id, paystack_reference, paystack_access_code, status, amount, created_at)",
       )
       .order("scheduled_at", { ascending: true });
 
